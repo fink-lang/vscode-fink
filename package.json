@@ -1,0 +1,97 @@
+{
+  "name": "vscode-fink",
+  "version": "0.0.0-semantically-released",
+  "license": "MIT",
+  "displayName": "fink",
+  "description": "VSCode syntax highlighting for fink.",
+  "engines": {
+    "vscode": "^1.31.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:fink-lang/vscode-fink"
+  },
+  "bugs": "https://github.com/fink-lang/vscode-fink/issues",
+  "homepage": "https://github.com/fink-lang/vscode-fink",
+  "publisher": "fink",
+  "main": "./extension.js",
+  "activationEvents": [
+    "onLanguage:fink",
+    "onLanguage:jsx",
+    "onLanguage:jsx-attr",
+    "onCommand:javascript.reloadProjects"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "fink",
+        "aliases": [
+          "fink",
+          "fink+jsx"
+        ],
+        "extensions": [
+          ".fink",
+          ".fnk"
+        ],
+        "firstLine": "^#!.*\\bfink",
+        "configuration": "./languages/fink.language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "fink",
+        "scopeName": "source.fink",
+        "path": "./grammars/fink.tmLanguage.json",
+        "embeddedLanguages": {
+          "meta.embedded.inline.sql": "source.sql",
+          "meta.tag.jsx": "jsx",
+          "meta.jsx.tag.termination": "jsx",
+          "JSXNested": "jsx",
+          "JSXAttrs": "jsx-attr"
+        }
+      },
+      {
+        "scopeName": "source.regexp.fink",
+        "path": "./grammars/regex.tmLanguage.json"
+      },
+      {
+        "scopeName": "source.jsx.fink",
+        "path": "./grammars/jsx.tmLanguage.json"
+      }
+    ]
+  },
+  "scripts": {
+    "default": "run clean test build",
+    "cd": "run clean build release",
+    "clean": "rimraf ./build",
+    "build": "run build:*",
+    "build:dir": "mkdir -p ./build/pkg/",
+    "build:files": "cp ./extension.js ./package.json ./README.md ./LICENSE ./build/pkg/",
+    "build:grammars": "cp -r ./grammars ./build/pkg/",
+    "build:languages": "cp -r ./languages ./build/pkg/",
+    "test": "run lint",
+    "lint": "run lint:*",
+    "lint:js": "eslint --report-unused-disable-directives --ignore-path .gitignore .",
+    "release": "semantic-release"
+  },
+  "devDependencies": {
+    "@nearmap/eslint-config-base": "^1.1.0",
+    "babel-eslint": "^10.0.1",
+    "commitizen": "^3.0.7",
+    "cz-conventional-changelog": "^2.1.0",
+    "eslint": "^5.15.1",
+    "eslint-cli": "^1.1.1",
+    "eslint-plugin-babel": "^5.3.0",
+    "npx-run": "^2.1.2",
+    "semantic-release": "^15.13.3",
+    "semantic-release-vsce": "^2.2.6"
+  },
+  "config": {
+    "commitizen": {
+      "path": "cz-conventional-changelog"
+    }
+  }
+}

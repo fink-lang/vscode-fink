@@ -1,0 +1,189 @@
+{
+	"name": "fink",
+	"scopeName": "source.fink",
+
+	"patterns": [
+		{"include": "source.jsx.fink"},
+
+		{"include": "#regex"},
+
+		{"include": "#comments"},
+
+		{"include": "#keywords"},
+		{"include": "#language-constant"},
+
+		{"include": "#operators"},
+
+		{"include": "#function-call"},
+
+		{"include": "#number"},
+		{"include": "#string"},
+		{"include": "#object"},
+
+		{"include": "#variable"}
+	],
+
+	"repository": {
+		"comments": {
+			"patterns": [
+				{
+					"name": "comment.line.hash.fink",
+					"match": "#.+$"
+				},
+				{
+					"name": "comment.block.documentation.fink",
+          "begin": "^\\s*(---).*$",
+          "end": "^\\s*(---).*$",
+          "captures": {
+            "1": {"name": "punctuation.definition.comment.fink"}
+					}
+        }
+			]
+		},
+
+		"keywords": {
+			"patterns": [
+				{
+					"name": "keyword.control.fink",
+					"match": "\\b(if|match|fold|unfold|map|flat_map|filter|await|else)\\b"
+				}
+			]
+		},
+
+		"operators": {
+			"patterns": [
+				{
+          "match": "(?<!\\.)\\s*+\\b(in|new)\\b",
+          "captures": {
+            "1": {"name": "keyword.operator.$1.fink"}
+          }
+				},
+				{
+          "match": "!|&&|\\|\\|",
+          "name": "keyword.operator.logical.fink"
+				},
+				{
+          "match": "=(?!(=))",
+          "name": "keyword.operator.assignment.fink"
+				},
+				{
+          "match": "<=|>=|<>|<|>",
+          "name": "keyword.operator.relational.fink"
+				},
+				{
+          "match": "==|!=",
+          "name": "keyword.operator.comparison.fink"
+				},
+				{
+          "match": "-|\\+|%|\\*|/|\\^",
+          "name": "keyword.operator.arithmetic.fink"
+				}
+			]
+		},
+
+		"number": {
+			"patterns": [
+        {
+          "match": "\\s*+((?:\\B[-+])?(?:\\b0[bB][_0-1]*|\\b0[oO][_0-7]*|\\b0[xX][_0-9a-fA-F]*|(\\B\\.[_0-9]+|\\b[0-9]+(\\.[_0-9]*)?)([eE][-+]?[_0-9]+)?))(n\\b)?",
+          "captures": {
+            "1": {"name": "constant.numeric.fink"},
+            "5": {"name": "constant.numeric.bigint.fink"}
+          }
+        }
+      ]
+		},
+
+		"variable": {
+      "patterns": [
+        {
+          "match": "\\b(\\w+?)\\b",
+          "captures": {
+            "1": {"name": "variable.other.readwrite.fink"}
+          }
+        }
+      ]
+		},
+
+		"function-call": {
+			"patterns": [
+				{
+					"match": "\\b(\\w*+)\\s*+\\(",
+					"captures": {
+						"1": {"name": "entity.name.function.fink"}
+					}
+				},
+				{
+					"match": "(\\|)\\s*+(.+?)\\b",
+					"captures": {
+						"1": {"name": "keyword.operator.pipeline.fink"},
+						"2": {"name": "entity.name.function.fink"}
+					}
+				}
+			]
+		},
+
+		"object": {
+			"begin": "{",
+			"end": "}",
+			"patterns": [
+				{
+					"match": ",",
+					"name": "meta.delimiter.comma.fink"
+				},
+				{
+					"match": "\\s*+(\\w+?)\\s*+:",
+					"captures": {
+						"1": {"name": "string.unquoted"}
+					}
+				},
+				{"include": "$base"}
+			]
+		},
+
+		"string": {
+			"name": "string.quoted.template.fink",
+			"begin": "`",
+			"end": "`",
+			"patterns": [
+				{
+					"name": "constant.character.escape.fink",
+					"match": "\\\\."
+				}
+			]
+		},
+
+		"regex": {
+      "patterns": [
+				{
+          "name": "string.regexp.fink",
+          "begin": "(rx?)(/)",
+          "end": "(/)([gimyu]*)",
+          "beginCaptures": {
+						"1": {"name": "keyword.control.fink"},
+						"2": {"name": "punctuation.definition.string.begin.fink"}
+          },
+          "endCaptures": {
+            "1": {"name": "punctuation.definition.string.end.fink"},
+            "2": {"name": "keyword.other.fink"}
+          },
+          "patterns": [
+            {"include": "source.regexp.fink"}
+          ]
+				}
+      ]
+    },
+
+		"language-constant": {
+      "patterns": [
+        {
+          "match": "(?<!\\.)\\s*+\\b((true)|(false)|(null))\\b",
+          "captures": {
+            "2": {"name": "constant.language.boolean.true.fink"},
+            "3": {"name": "constant.language.boolean.false.fink"},
+            "4": {"name": "constant.language.null.fink"}
+          }
+        }
+      ]
+		}
+	}
+}

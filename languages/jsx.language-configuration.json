@@ -1,0 +1,27 @@
+{
+  "comments": {
+    "blockComment": ["{/*", "*/}"]
+  },
+  "brackets": [["{", "}"], ["[", "]"], ["(", ")"], ["<", ">"]],
+  "autoClosingPairs": [
+    { "open": "{", "close": "}" },
+    { "open": "[", "close": "]" },
+    { "open": "(", "close": ")" },
+    { "open": "'", "close": "'", "notIn": ["string", "comment"] },
+    { "open": "\"", "close": "\"", "notIn": ["string"] },
+    { "open": "/**", "close": " */", "notIn": ["string"] }
+  ],
+  "surroundingPairs": [
+    ["{", "}"],
+    ["[", "]"],
+    ["(", ")"],
+    ["<", ">"],
+    ["'", "'"],
+    ["\"", "\""]
+  ],
+  "indentationRules": {
+    "increaseIndentPattern": "^[^-]+([:=+<\\-/\\*]{1}\\s*)$",
+    // TODO: this is not working to unindent empty lines
+    "decreaseIndentPattern": "^\\s*</"
+  }
+}
