@@ -1,0 +1,23 @@
+{
+  "branch": "master",
+  "debug": true,
+  "pkgRoot": "build/pkg",
+
+  "verifyConditions": [
+    "semantic-release-vsce",
+    "@semantic-release/github"
+  ],
+
+  "prepare": {
+    "path": "semantic-release-vsce",
+    "packageVsix": "your-extension.vsix"
+  },
+
+  "publish": [
+    "semantic-release-vsce",
+    {
+      "path": "@semantic-release/github",
+      "assets": "your-extension.vsix"
+    }
+  ]
+}

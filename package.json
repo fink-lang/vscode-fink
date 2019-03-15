@@ -1,6 +1,6 @@
 {
   "name": "vscode-fink",
-  "version": "0.0.1",
+  "version": "0.0.0-semantically-released",
   "license": "MIT",
   "displayName": "fink",
   "description": "VSCode syntax highlighting for fink.",
@@ -63,10 +63,31 @@
       }
     ]
   },
+  "scripts": {
+    "default": "run clean test build",
+    "cd": "run clean build release",
+    "clean": "rimraf ./build",
+    "build": "run build:*",
+    "build:dir": "mkdir -p ./build/pkg/",
+    "build:files": "cp ./extension.js ./package.json ./README.md ./LICENSE ./build/pkg/",
+    "build:grammars": "cp -r ./grammars ./build/pkg/",
+    "build:languages": "cp -r ./languages ./build/pkg/",
+    "test": "run lint",
+    "lint": "run lint:*",
+    "lint:js": "eslint --report-unused-disable-directives --ignore-path .gitignore .",
+    "release": "semantic-release"
+  },
   "devDependencies": {
+    "@nearmap/eslint-config-base": "^1.1.0",
+    "babel-eslint": "^10.0.1",
     "commitizen": "^3.0.7",
     "cz-conventional-changelog": "^2.1.0",
-    "semantic-release": "^15.9.14"
+    "eslint": "^5.15.1",
+    "eslint-cli": "^1.1.1",
+    "eslint-plugin-babel": "^5.3.0",
+    "npx-run": "^2.1.2",
+    "semantic-release": "^15.13.3",
+    "semantic-release-vsce": "^2.2.6"
   },
   "config": {
     "commitizen": {

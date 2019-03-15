@@ -1,3 +1,4 @@
+// eslint-disable-next-line no-undef
 const {IndentAction, languages} = require('vscode');
 
 const wordPattern = /(-?\d*\.\d\w*)|([^`~!@$^&*()=+[{\]}\\|;:'",.<>/\s]+)/g;
@@ -47,11 +48,12 @@ const fink_conf = {
 };
 
 
-const activate=(context)=> {
+const activate=()=> {
   languages.setLanguageConfiguration('jsx', jsxConfiguration);
   languages.setLanguageConfiguration('jsx-attr', jsxAttrConfiguration);
   languages.setLanguageConfiguration('fink', fink_conf);
 };
 
 
+// eslint-disable-next-line no-undef
 exports.activate = activate;
