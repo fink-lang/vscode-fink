@@ -10,14 +10,14 @@
 
   "prepare": {
     "path": "semantic-release-vsce",
-    "packageVsix": "your-extension.vsix"
+    "packageVsix": "fink-extension.vsix"
   },
 
   "publish": [
     "semantic-release-vsce",
     {
       "path": "@semantic-release/github",
-      "assets": "your-extension.vsix"
+      "assets": "fink-extension.vsix"
     }
   ]
 }
