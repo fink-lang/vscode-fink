@@ -4,7 +4,7 @@
 	"fileTypes": ["fnk"],
 
 	"patterns": [
-		{"include": "source.finkx.fink"},
+		{"include": "source.jsx.fink"},
 
 		{"include": "#regex"},
 
@@ -26,21 +26,40 @@
 	],
 
 	"repository": {
+
 		"comments": {
 			"patterns": [
 				{
 					"name": "comment.line.hash.fink",
-					"match": "#.+$"
+					"match": "#.*$"
 				},
 				{
 					"name": "comment.block.documentation.fink",
-          "begin": "^\\s*(---).*$",
-          "end": "^\\s*(---).*$",
-          "captures": {
-            "1": {"name": "punctuation.definition.comment.fink"}
-					}
-        }
+					"begin": "^\\s*(---)$",
+					"end": "^\\s*(---)$",
+					"beginCaptures": {
+						"1": {"name": "punctuation.definition.comment.begin.fink"}
+					},
+					"endCaptures": {
+						"0": {"name": "punctuation.definition.comment.end.fink"}
+					},
+					"patterns": [
+						{"include": "#comment-content"}
+					]
+				}
 			]
+		},
+		"comment-content": {
+      "patterns": [
+				{
+					"name": "meta.embedded.block.fink",
+					"begin": "(```)",
+					"end": "(```)",
+					"patterns": [
+						{"include": "$base"}
+					]
+        }
+      ]
 		},
 
 		"block-like": {
@@ -111,9 +130,10 @@
 				},
 
 				{
-					"match": "\\.(\\w+?)\\b(?![:(])",
+					"match": "(\\.)(\\w+?)\\b(?![:(])",
 					"captures": {
-						"1": {"name": "string.unquoted"}
+						"1": {"name": "punctuation.accessor.fink"},
+						"2": {"name": "string.unquoted.fink"}
 					}
 				}
 			]
@@ -145,15 +165,24 @@
 		"function-call": {
 			"patterns": [
 				{
-					"match": "\\b(\\w*+)\\s*+\\(",
-					"captures": {
-						"1": {"name": "entity.name.function.fink"}
+					"name": "meta.function-call.fink",
+					"begin": "\\b(\\w*+)\\s*+(\\()",
+					"end": "\\)",
+					"contentName": "meta.function.parameters",
+					"beginCaptures": {
+						"1": {"name": "entity.name.function.fink"},
+						"2": {"name": "meta.brace.round"}
+					},
+					"endCaptures": {
+						"0": {"name": "meta.brace.round"}
 					}
 				},
 				{
-					"match": "\\b(\\w*+)\\s*+::",
+					"name": "meta.function-call.fink",
+					"match": "\\b(\\w*+)\\s*+(::)",
 					"captures": {
-						"1": {"name": "entity.name.function.fink"}
+						"1": {"name": "entity.name.function.fink"},
+						"2": {"name": "keyword.operator.call.fink"}
 					}
 				}
 			]
@@ -181,29 +210,47 @@
 			"patterns": [
 				{
 					"name": "string.quoted.template.fink",
-					"begin": "`",
+					"begin": "(\\w*)(`)(?!``)",
 					"end": "`",
+					"beginCaptures": {
+						"1" : {"name": "entity.name.function.tagged-string.fink"},
+						"2": {"name": "punctuation.definition.string.begin.fink"}
+					},
+					"endCaptures": {
+						"0": {"name": "punctuation.definition.string.end.fink"}
+					},
 					"patterns": [
 						{"include": "#string-content"}
 					]
 				},
 				{
 					"name": "string.quoted.template.fink",
-					"begin": "'",
+					"begin": "(\\w*)(')",
 					"end": "'",
+					"beginCaptures": {
+						"1" : {"name": "entity.name.function.tagged-string.fink"},
+						"2": {"name": "punctuation.definition.string.begin.fink"}
+					},
+					"endCaptures": {
+						"0": {"name": "punctuation.definition.string.end.fink"}
+					},
 					"patterns": [
 						{"include": "#string-content"}
 					]
 				},
 				{
 					"name": "string.quoted.template.fink",
-					"begin": "\"",
+					"begin": "(\\w*)(\")",
 					"end": "\"",
+					"beginCaptures": {
+						"1" : {"name": "entity.name.function.tagged-string.fink"},
+						"2": {"name": "punctuation.definition.string.begin.fink"}
+					},
+					"endCaptures": {
+						"0": {"name": "punctuation.definition.string.end.fink"}
+					},
 					"patterns": [
-						{
-							"name": "constant.character.escape.fink",
-							"match": "\\\\."
-						}
+						{"include": "#string-content"}
 					]
 				}
 			]
@@ -241,10 +288,10 @@
           "end": "(/)([gimyu]*)",
           "beginCaptures": {
 						"1": {"name": "keyword.control.fink"},
-						"2": {"name": "punctuation.definition.string.begin.fink"}
+						"2": {"name": "punctuation.definition.regexp.begin.fink"}
           },
           "endCaptures": {
-            "1": {"name": "punctuation.definition.string.end.fink"},
+            "1": {"name": "punctuation.definition.regexp.end.fink"},
             "2": {"name": "keyword.other.fink"}
           },
           "patterns": [
