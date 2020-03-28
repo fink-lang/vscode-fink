@@ -20,6 +20,7 @@
 
 		{"include": "#number"},
 		{"include": "#string"},
+		{"include": "#array"},
 		{"include": "#object"},
 
 		{"include": "#variable"}
@@ -65,7 +66,7 @@
 		"block-like": {
 			"patterns": [
 				{
-					"begin": "(fn|match|fold|unfold|map|flat_map|filter|while|pipe)",
+					"begin": "\\b(fn|match|fold|unfold|map|flat_map|filter|while|find|pipe)\\b",
 					"end": "(:)",
 					"contentName": "meta.function.parameters",
 					"beginCaptures": {
@@ -130,7 +131,7 @@
 				},
 
 				{
-					"match": "(\\.)(\\w+?)\\b(?![:(])",
+					"match": "(?<!\\.)(\\.)(\\w+?)\\b(?![:(])",
 					"captures": {
 						"1": {"name": "punctuation.accessor.fink"},
 						"2": {"name": "string.unquoted.fink"}
@@ -175,7 +176,10 @@
 					},
 					"endCaptures": {
 						"0": {"name": "meta.brace.round"}
-					}
+					},
+					"patterns": [
+						{"include": "$base"}
+					]
 				},
 				{
 					"name": "meta.function-call.fink",
@@ -188,21 +192,83 @@
 			]
 		},
 
-		"object": {
-			"begin": "{",
-			"end": "}",
+		"array": {
+			"name": "meta.array-literal.fink",
+			"begin": "\\[",
+			"end": "\\]",
 			"patterns": [
 				{
 					"match": ",",
 					"name": "meta.delimiter.comma.fink"
 				},
+				{"include": "$base"}
+			]
+		},
+
+		"object": {
+			"name": "meta.object-literal.fink",
+			"begin": "\\{",
+			"end": "\\}",
+			"patterns": [
 				{
-					"match": "\\s*+(\\w+?)\\s*+:(?!:)",
+					"match": ",",
+					"name": "meta.delimiter.comma.fink"
+				},
+
+				{
+					"name": "meta.object.member.shorthand",
+					"match": "(\\w+)\\s*(?=,|\\})",
 					"captures": {
-						"1": {"name": "string.unquoted"}
+						"1": {"name": "variable.other.readwrite.fink"}
 					}
 				},
-				{"include": "$base"}
+
+				{
+					"name": "meta.object.member",
+					"begin": "(\\w+)\\s*:",
+					"end": "(?=,|\\})",
+					"beginCaptures": {
+						"1": {"name": "string.unquoted"}
+					},
+					"patterns": [
+						{"include": "$base"}
+					]
+				},
+
+				{
+					"name": "meta.object.member",
+					"begin": "(?=\\()",
+					"end": "(?=,|\\})",
+					"patterns": [
+						{
+							"name": "meta.object.member.computed-key",
+							"begin": "\\(",
+							"end": "\\)\\s*(?=:)",
+							"patterns": [
+								{"include": "$base"}
+							]
+						},
+						{
+							"begin": ":",
+							"end": "(?=,|\\})",
+							"patterns": [
+								{"include": "$base"}
+							]
+						}
+					]
+				},
+
+				{
+					"name": "meta.object.member",
+					"begin": "(\\.\\.\\.)",
+					"end": "(?=,|\\})",
+					"beginCaptures": {
+						"1": {"name": "keyword.operator.spread.fink"}
+					},
+					"patterns": [
+						{"include": "$base"}
+					]
+				}
 			]
 		},
 
@@ -268,6 +334,10 @@
         {
           "name": "constant.character.escape",
           "match": "\\\\[`'\"\\\\nrtbfv0]"
+				},
+				{
+          "name": "constant.character.escape",
+          "match": "\\\\\\$"
         },
         {
           "name": "constant.character.escape",
