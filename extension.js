@@ -1,7 +1,7 @@
 // eslint-disable-next-line no-undef
 const {IndentAction, languages} = require('vscode');
 
-const wordPattern = /(-?\d*\.\d\w*)|([^`~!@$^&*()=+[{\]}\\|;:'",.<>/\s]+)/g;
+const wordPattern = /(-?\d*\.\d\w*)|([^`~!@$^&*()=+\-[{\]}\\|;:'",.<>/\s]+)/g;
 
 
 const jsxConfiguration = {
@@ -30,19 +30,27 @@ const jsxAttrConfiguration = {
 const fink_conf = {
   wordPattern,
   onEnterRules: [
-    {
-      beforeText: /^.+`$/,
-      afterText: /`$/,
-      action: {
-        indentAction: IndentAction.Indent
-      }
+    { // match doc comment
+      beforeText: /^\s*---\s*$/,
+      action: {indentAction: IndentAction.None}
     },
-    {
-      beforeText: /^[^`\s]+`$/,
-      afterText: /$/,
-      action: {
-        indentAction: IndentAction.Outdent
-      }
+    { // match end of str on its own: `|
+      beforeText: /^\s*[`'"]{1}\s*$/,
+      afterText: /^$/,
+      action: {indentAction: IndentAction.Outdent}
+    },
+    { // match first indentation after auto closing: `|`
+      beforeText: /^.*[`'"]{1}\s*$/,
+      afterText: /^[`'"]$/,
+      action: {indentAction: IndentAction.Indent}
+    },
+    { // match first indentating existing: foo = `| spam...
+      beforeText: /^.+[=,:(]\s*[`'"]{1}\s*$/,
+      action: {indentAction: IndentAction.Indent}
+    },
+    { // match operators and blocks: fold ...:|
+      beforeText: /^.+[:=+<\-/*]{1}\s*$/,
+      action: {indentAction: IndentAction.Indent}
     }
   ]
 };

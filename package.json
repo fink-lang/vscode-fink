@@ -47,6 +47,7 @@
         "path": "./grammars/fink.tmLanguage.json",
         "embeddedLanguages": {
           "meta.embedded.inline.sql": "source.sql",
+          "meta.embedded.block.fink": "fink",
           "meta.tag.jsx": "jsx",
           "meta.jsx.tag.termination": "jsx",
           "JSXNested": "jsx",

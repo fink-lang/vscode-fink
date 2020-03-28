@@ -1,10 +1,8 @@
 {
   "comments": {
     // symbol used for single line comment.
-    // Remove this entry if your language does not support line comments
     "lineComment": "#",
     // symbols used for start and end a block comment.
-    // Remove this entry if your language does not support block comments
     "blockComment": [ "---", "---" ]
   },
 
@@ -14,25 +12,6 @@
     ["[", "]"],
     ["(", ")"]
   ],
-
-  "autoClosingPairs": [
-    {"open": "{", "close": "}"},
-    {"open": "[", "close": "]"},
-    {"open": "(", "close": ")"},
-    {"open": "'", "close": "'", "notIn": ["string", "comment"]},
-    {"open": "\"", "close": "\"", "notIn": ["string"]},
-    {"open": "`", "close": "`", "notIn": ["string", "comment"]},
-    {"open": "---", "close": "---", "notIn": ["string", "comment"]}
-  ],
-
-  "autoCloseBefore": ";:.,=}])>` \n\t",
-
-  "folding": {
-    "markers": {
-      "start": "^\\s*//\\s*#?region\\b",
-      "end": "^\\s*//\\s*#?endregion\\b"
-    }
-  },
 
   // symbols that that can be used to surround a selection
   "surroundingPairs": [
@@ -44,9 +23,30 @@
     ["`", "`"]
   ],
 
-  "indentationRules": {
-    "increaseIndentPattern": "^[^\\-]+([:=+<\\-/\\*]{1}\\s*)$",
-    // TODO: this is not working to unindent empty lines
-    "decreaseIndentPattern": "^\\s+$"
+  "autoClosingPairs": [
+    {"open": "{", "close": "}"},
+    {"open": "[", "close": "]"},
+    {"open": "(", "close": ")"},
+    {"open": "'", "close": "'", "notIn": ["string"]},
+    {"open": "\"", "close": "\"", "notIn": ["string"]},
+    {"open": "`", "close": "`", "notIn": ["string"]},
+    {"open": "---", "close": "---", "notIn": ["string", "comment"]}
+  ],
+
+  "autoCloseBefore": ";:.,=}])>` \n\t",
+
+  "folding": {
+    // leave blank line after block
+    "offSide": true,
+    "markers": {
+      "start": "^\\s*//\\s*#?region\\b",
+      "end": "^\\s*//\\s*#?endregion\\b"
+    }
   }
+
+  // "indentationRules": {
+  //   "increaseIndentPattern": "^[^\\-]+([`'\":=+<\\-/\\*]{1}\\s*)$",
+  //   // TODO: this is not working to unindent empty lines
+  //   "decreaseIndentPattern": "^ni$"
+  // }
 }
