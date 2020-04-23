@@ -4,5 +4,9 @@ root: true
 extends:
   - '@nearmap/eslint-config-base'
 
+env:
+  node: true
+
 rules:
   camelcase: off
+

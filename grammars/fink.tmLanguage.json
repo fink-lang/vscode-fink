@@ -5,25 +5,29 @@
 
 	"patterns": [
 		{"include": "source.jsx.fink"},
+		{"include": "#dict"},
 
 		{"include": "#regex"},
 
 		{"include": "#comments"},
 
-		{"include": "#function-call"},
-
 		{"include": "#block-like"},
+		{"include": "#function-call"},
 		{"include": "#language-constant"},
 
 		{"include": "#operators"},
-
 
 		{"include": "#number"},
 		{"include": "#string"},
 		{"include": "#array"},
 		{"include": "#object"},
+		{"include": "#foo"},
 
-		{"include": "#variable"}
+		{"include": "#variable"},
+		{
+			"match": ",",
+			"name": "meta.delimiter.comma.fink"
+		}
 	],
 
 	"repository": {
@@ -66,17 +70,13 @@
 		"block-like": {
 			"patterns": [
 				{
-					"begin": "\\b(fn|match|fold|unfold|map|flat_map|filter|while|find|pipe)\\b",
+					"begin": "\\b(fn|match|fold|unfold|map|flat_map|filter|while|find|pipe|list|dict)\\b",
 					"end": "(:)",
 					"contentName": "meta.function.parameters",
 					"beginCaptures": {
 						"1": {"name": "keyword.control.block.$1.fink"}
 					},
 					"patterns": [
-						{
-							"match": ",",
-							"name": "meta.delimiter.comma.fink"
-						},
 						{"include": "$base"}
 					]
 				},
@@ -183,7 +183,15 @@
 				},
 				{
 					"name": "meta.function-call.fink",
-					"match": "\\b(\\w*+)\\s*+(::)",
+					"match": "\\b(\\w+)\\s*+(::)",
+					"captures": {
+						"1": {"name": "entity.name.function.fink"},
+						"2": {"name": "keyword.operator.call.fink"}
+					}
+				},
+				{
+					"name": "meta.function-call.no-parens.fink",
+					"match": "\\b(\\w+)[ ](?![-+*/=|&><%^#}:]|!=|]|$)",
 					"captures": {
 						"1": {"name": "entity.name.function.fink"},
 						"2": {"name": "keyword.operator.call.fink"}
@@ -197,27 +205,46 @@
 			"begin": "\\[",
 			"end": "\\]",
 			"patterns": [
-				{
-					"match": ",",
-					"name": "meta.delimiter.comma.fink"
-				},
 				{"include": "$base"}
 			]
 		},
 
-		"object": {
+		"obj-key-block": {
+			"name": "meta.object.member",
+			"begin": "(^[ ]{1,})(\\w+?)(?=:.*$)",
+			"beginCaptures": {
+				"2": {"name": "string.unquoted"}
+			},
+			"while": "(?=^$|\\1[ ]{1,}(?! ))",
+			"end": "\\}",
+			"contentName": "meta.block.obj-val.fink",
+			"patterns": [
+				{"include": "$dict"},
+				{"include": "$base"}
+			]
+		},
+
+		"dict": {
+			"begin": "(^[ ]{1,}(?! ))(?=.+\\bdict:$)",
+			"while": "(?=^$|\\1[ ]{1,}(?! ))",
+			"contentName": "meta.block.dict.fink",
+			"patterns": [
+				{"include": "#obj-key-block"},
+				{"include": "$base"}
+			]
+		},
+
+		"obj-delimited": {
 			"name": "meta.object-literal.fink",
 			"begin": "\\{",
 			"end": "\\}",
+
 			"patterns": [
-				{
-					"match": ",",
-					"name": "meta.delimiter.comma.fink"
-				},
+				{"include": "#obj-key-block"},
 
 				{
 					"name": "meta.object.member.shorthand",
-					"match": "(\\w+)\\s*(?=,|\\})",
+					"match": "(\\w+)\\s*(?=,|\\}|$)",
 					"captures": {
 						"1": {"name": "variable.other.readwrite.fink"}
 					}
@@ -226,7 +253,7 @@
 				{
 					"name": "meta.object.member",
 					"begin": "(\\w+)\\s*:",
-					"end": "(?=,|\\})",
+					"end": "(?=,|\\}|$)",
 					"beginCaptures": {
 						"1": {"name": "string.unquoted"}
 					},
@@ -237,8 +264,20 @@
 
 				{
 					"name": "meta.object.member",
+					"begin": "(\\w+)\\s*=",
+					"end": "(?=,|\\}|$)",
+					"beginCaptures": {
+						"1": {"name": "variable.other.readwrite.fink"}
+					},
+					"patterns": [
+						{"include": "$base"}
+					]
+				},
+
+				{
+					"name": "meta.object.member",
 					"begin": "(?=\\()",
-					"end": "(?=,|\\})",
+					"end": "(?=,|\\}|$)",
 					"patterns": [
 						{
 							"name": "meta.object.member.computed-key",
@@ -250,7 +289,7 @@
 						},
 						{
 							"begin": ":",
-							"end": "(?=,|\\})",
+							"end": "(?=,|\\}|$)",
 							"patterns": [
 								{"include": "$base"}
 							]
@@ -261,17 +300,23 @@
 				{
 					"name": "meta.object.member",
 					"begin": "(\\.\\.\\.)",
-					"end": "(?=,|\\})",
+					"end": "(?=,|\\}|$)",
 					"beginCaptures": {
 						"1": {"name": "keyword.operator.spread.fink"}
 					},
 					"patterns": [
 						{"include": "$base"}
 					]
-				}
+				},
+				{"include": "$base"}
 			]
 		},
-
+		"object": {
+			"patterns": [
+				{"include": "#obj-delimited"},
+				{"include": "#dict"}
+			]
+		},
 		"string": {
 			"patterns": [
 				{

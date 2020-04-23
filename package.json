@@ -22,7 +22,8 @@
     "onLanguage:fink",
     "onLanguage:jsx",
     "onLanguage:jsx-attr",
-    "onCommand:javascript.reloadProjects"
+    "onCommand:javascript.reloadProjects",
+    "*"
   ],
   "contributes": {
     "languages": [

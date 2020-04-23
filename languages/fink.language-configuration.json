@@ -30,6 +30,7 @@
     {"open": "'", "close": "'", "notIn": ["string"]},
     {"open": "\"", "close": "\"", "notIn": ["string"]},
     {"open": "`", "close": "`", "notIn": ["string"]},
+    {"open": "rx/", "close": "/", "notIn": ["string"]},
     {"open": "---", "close": "---", "notIn": ["string", "comment"]}
   ],
 
