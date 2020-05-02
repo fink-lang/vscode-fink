@@ -8,7 +8,9 @@
     "vscode": "^1.31.0"
   },
   "categories": [
-    "Programming Languages"
+    "Programming Languages",
+    "Debuggers",
+    "Snippets"
   ],
   "repository": {
     "type": "git",
@@ -21,9 +23,7 @@
   "activationEvents": [
     "onLanguage:fink",
     "onLanguage:jsx",
-    "onLanguage:jsx-attr",
-    "onCommand:javascript.reloadProjects",
-    "*"
+    "onLanguage:jsx-attr"
   ],
   "contributes": {
     "languages": [
@@ -63,6 +63,11 @@
         "scopeName": "source.jsx.fink",
         "path": "./grammars/jsx.tmLanguage.json"
       }
+    ],
+    "breakpoints": [
+      {
+        "language": "fink"
+      }
     ]
   },
   "scripts": {
@@ -71,22 +76,21 @@
     "clean": "rimraf ./build",
     "build": "run build:*",
     "build:dir": "mkdir -p ./build/pkg/",
-    "build:files": "cp ./extension.js ./package.json ./README.md ./LICENSE ./build/pkg/",
+    "build:fnk": "fnk --src ./src --out-dir build/pkg --ignore './src/**/*.test.fnk'",
+    "build:files": "cp ./package.json ./README.md ./LICENSE ./build/pkg/",
     "build:grammars": "cp -r ./grammars ./build/pkg/",
     "build:languages": "cp -r ./languages ./build/pkg/",
-    "test": "run lint",
-    "lint": "run lint:*",
-    "lint:js": "eslint --report-unused-disable-directives --ignore-path .gitignore .",
+    "test": "run jest",
+    "jest": "jest --verbose --runInBand --no-cache ",
     "release": "semantic-release"
   },
   "devDependencies": {
-    "@nearmap/eslint-config-base": "^1.1.0",
-    "babel-eslint": "^10.1.0",
+    "@fink/cli": "^3.1.0",
+    "@fink/jest": "^2.0.0",
+    "@fink/loxia": "^6.0.0",
     "commitizen": "^4.0.3",
     "cz-conventional-changelog": "^3.1.0",
-    "eslint": "^6.8.0",
-    "eslint-cli": "^1.1.1",
-    "eslint-plugin-babel": "^5.3.0",
+    "jest-cli": "^25.5.3",
     "npx-run": "^2.1.2",
     "semantic-release": "^17.0.4",
     "semantic-release-vsce": "^3.0.1"
@@ -95,5 +99,8 @@
     "commitizen": {
       "path": "cz-conventional-changelog"
     }
+  },
+  "dependencies": {
+    "@fink/larix": "^7.0.0"
   }
 }

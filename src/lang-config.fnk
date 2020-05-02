@@ -1,0 +1,70 @@
+{IndentAction, languages} = import 'vscode'
+
+wordPattern = rx/
+    (-?\d*\.\d\w*)
+    |
+    ([^`~!@$^&*()=+\-\[{\]}\\|:'",.<>\/\s]+)
+  /g
+
+
+jsx_conf = dict:
+  wordPattern,
+  onEnterRules: list:
+    dict:
+      beforeText: rx/.*/
+      afterText: rx/\/>/
+      action: dict:
+        indentAction: IndentAction.IndentOutdent
+
+
+jsx_att_conf = dict:
+  wordPattern
+  onEnterRules: list:
+    dict:
+      beforeText: rx/>/
+      afterText: rx/<\#/
+      action: dict:
+        indentAction: IndentAction.IndentOutdent
+
+
+fink_conf = dict:
+  wordPattern,
+  onEnterRules: list:
+    # match doc comment
+    dict:
+      beforeText: rx/^\s*---\s*$/
+      action: dict:
+        indentAction: IndentAction.None
+
+    # match end of str on its own: `|
+    dict:
+      beforeText: rx/^\s*[`'"]{1}\s*$/
+      afterText: rx/^$/,
+      action: dict:
+        indentAction: IndentAction.Outdent
+
+    # match first indentation after auto closing: `|`
+    dict:
+      beforeText: rx/^.*[`'"]{1}\s*$/
+      afterText: rx/^[`'"]$/
+      action: dict:
+        indentAction: IndentAction.Indent
+
+    # match first indentating existing: foo = `| spam...
+    dict:
+      beforeText: rx/^.+[=,:(]\s*[`'"]{1}\s*$/
+      action: dict:
+        indentAction: IndentAction.Indent
+
+    # match operators and blocks: fold ...:|
+    dict:
+      beforeText: rx/^.+[:=+<\-\/*]{1}\s*$/
+      action: dict:
+        indentAction: IndentAction.Indent
+
+
+init_lang = fn:
+  languages.setLanguageConfiguration 'jsx', jsx_conf
+  languages.setLanguageConfiguration 'jsx-attr', jsx_att_conf
+  languages.setLanguageConfiguration 'fink', fink_conf
+
