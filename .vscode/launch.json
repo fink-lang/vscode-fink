@@ -11,7 +11,7 @@
       "request": "launch",
       "runtimeExecutable": "${execPath}",
       "args": [
-        "--extensionDevelopmentPath=${workspaceFolder}/build/pkg"
+        "--extensionDevelopmentPath=${workspaceFolder}"
       ]
     }
   ]
