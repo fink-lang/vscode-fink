@@ -13,6 +13,7 @@
 
 		{"include": "#block-like"},
 		{"include": "#function-call"},
+
 		{"include": "#language-constant"},
 
 		{"include": "#operators"},
@@ -21,7 +22,6 @@
 		{"include": "#string"},
 		{"include": "#array"},
 		{"include": "#object"},
-		{"include": "#foo"},
 
 		{"include": "#variable"},
 		{
@@ -110,7 +110,7 @@
           }
 				},
 				{
-          "match": "!|&&|\\|\\|",
+          "match": "!|&&|\\|\\||(\\b(not|and|or|in)\\b)",
           "name": "keyword.operator.logical.fink"
 				},
 				{
@@ -129,7 +129,10 @@
           "match": "-|\\+|%|\\*|/|\\^",
           "name": "keyword.operator.arithmetic.fink"
 				},
-
+				{
+          "match": "\\?",
+          "name": "keyword.control.partial.fink"
+				},
 				{
 					"match": "(?<!\\.)(\\.)(\\w+?)\\b(?![:(])",
 					"captures": {
@@ -191,10 +194,10 @@
 				},
 				{
 					"name": "meta.function-call.no-parens.fink",
-					"match": "\\b(\\w+)[ ](?![-+*/=|&><%^#}:]|!=|]|$)",
+					"match": "\\b((?!and|or|not)\\b)(\\w+)[ ](?![-+*/=|&><%^#}:]|!=|\\b(and|or)\\b|$)",
 					"captures": {
-						"1": {"name": "entity.name.function.fink"},
-						"2": {"name": "keyword.operator.call.fink"}
+						"2": {"name": "entity.name.function.fink"},
+						"3": {"name": "keyword.operator.call.fink"}
 					}
 				}
 			]
@@ -225,7 +228,7 @@
 		},
 
 		"dict": {
-			"begin": "(^[ ]{1,}(?! ))(?=.+\\bdict:$)",
+			"begin": "(^[ ]{1,}(?! ))(?=.*\\bdict:$)",
 			"while": "(?=^$|\\1[ ]{1,}(?! ))",
 			"contentName": "meta.block.dict.fink",
 			"patterns": [

@@ -1,0 +1,11 @@
+{languages} = import 'vscode'
+
+{init_lang} = import './lang-config'
+{add_sem_tokens_provider} = import './provide-sem-tkn'
+{add_completion_provider} = import './provide-compl'
+
+
+activate = fn ctx:
+  init_lang ctx
+  add_sem_tokens_provider ctx
+  add_completion_provider ctx

@@ -1,0 +1,232 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`completion provider provides completions 1`] = `
+Array [
+  Object {
+    "completion": Array [
+      "match",
+    ],
+    "documentation": Object {
+      "appendCodeblock": [MockFunction],
+      "markdown": Array [
+        "Return the first result of \`test: result\` where foo matches \`test\`.",
+        Array [
+          "match foo:
+  test: result
+  {bar: 'spam'}: shrub
+  [bar, 'spam']: shrub
+  'spam': shrub
+  else: ni
+",
+          "fink",
+        ],
+      ],
+    },
+    "insertText": Object {
+      "snippet": Array [
+        "match $1:
+  $2: $3
+  else: $4
+$0",
+      ],
+    },
+  },
+  Object {
+    "completion": Array [
+      "fold",
+    ],
+    "documentation": Object {
+      "appendCodeblock": [MockFunction],
+      "markdown": Array [
+        "Return a function \`fn iterable:\` that reduces all items of \`iterable\`
+to a single value.",
+        Array [
+          "pipe [1, 2, 3]:
+  fold item, acc=0:
+    item + acc
+
+# == 6
+",
+          "fink",
+        ],
+      ],
+    },
+    "insertText": Object {
+      "snippet": Array [
+        "fold $1, $2:
+  $3
+$0",
+      ],
+    },
+  },
+  Object {
+    "completion": Array [
+      "unfold",
+    ],
+    "documentation": Object {
+      "appendCodeblock": [MockFunction],
+      "markdown": Array [
+        "Return a function \`fn curr:\` that generates items from the \`curr\`
+value.",
+        Array [
+          "count = unfold curr=0:
+  (curr + inc, curr + inc)
+
+[a, b, c] = count()
+# [0, 1, 2]
+",
+          "fink",
+        ],
+      ],
+    },
+    "insertText": Object {
+      "snippet": Array [
+        "unfold $1:
+  ($2, $3)
+$0",
+      ],
+    },
+  },
+  Object {
+    "completion": Array [
+      "map",
+    ],
+    "documentation": Object {
+      "appendCodeblock": [MockFunction],
+      "markdown": Array [
+        "Return a function \`fn iterable:\` that maps each \`item\` of \`iterable\`.",
+        Array [
+          "pipe [1, 2, 3]:
+  map item:
+    item * 2
+
+# == [2, 4, 6]
+",
+          "fink",
+        ],
+      ],
+    },
+    "insertText": Object {
+      "snippet": Array [
+        "map $1:
+  $2
+$0",
+      ],
+    },
+  },
+  Object {
+    "completion": Array [
+      "filter",
+    ],
+    "documentation": Object {
+      "appendCodeblock": [MockFunction],
+      "markdown": Array [
+        "Return a function \`fn iterable:\` that only yields \`item\` of \`iterable\`
+for which the block returns \`true\`.",
+        Array [
+          "pipe [1, 2, 3, 4]:
+  filter item:
+    item % 2
+
+# == [2, 4]
+",
+          "fink",
+        ],
+      ],
+    },
+    "insertText": Object {
+      "snippet": Array [
+        "filter $1:
+  $2
+$0",
+      ],
+    },
+  },
+  Object {
+    "completion": Array [
+      "while",
+    ],
+    "documentation": Object {
+      "appendCodeblock": [MockFunction],
+      "markdown": Array [
+        "Return a function \`fn iterable:\` that yields each \`item\` of \`iterable\`
+while the block returns true",
+        Array [
+          "pipe [1, 2, 3, 4]:
+  while item:
+    item < 3
+
+# == [1, 2]
+",
+          "fink",
+        ],
+      ],
+    },
+    "insertText": Object {
+      "snippet": Array [
+        "while $1:
+  $2
+$0",
+      ],
+    },
+  },
+  Object {
+    "completion": Array [
+      "find",
+    ],
+    "documentation": Object {
+      "appendCodeblock": [MockFunction],
+      "markdown": Array [
+        "Return a function \`fn iterable:\` that returns the first \`item\` of
+\`iterable\` for which the block returns true",
+        Array [
+          "pipe [1, 2, 3, 4]:
+  find item:
+    item > 2
+
+# == 3
+",
+          "fink",
+        ],
+      ],
+    },
+    "insertText": Object {
+      "snippet": Array [
+        "find $1:
+  $2
+$0",
+      ],
+    },
+  },
+  Object {
+    "completion": Array [
+      "pipe",
+    ],
+    "documentation": Object {
+      "appendCodeblock": [MockFunction],
+      "markdown": Array [
+        "Calls all expressions with the result of the previous call, starting
+with the pipe arg for the first call.",
+        Array [
+          "pipe [1, 2, 3, 4]:
+  map item:
+    item * 2
+  find item:
+    item > 4
+
+# == 6
+",
+          "fink",
+        ],
+      ],
+    },
+    "insertText": Object {
+      "snippet": Array [
+        "pipe $1:
+  $2
+$0",
+      ],
+    },
+  },
+]
+`;

@@ -1,0 +1,40 @@
+{describe, it, expect, mock_fn} = import '@fink/jest'
+{to_equal, to_match_snapshot} = import '@fink/jest'
+
+
+jest.mock
+  'vscode'
+  fn: dict:
+    CompletionItem: mock_fn fn ...completion: {completion}
+    SnippetString: mock_fn fn ...snippet: {snippet}
+    MarkdownString: mock_fn fn ...markdown: dict:
+      markdown
+      appendCodeblock: mock_fn fn ...args:
+        markdown.push args
+
+    languages: dict:
+      registerCompletionItemProvider: mock_fn()
+
+  {virtual: true}
+
+
+{languages} = import 'vscode'
+
+{add_completion_provider} = import './provide-compl'
+
+
+describe 'completion provider', fn:
+
+  it 'provides completions', fn:
+    ctx = dict:
+      subscriptions: dict:
+        push: mock_fn()
+
+    add_completion_provider ctx
+    {mock: {calls: [[, provider]]}} = languages.registerCompletionItemProvider
+
+    completions = provider.provideCompletionItems {}
+
+    expect
+      completions
+      to_match_snapshot

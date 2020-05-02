@@ -1,0 +1,69 @@
+{languages, SemanticTokensLegend, SemanticTokensBuilder} = import 'vscode'
+
+{parse} = import '@fink/larix'
+
+{walk} = import './traverse'
+
+
+token_types = ['function', 'string']
+token_modifiers = []
+sem_token_legend = new SemanticTokensLegend token_types, token_modifiers
+
+
+get_callee = fn node:
+  match node:
+    {type: 'ident'}:
+      node
+    {type: 'member'}:
+      get_callee node.right
+    else:
+      node
+
+
+add_call_tokens = fn expr, builder:
+  callee = get_callee expr.callee
+  match callee:
+    {type: 'ident'}:
+      {value, loc: {start}} = callee
+      builder.push start.line - 1, start.column, value.length, 0
+    {type: 'group'}:
+      {value, loc: {start, end}} = callee
+      builder.push start.line - 1, start.column, 1, 0
+      builder.push end.line - 1, end.column - 1, 1, 0
+
+
+add_prop_tokens = fn prop, builder:
+  match prop:
+    {left: {type: 'ident'}, right: ? != prop.left}:
+      {value, loc: {start}} = prop.left
+      builder.push start.line - 1, start.column, value.length, 1, 0
+
+
+get_tokens = fn doc:
+  ast = parse doc.getText()
+
+  builder = new SemanticTokensBuilder sem_token_legend
+
+  pipe walk ast:
+    fold {expr}, acc=false:
+      match expr:
+        {type: 'call'}: add_call_tokens expr, builder
+        {type: 'object:prop'}: add_prop_tokens expr, builder
+
+  builder.build()
+
+
+provide_sem_tokens = fn doc:
+  [err, tokens] = attempt:
+    get_tokens doc
+  tokens
+
+
+add_sem_tokens_provider = fn {subscriptions}:
+
+  subscr = languages.registerDocumentSemanticTokensProvider
+    'fink'
+    {provideDocumentSemanticTokens: provide_sem_tokens}
+    sem_token_legend
+
+  subscriptions.push subscr
