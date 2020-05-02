@@ -19,7 +19,7 @@
   "bugs": "https://github.com/fink-lang/vscode-fink/issues",
   "homepage": "https://github.com/fink-lang/vscode-fink",
   "publisher": "fink",
-  "main": "./extension.js",
+  "main": "./build/pkg/extension.js",
   "activationEvents": [
     "onLanguage:fink",
     "onLanguage:jsx",
