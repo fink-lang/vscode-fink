@@ -3,7 +3,9 @@
 {parse} = import '@fink/larix'
 
 {walk} = import './traverse'
+{logger} = import './logging'
 
+{log_error} = logger()
 
 token_types = ['function', 'string']
 token_modifiers = []
@@ -40,7 +42,7 @@ add_prop_tokens = fn prop, builder:
 
 
 get_tokens = fn doc:
-  ast = parse doc.getText()
+  [ast, {errors}] = parse doc.getText(), `${doc.uri}`
 
   builder = new SemanticTokensBuilder sem_token_legend
 
@@ -50,12 +52,15 @@ get_tokens = fn doc:
         {type: 'call'}: add_call_tokens expr, builder
         {type: 'object:prop'}: add_prop_tokens expr, builder
 
-  builder.build()
+  [builder.build(), errors]
 
 
 provide_sem_tokens = fn doc:
-  [err, tokens] = attempt:
-    get_tokens doc
+  [tokens, errors] = get_tokens doc
+  pipe errors:
+    map {error, stack}:
+      log_error error, stack
+    fn [...all]: all
   tokens
 
 
