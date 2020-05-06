@@ -1,0 +1,6 @@
+logger = fn: dict:
+  log: console.log
+  log_error: console.error
+  log_warning: console.warn
+  log_info: console.info
+  log_trace: console.trace
