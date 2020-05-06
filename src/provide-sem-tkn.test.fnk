@@ -1,10 +1,12 @@
 {describe, it, expect, mock_fn} = import '@fink/jest'
-{to_equal, to_be_called_with} = import '@fink/jest'
+{to_equal, was_called_with, any} = import '@fink/jest'
 
 
 mock_builder = dict:
   push: mock_fn()
   build: mock_fn fn: 'mock-build'
+
+mock_log_error = mock_fn()
 
 
 jest.mock
@@ -16,6 +18,14 @@ jest.mock
       registerDocumentSemanticTokensProvider: mock_fn()
 
   {virtual: true}
+
+
+jest.mock
+  './logging'
+  fn: dict:
+    logger: fn: dict:
+      log_error: mock_log_error
+
 
 
 {languages, SemanticTokensLegend, SemanticTokensBuilder} = import 'vscode'
@@ -36,45 +46,78 @@ describe 'sem token provider', fn:
 
     tokens = provider.provideDocumentSemanticTokens dict:
       getText: fn: `
-          foo bar.spam shrub
-          bar = 'spam \${ham egg} ni'
-          ni = foo.(bar) shrub
+        foo bar.spam shrub
+        bar = 'spam \${ham egg} ni'
+        ni = foo.(bar) shrub
 
-          foo = (shrub + ni) * 42
+        foo = (shrub + ni) * 42
 
-          pipe foo:
-            map item:
-              items = match item:
-                [..., ni]: {na: []}
+        pipe foo:
+          map item:
+            items = match item:
+              [..., ni]: {na: []}
 
-              ...items
-          `
+            ...items
+        `
 
     expect
       SemanticTokensBuilder
-      to_be_called_with {mock_legend: [['function', 'string'], []]}
+      was_called_with {mock_legend: [['function', 'string'], []]}
 
     expect
-      mock_builder.push
-      to_be_called_with 0, 0, 3, 0
-
-    expect
-      mock_builder.push
-      to_be_called_with 0, 8, 4, 0
-
-    expect
-      mock_builder.push
-      to_be_called_with 1, 14, 3, 0
-
-    expect
-      mock_builder.push
-      to_be_called_with 2, 9, 1, 0
-
-    expect
-      mock_builder.push
-      to_be_called_with 2, 13, 1, 0
+      mock_builder.push.mock.calls
+      to_equal list:
+        [0, 0, 3, 0]
+        [0, 8, 4, 0]
+        [1, 14, 3, 0]
+        [2, 9, 1, 0]
+        [2, 13, 1, 0]
+        [9, 18, 2, 1, 0]
 
     expect
       tokens
       to_equal 'mock-build'
+
+
+  it 'handles errors', fn:
+    ctx = dict:
+      subscriptions: dict:
+        push: mock_fn()
+
+    add_sem_tokens_provider ctx
+    {mock: {calls: [[, provider]]}} = languages.registerDocumentSemanticTokensProvider
+
+
+    tokens = provider.provideDocumentSemanticTokens dict:
+      uri: {toString: fn: `./test.fnk`}
+      getText: fn: `
+          foo bar
+          [`
+
+    expect
+      SemanticTokensBuilder
+      was_called_with {mock_legend: [['function', 'string'], []]}
+
+    expect
+      mock_builder.push.mock.calls
+      to_equal list:
+        [0, 0, 3, 0]
+
+    expect
+      tokens
+      to_equal 'mock-build'
+
+    expect
+      mock_log_error
+      was_called_with `
+          ./test.fnk:2:1
+          1| foo bar
+          2| [
+              ^
+
+          Expected ',' or indented new line or ']'.
+          `
+        any String
+
+
 

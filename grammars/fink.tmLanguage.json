@@ -70,7 +70,7 @@
 		"block-like": {
 			"patterns": [
 				{
-					"begin": "\\b(fn|match|fold|unfold|map|flat_map|filter|while|find|pipe|list|dict)\\b",
+					"begin": "\\b(fn|match|fold|unfold|map|filter|while|find|pipe|else|try|list|dict)\\b",
 					"end": "(:)",
 					"contentName": "meta.function.parameters",
 					"beginCaptures": {
@@ -79,12 +79,6 @@
 					"patterns": [
 						{"include": "$base"}
 					]
-				},
-				{
-					"match": "\\b(else|attempt):",
-					"captures": {
-						"1": {"name": "keyword.control.block.$1.fink"}
-					}
 				}
 			]
 		},
@@ -183,14 +177,6 @@
 					"patterns": [
 						{"include": "$base"}
 					]
-				},
-				{
-					"name": "meta.function-call.fink",
-					"match": "\\b(\\w+)\\s*+(::)",
-					"captures": {
-						"1": {"name": "entity.name.function.fink"},
-						"2": {"name": "keyword.operator.call.fink"}
-					}
 				},
 				{
 					"name": "meta.function-call.no-parens.fink",
