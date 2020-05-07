@@ -1,7 +1,8 @@
-{describe, it, expect, mock_fn} = import '@fink/jest'
+{describe, it, expect, mock, mock_fn} = import '@fink/jest'
 {to_equal, was_called, was_called_with, any} = import '@fink/jest'
 
-jest.mock
+
+mock
   'vscode'
   fn: dict:
     IndentAction: {IndentOutdent: 'test-indent-outdent'}
@@ -14,7 +15,12 @@ jest.mock
       setLanguageConfiguration: mock_fn()
       registerDocumentSemanticTokensProvider: mock_fn()
       registerCompletionItemProvider: mock_fn()
+      createDiagnosticCollection: mock_fn()
 
+    workspace: dict:
+      onDidChangeTextDocument: mock_fn()
+      onDidOpenTextDocument: mock_fn()
+      onDidCloseTextDocument: mock_fn()
 
   {virtual: true}
 

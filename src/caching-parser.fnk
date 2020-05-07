@@ -1,0 +1,45 @@
+{workspace} = import 'vscode'
+
+{parse} = import '@fink/larix'
+
+
+parse_doc_async = fn doc:
+  await parse doc.getText(), `${doc.uri}`
+
+
+cache_set = fn cache, id, value:
+  cache.set id, value
+  value
+
+
+cache_get = fn cache, id, default:
+  value = cache.get id
+  match value:
+    {}: value
+    else: cache_set cache, id, default
+
+
+caching_doc_parser = fn cache: fn doc:
+  doc_id = '${doc.uri}'
+  {version} = doc
+
+  [parse_version, parse_result] = cache_get cache, doc_id, []
+
+  match parse_version:
+    ? != version:
+      result = parse_doc_async doc
+      cache_set cache, doc_id, [version, result]
+      result
+    else:
+      parse_result
+
+
+caching_parser = fn:
+  cache = new Map()
+  async_parse = caching_doc_parser cache
+
+  workspace.onDidCloseTextDocument
+    fn document: cache.delete `${document.uri}`
+
+  async_parse
+

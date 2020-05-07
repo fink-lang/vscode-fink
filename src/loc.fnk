@@ -1,0 +1,5 @@
+{Location, Position} = import 'vscode'
+
+
+to_vs_pos = fn {line, column}:
+  new Position line - 1, column

@@ -1,0 +1,4 @@
+
+obj_items = Object.items
+obj_values = Object.values
+assign = Object.assign
