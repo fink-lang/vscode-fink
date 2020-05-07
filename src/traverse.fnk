@@ -25,12 +25,12 @@ walk = fn expr, props={scope: {expr}}:
 
       {type: 'block', op: 'match'}:
         concat
-          walk_exprs expr.args, {parent, decl: false, scope: node}
+          walk_exprs expr.args, {parent, decl: false, scope: node.scope}
           walk_exprs expr.exprs, {parent, decl: false, scope: node}
 
       {type: 'block', op: 'pipe'}:
         concat
-          walk_exprs expr.args, {parent, decl: false, scope: node}
+          walk_exprs expr.args, {parent, decl: false, scope: node.scope}
           walk_exprs expr.exprs, {parent, decl: false, scope: node}
 
       {type: 'block', args: []}:
@@ -54,24 +54,24 @@ walk = fn expr, props={scope: {expr}}:
           walk expr.left, {parent, decl: false, scope: node.scope}
           walk expr.right, {parent, decl: props.decl, scope: node.scope}
 
-      {type: 'string'}:
-        walk_exprs expr.exprs, {parent, decl: false, scope: node.scope}
-
       {type: 'member'}:
         concat
           walk expr.left, {parent, decl: false, scope: node.scope}
           walk expr.right, {parent, decl: false, scope: node.scope}
+
+      {type: 'assign'}:
+        concat
+          walk expr.left, {parent, decl: true, scope: node.scope}
+          walk expr.right, {parent, decl: false, scope: node.scope}
+
+      {type: 'string'}:
+        walk_exprs expr.exprs, {parent, decl: false, scope: node.scope}
 
       {type: 'array'}:
         walk_exprs expr.exprs, {parent, decl: props.decl, scope: node.scope}
 
       {type: 'group'}:
         walk_exprs expr.exprs, {parent, decl: props.decl, scope: node.scope}
-
-      {type: 'assign'}:
-        concat
-          walk expr.left, {parent, decl: true, scope: node.scope}
-          walk expr.right, {parent, decl: false, scope: node.scope}
 
       {left: {}, right: {}}:
         concat

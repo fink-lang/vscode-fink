@@ -1,16 +1,11 @@
 {languages, SemanticTokensLegend, SemanticTokensBuilder} = import 'vscode'
 
-{parse} = import '@fink/larix'
-
 {walk} = import './traverse'
-{logger} = import './logging'
 
-{log_error} = logger()
 
 token_types = ['function', 'string']
 token_modifiers = []
 sem_token_legend = new SemanticTokensLegend token_types, token_modifiers
-
 
 get_callee = fn node:
   match node:
@@ -29,7 +24,7 @@ add_call_tokens = fn expr, builder:
       {value, loc: {start}} = callee
       builder.push start.line - 1, start.column, value.length, 0
     {type: 'group'}:
-      {value, loc: {start, end}} = callee
+      {loc: {start, end}} = callee
       builder.push start.line - 1, start.column, 1, 0
       builder.push end.line - 1, end.column - 1, 1, 0
 
@@ -41,13 +36,11 @@ add_prop_tokens = fn prop, builder:
       builder.push start.line - 1, start.column, value.length, 1, 0
 
 
-get_tokens = fn doc:
-  [ast, {errors}] = parse doc.getText(), `${doc.uri}`
-
+get_tokens = fn [ast, {errors}]:
   builder = new SemanticTokensBuilder sem_token_legend
 
   pipe walk ast:
-    fold {expr}, acc=false:
+    fold {expr}, acc=0:
       match expr:
         {type: 'call'}: add_call_tokens expr, builder
         {type: 'object:prop'}: add_prop_tokens expr, builder
@@ -55,20 +48,17 @@ get_tokens = fn doc:
   [builder.build(), errors]
 
 
-provide_sem_tokens = fn doc:
-  [tokens, errors] = get_tokens doc
-  pipe errors:
-    map {error, stack}:
-      log_error error, stack
-    fn [...all]: all
+provide_sem_tokens = fn async_parse: fn doc:
+  parsed = await async_parse doc
+  [tokens] = get_tokens parsed
   tokens
 
 
-add_sem_tokens_provider = fn {subscriptions}:
+add_sem_tokens_provider = fn {subscriptions}, async_parse:
 
   subscr = languages.registerDocumentSemanticTokensProvider
     'fink'
-    {provideDocumentSemanticTokens: provide_sem_tokens}
+    {provideDocumentSemanticTokens: provide_sem_tokens async_parse}
     sem_token_legend
 
   subscriptions.push subscr

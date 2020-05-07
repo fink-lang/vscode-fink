@@ -1,0 +1,104 @@
+{describe, it, expect, mock, mock_fn} = import '@fink/jest'
+{to_equal, was_called, was_called_with, any} = import '@fink/jest'
+
+
+mock
+  '@fink/larix'
+  fn: dict:
+    parse: mock_fn fn ...parse: {parse}
+
+mock
+  'vscode'
+  fn: dict:
+    workspace: dict:
+      onDidCloseTextDocument: mock_fn()
+  {virtual: true}
+
+{workspace} = import 'vscode'
+
+{parse} = import '@fink/larix'
+{caching_parser} = import './caching-parser'
+
+
+
+describe 'caching parser', fn:
+
+  it 'parses only once', fn:
+    doc = dict:
+      getText: fn: 'test-code'
+      uri: {toString: fn: 'test-uri:test.fnk'}
+      version: 0
+
+    async_parse = caching_parser()
+
+    result1 = async_parse doc
+    result2 = async_parse doc
+
+    await result1
+    await result2
+
+    expect
+      parse.mock.calls.length
+      to_equal 1
+
+    expect
+      result1 == result2
+      to_equal true
+
+
+  it 'parses when version changes', fn:
+    doc1 = dict:
+      getText: fn: 'test-code'
+      uri: {toString: fn: 'test-uri:test.fnk'}
+      version: 0
+
+    doc2 = {...doc1, version: 2}
+
+    async_parse = caching_parser()
+
+    result1 = async_parse doc1
+    result2 = async_parse doc2
+
+    await result1
+    await result2
+
+    expect
+      parse.mock.calls.length
+      to_equal 2
+
+    expect
+      result1 == result2
+      to_equal false
+
+    expect
+      await result1
+      to_equal
+        {parse: ['test-code', 'test-uri:test.fnk']}
+
+
+  it 'removes doc from cache when closed', fn:
+    doc = dict:
+      getText: fn: 'test-code'
+      uri: {toString: fn: 'test-uri:test.fnk'}
+      version: 0
+
+    async_parse = caching_parser()
+    {mock: {calls: [[close_handler]]}} = workspace.onDidCloseTextDocument
+
+    result1 = async_parse doc
+    await result1
+    close_handler doc
+
+    result2 = async_parse doc
+    await result2
+
+    expect
+      parse.mock.calls.length
+      to_equal 2
+
+    expect
+      result1 == result2
+      to_equal false
+
+
+

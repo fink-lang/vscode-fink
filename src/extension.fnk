@@ -1,11 +1,17 @@
 {languages} = import 'vscode'
 
 {init_lang} = import './lang-config'
+
+{caching_parser} = import './caching-parser'
 {add_sem_tokens_provider} = import './provide-sem-tkn'
 {add_completion_provider} = import './provide-compl'
+{add_linter} = import './lint'
 
 
 activate = fn ctx:
   init_lang ctx
-  add_sem_tokens_provider ctx
-  add_completion_provider ctx
+  async_parse = caching_parser ctx
+  add_sem_tokens_provider ctx, async_parse
+  add_completion_provider ctx, async_parse
+  add_linter async_parse
+

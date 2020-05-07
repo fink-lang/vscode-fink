@@ -1,5 +1,7 @@
 {MarkdownString, CompletionItem, SnippetString, languages} = import 'vscode'
 
+{assign} = import './js-compat'
+
 
 doc_md = fn header, code:
   doc = new MarkdownString header
@@ -8,6 +10,7 @@ doc_md = fn header, code:
 
 
 snippet = fn txt: new SnippetString txt
+
 
 api = dict:
   match: dict:
@@ -121,8 +124,8 @@ comp_item = fn key:
 
   item = new CompletionItem key
 
-  Object.assign item, {insertText: code_snippet}
-  Object.assign item, {documentation: doc}
+  assign item, {insertText: code_snippet}
+  assign item, {documentation: doc}
 
   item
 

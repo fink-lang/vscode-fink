@@ -1,36 +1,39 @@
-{describe, it, expect, mock_fn} = import '@fink/jest'
+{describe, it, expect, mock, mock_fn} = import '@fink/jest'
 {to_equal, was_called_with, any} = import '@fink/jest'
+
+{parse} = import '@fink/larix'
 
 
 mock_builder = dict:
   push: mock_fn()
   build: mock_fn fn: 'mock-build'
 
-mock_log_error = mock_fn()
-
 
 jest.mock
   'vscode'
   fn: dict:
+
     SemanticTokensLegend: mock_fn fn ...args: {mock_legend: args}
     SemanticTokensBuilder: mock_fn fn: mock_builder
+
     languages: dict:
       registerDocumentSemanticTokensProvider: mock_fn()
 
+
+    workspace: dict:
+      _onDidChangeTextDocument: mock_fn() # TOOD: needed?
+
   {virtual: true}
-
-
-jest.mock
-  './logging'
-  fn: dict:
-    logger: fn: dict:
-      log_error: mock_log_error
 
 
 
 {languages, SemanticTokensLegend, SemanticTokensBuilder} = import 'vscode'
 
 {add_sem_tokens_provider, sem_token_legend} = import './provide-sem-tkn'
+
+
+async_parse = fn doc:
+  await parse doc.getText(), `${doc.uri}`
 
 
 describe 'sem token provider', fn:
@@ -40,11 +43,11 @@ describe 'sem token provider', fn:
       subscriptions: dict:
         push: mock_fn()
 
-    add_sem_tokens_provider ctx
+    add_sem_tokens_provider ctx, async_parse
     {mock: {calls: [[, provider]]}} = languages.registerDocumentSemanticTokensProvider
 
 
-    tokens = provider.provideDocumentSemanticTokens dict:
+    tokens = await provider.provideDocumentSemanticTokens dict:
       getText: fn: `
         foo bar.spam shrub
         bar = 'spam \${ham egg} ni'
@@ -84,11 +87,11 @@ describe 'sem token provider', fn:
       subscriptions: dict:
         push: mock_fn()
 
-    add_sem_tokens_provider ctx
+    add_sem_tokens_provider ctx, async_parse
     {mock: {calls: [[, provider]]}} = languages.registerDocumentSemanticTokensProvider
 
 
-    tokens = provider.provideDocumentSemanticTokens dict:
+    tokens = await provider.provideDocumentSemanticTokens dict:
       uri: {toString: fn: `./test.fnk`}
       getText: fn: `
           foo bar
@@ -106,18 +109,6 @@ describe 'sem token provider', fn:
     expect
       tokens
       to_equal 'mock-build'
-
-    expect
-      mock_log_error
-      was_called_with `
-          ./test.fnk:2:1
-          1| foo bar
-          2| [
-              ^
-
-          Expected ',' or indented new line or ']'.
-          `
-        any String
 
 
 
