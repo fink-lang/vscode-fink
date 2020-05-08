@@ -1,5 +1,5 @@
 {describe, it, expect, mock, mock_fn} = import '@fink/jest'
-{to_equal, to_match_snapshot} = import '@fink/jest'
+{to_match_snapshot} = import '@fink/jest'
 
 
 mock
@@ -19,7 +19,6 @@ mock
 
 
 {languages} = import 'vscode'
-
 {add_completion_provider} = import './provide-compl'
 
 

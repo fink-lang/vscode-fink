@@ -1,5 +1,5 @@
 {describe, it, expect, mock, mock_fn} = import '@fink/jest'
-{to_equal, was_called, was_called_with, any} = import '@fink/jest'
+{to_equal} = import '@fink/jest'
 
 
 mock
@@ -14,8 +14,8 @@ mock
       onDidCloseTextDocument: mock_fn()
   {virtual: true}
 
-{workspace} = import 'vscode'
 
+{workspace} = import 'vscode'
 {parse} = import '@fink/larix'
 {caching_parser} = import './caching-parser'
 

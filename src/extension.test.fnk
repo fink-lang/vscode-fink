@@ -1,5 +1,5 @@
 {describe, it, expect, mock, mock_fn} = import '@fink/jest'
-{to_equal, was_called, was_called_with, any} = import '@fink/jest'
+{was_called, was_called_with, any} = import '@fink/jest'
 
 
 mock
@@ -25,9 +25,10 @@ mock
 
   {virtual: true}
 
-{languages} = import 'vscode'
 
+{languages} = import 'vscode'
 {activate} = import './extension'
+{object} = import './js-compat'
 
 
 describe 'extension', fn:
@@ -41,15 +42,15 @@ describe 'extension', fn:
 
     expect
       languages.setLanguageConfiguration
-      was_called_with 'jsx', any Object
+      was_called_with 'jsx', any object
 
     expect
       languages.setLanguageConfiguration
-      was_called_with 'jsx-attr', any Object
+      was_called_with 'jsx-attr', any object
 
     expect
       languages.setLanguageConfiguration
-      was_called_with 'fink', any Object
+      was_called_with 'fink', any object
 
     expect
       languages.registerDocumentSemanticTokensProvider
@@ -61,4 +62,4 @@ describe 'extension', fn:
 
     expect
       languages.registerDefinitionProvider
-      was_called_with 'fink', any Object
+      was_called_with 'fink', any object
