@@ -1,4 +1,4 @@
-{parse} = import '@fink/larix'
+{obj_values} = import './js-compat'
 
 
 concat = fn ...iterables:
@@ -49,6 +49,10 @@ walk = fn expr, props={scope: {expr}}:
       {type: 'object'}:
         walk_exprs expr.exprs, {parent, decl: props.decl, scope: node.scope}
 
+      {type: 'object:prop', left: ? == expr.right}:
+        concat
+          walk expr.left, {parent, decl: props.decl, scope: node.scope}
+
       {type: 'object:prop'}:
         concat
           walk expr.left, {parent, decl: false, scope: node.scope}
@@ -83,3 +87,114 @@ walk = fn expr, props={scope: {expr}}:
 
       else:
         []
+
+
+insert_to_prop = fn obj, key, item:
+  {(key): items=[]} = obj
+  {...obj, (key): [item, ...items]}
+
+
+expr_id = fn {loc: {start, end}}:
+  `${start.pos}:${end.pos}`
+
+
+ident_id = fn {value}:
+  `id:${value}`
+
+
+is_var = fn node:
+  {expr} = node
+  match node:
+    {
+      expr: {type: 'ident'}
+      parent: {expr: {type: 'member', right: expr}}
+    }:
+      false
+    {
+      expr: {type: 'ident'}
+      parent: {expr: {type: 'object:prop', left: expr, right: ? != expr}}
+    }:
+      false
+    {expr: {type: 'ident'}}:
+      true
+    else:
+      false
+
+
+is_at_loc = fn expr, loc:
+  {line, column} = loc
+  match expr.loc:
+    {
+      start: {line, column: ? <= column},
+      end: {line, column: ? >= column}
+    }:
+      true
+    else:
+      false
+
+
+is_declaring = fn node:
+  match node:
+    {decl: true}: true
+    else: false
+
+
+get_idents = fn ast:
+  [...idents] = pipe walk ast:
+    filter node: is_var node
+  idents
+
+
+find_decls = fn ident, scope, scopes:
+  scope_id = expr_id scope.expr
+  decls_by_id = scopes.(scope_id) || []
+  decls = decls_by_id.(ident_id ident) || []
+
+  match scope:
+    {parent: {}}:
+      parent_scope_decls = find_decls ident, scope.parent, scopes
+      [...decls, ...parent_scope_decls]
+    else:
+      decls
+
+
+get_decls = fn node, scopes:
+  find_decls node.expr, node.scope, scopes
+
+
+get_refs = fn idents, scopes:
+  init_refs = pipe idents:
+    filter {decl}: decl
+    fold decl, refs={}:
+      decl_id = expr_id decl.expr
+      {...refs, (decl_id): {decl, idents: []}}
+
+  pipe idents:
+    fold node, refs=init_refs:
+      decls = get_decls node, scopes
+
+      match decls:
+        {length: 0}:
+          refs
+        else:
+          [decl] = decls
+          decl_id = expr_id decl.expr
+          ref = refs.(decl_id)
+
+          {...refs, (decl_id): {...ref, idents: [...ref.idents, node]}}
+
+    fn refs: obj_values refs
+
+
+decls_by_scope = fn idents:
+  pipe idents:
+    filter node: is_declaring node
+
+    fold decl, scopes={}:
+      scope_id = expr_id decl.scope.expr
+      decl_id = ident_id decl.expr
+
+      {(scope_id): decls={}} = scopes
+      new_decls = insert_to_prop decls, decl_id, decl
+
+      {...scopes, (scope_id): new_decls}

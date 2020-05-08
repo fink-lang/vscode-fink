@@ -16,6 +16,7 @@ mock
       registerDocumentSemanticTokensProvider: mock_fn()
       registerCompletionItemProvider: mock_fn()
       createDiagnosticCollection: mock_fn()
+      registerDefinitionProvider: mock_fn()
 
     workspace: dict:
       onDidChangeTextDocument: mock_fn()
@@ -57,3 +58,7 @@ describe 'extension', fn:
     expect
       languages.registerCompletionItemProvider
       was_called
+
+    expect
+      languages.registerDefinitionProvider
+      was_called_with 'fink', any Object

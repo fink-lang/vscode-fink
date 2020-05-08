@@ -1,0 +1,82 @@
+{describe, it, expect, mock_fn} = import '@fink/jest'
+{to_equal, was_not_called, was_called_with, any} = import '@fink/jest'
+
+{parse} = import '@fink/larix'
+
+
+jest.mock
+  'vscode'
+  fn: dict:
+    Position: mock_fn fn ...pos: {pos}
+    Range: mock_fn fn ...range: {range}
+    Location: mock_fn fn ...location: {location}
+
+    languages: dict:
+      registerDefinitionProvider: mock_fn()
+
+  {virtual: true}
+
+
+{languages, workspace} = import 'vscode'
+
+{add_definition_provider} = import './provide-def'
+{to_vs_pos} = import './loc'
+
+
+async_parse = fn doc:
+  await parse doc.getText(), `${doc.uri}`
+
+
+describe 'definition provider', fn:
+
+  it 'provides definition of ident', fn:
+    ctx = dict:
+      subscriptions: dict:
+        push: mock_fn()
+
+    add_definition_provider ctx, async_parse
+    {mock: {calls: [[, provider]]}} = languages.registerDefinitionProvider
+
+    document = dict:
+      getText: fn: `
+        foo = 1234
+        log foo
+      `
+      uri: {test: 'test-uri:test.fnk'}
+      languageId: 'fink'
+
+    pos = {line: 1, character: 5}
+
+    expect
+      await provider.provideDefinition document, pos
+      to_equal list:
+        dict: 'location': list:
+          {test: 'test-uri:test.fnk'}
+          {pos: [0, 0]}
+
+
+ it 'provides no definition', fn:
+    ctx = dict:
+      subscriptions: dict:
+        push: mock_fn()
+
+    add_definition_provider ctx, async_parse
+    {mock: {calls: [[, provider]]}} = languages.registerDefinitionProvider
+
+    document = dict:
+      getText: fn: `
+        foo = 1234
+        log foo
+      `
+      uri: {test: 'test-uri:test.fnk'}
+      languageId: 'fink'
+
+    pos = {line: 0, character: 8}
+
+    expect
+      await provider.provideDefinition document, pos
+      to_equal []
+
+
+
+
