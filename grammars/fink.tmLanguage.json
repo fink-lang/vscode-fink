@@ -154,7 +154,7 @@
         {
           "match": "\\b(\\w+?)\\b",
           "captures": {
-            "1": {"name": "variable.other.readwrite.fink"}
+            "1": {"name": "variable.other.constant.fink"}
           }
         }
       ]
@@ -235,7 +235,7 @@
 					"name": "meta.object.member.shorthand",
 					"match": "(\\w+)\\s*(?=,|\\}|$)",
 					"captures": {
-						"1": {"name": "variable.other.readwrite.fink"}
+						"1": {"name": "variable.other.constant.fink"}
 					}
 				},
 
@@ -256,7 +256,7 @@
 					"begin": "(\\w+)\\s*=",
 					"end": "(?=,|\\}|$)",
 					"beginCaptures": {
-						"1": {"name": "variable.other.readwrite.fink"}
+						"1": {"name": "variable.other.constant.fink"}
 					},
 					"patterns": [
 						{"include": "$base"}

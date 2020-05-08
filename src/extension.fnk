@@ -1,5 +1,3 @@
-{languages} = import 'vscode'
-
 {init_lang} = import './lang-config'
 
 {caching_parser} = import './caching-parser'

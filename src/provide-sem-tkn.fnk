@@ -31,6 +31,8 @@ add_call_tokens = fn expr, builder:
 
 add_prop_tokens = fn prop, builder:
   match prop:
+    {left: {type: 'ident'}, right: {type: 'assign'}}:
+      false
     {left: {type: 'ident'}, right: ? != prop.left}:
       {value, loc: {start}} = prop.left
       builder.push start.line - 1, start.column, value.length, 1, 0

@@ -1,5 +1,5 @@
 {describe, it, expect, mock, mock_fn} = import '@fink/jest'
-{to_equal, was_called_with, any} = import '@fink/jest'
+{to_equal, was_called_with} = import '@fink/jest'
 
 {parse} = import '@fink/larix'
 
@@ -9,7 +9,7 @@ mock_builder = dict:
   build: mock_fn fn: 'mock-build'
 
 
-jest.mock
+mock
   'vscode'
   fn: dict:
 
@@ -27,9 +27,9 @@ jest.mock
 
 
 
-{languages, SemanticTokensLegend, SemanticTokensBuilder} = import 'vscode'
+{languages, SemanticTokensBuilder} = import 'vscode'
 
-{add_sem_tokens_provider, sem_token_legend} = import './provide-sem-tkn'
+{add_sem_tokens_provider} = import './provide-sem-tkn'
 
 
 async_parse = fn doc:
@@ -57,7 +57,7 @@ describe 'sem token provider', fn:
 
         pipe foo:
           map item:
-            items = match item:
+            {items=123} = match item:
               [..., ni]: {na: []}
 
             ...items

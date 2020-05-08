@@ -1,5 +1,5 @@
-{describe, it, expect, mock_fn} = import '@fink/jest'
-{to_equal, was_not_called, was_called_with, any} = import '@fink/jest'
+{describe, it, expect, mock, mock_fn} = import '@fink/jest'
+{was_not_called, was_called_with} = import '@fink/jest'
 
 {parse} = import '@fink/larix'
 
@@ -7,7 +7,7 @@ mock_diags = dict:
   set: mock_fn()
 
 
-jest.mock
+mock
   'vscode'
   fn: dict:
     Position: mock_fn fn ...pos: {pos}
@@ -27,8 +27,7 @@ jest.mock
   {virtual: true}
 
 
-{languages, workspace} = import 'vscode'
-
+{workspace} = import 'vscode'
 {add_linter} = import './lint'
 
 
