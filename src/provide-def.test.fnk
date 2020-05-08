@@ -55,6 +55,28 @@ describe 'definition provider', fn:
           {pos: [0, 0]}
 
 
+ it 'provides no definition', fn:
+    ctx = dict:
+      subscriptions: dict:
+        push: mock_fn()
+
+    add_definition_provider ctx, async_parse
+    {mock: {calls: [[, provider]]}} = languages.registerDefinitionProvider
+
+    document = dict:
+      getText: fn: `
+        foo = 1234
+        log foo
+      `
+      uri: {test: 'test-uri:test.fnk'}
+      languageId: 'fink'
+
+    pos = {line: 0, character: 8}
+
+    expect
+      await provider.provideDefinition document, pos
+      to_equal []
+
 
 
 

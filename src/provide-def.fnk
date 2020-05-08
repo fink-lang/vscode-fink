@@ -5,26 +5,27 @@
 {to_larix_pos, doc_loc} = import './loc'
 
 
-find_decl_by_loc = fn ast, loc:
+find_decls_by_loc = fn ast, loc:
   idents = get_idents ast
   scopes = decls_by_scope idents
 
   pipe idents:
-    find {expr}: is_at_loc expr, loc
+    filter {expr}: is_at_loc expr, loc
 
-    fn ident:
+    map ident:
       [decl] = get_decls ident, scopes
       decl.expr
+
 
 
 def_provider = fn async_parse: fn doc, pos:
   [ast] = await async_parse doc
 
-  decl = find_decl_by_loc ast, to_larix_pos pos
-  match decl:
-    {loc: {}}: [doc_loc doc, decl.loc.start]
-    else: []
+  [...locs] = pipe find_decls_by_loc ast, to_larix_pos pos:
+    map decl:
+      doc_loc doc, decl.loc.start
 
+  locs
 
 
 add_definition_provider = fn {subscriptions}, async_parse:
