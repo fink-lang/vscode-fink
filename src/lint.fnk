@@ -1,108 +1,7 @@
 {workspace, languages, Range, Diagnostic, DiagnosticSeverity} = import 'vscode'
 
 {to_vs_pos} = import './loc'
-{walk, concat} = import './traverse'
-
-{obj_values} = import './js-compat'
-
-
-is_var = fn node:
-  {expr} = node
-  match node:
-    {
-      expr: {type: 'ident'}
-      parent: {expr: {type: 'member', right: expr}}
-    }:
-      false
-    {
-      expr: {type: 'ident'}
-      parent: {expr: {type: 'object:prop', left: expr, right: ? != expr}}
-    }:
-      false
-    {expr: {type: 'ident'}}:
-      true
-    else:
-      false
-
-
-is_declaring = fn node:
-  match node:
-    {decl: true}: true
-    else: false
-
-
-get_idents = fn ast:
-  [...idents] = pipe walk ast:
-    filter node: is_var node
-  idents
-
-
-expr_id = fn {loc: {start, end}}:
-  `${start.pos}:${end.pos}`
-
-
-ident_id = fn {value}:
-  `id:${value}`
-
-
-insert_to_prop = fn obj, key, item:
-  {(key): items=[]} = obj
-  {...obj, (key): [item, ...items]}
-
-
-decls_by_scope = fn idents:
-  pipe idents:
-    filter node: is_declaring node
-
-    fold decl, scopes={}:
-      scope_id = expr_id decl.scope.expr
-      decl_id = ident_id decl.expr
-
-      {(scope_id): decls={}} = scopes
-      new_decls = insert_to_prop decls, decl_id, decl
-
-      {...scopes, (scope_id): new_decls}
-
-
-find_decls = fn ident, scope, scopes:
-  scope_id = expr_id scope.expr
-  decls_by_id = scopes.(scope_id) || []
-  decls = decls_by_id.(ident_id ident) || []
-
-  match scope:
-    {parent: {}}:
-      parent_scope_decls = find_decls ident, scope.parent, scopes
-      [...decls, ...parent_scope_decls]
-    else:
-      decls
-
-
-get_decls = fn node, scopes:
-  find_decls node.expr, node.scope, scopes
-
-
-get_refs = fn idents, scopes:
-  init_refs = pipe idents:
-    filter {decl}: decl
-    fold decl, refs={}:
-      decl_id = expr_id decl.expr
-      {...refs, (decl_id): {decl, idents: []}}
-
-  pipe idents:
-    fold node, refs=init_refs:
-      decls = get_decls node, scopes
-
-      match decls:
-        {length: 0}:
-          refs
-        else:
-          [decl] = decls
-          decl_id = expr_id decl.expr
-          ref = refs.(decl_id)
-
-          {...refs, (decl_id): {...ref, idents: [...ref.idents, node]}}
-
-    fn refs: obj_values refs
+{concat, get_refs, get_decls, decls_by_scope, get_idents} = import './traverse'
 
 
 get_errors = fn ast:
@@ -119,7 +18,8 @@ get_errors = fn ast:
     filter {idents}:
       match idents:
         {length: 1}: true
-        else: false
+        else:
+          false
 
     map {decl}:
       ['unused', decl]
