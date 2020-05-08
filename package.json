@@ -82,6 +82,7 @@
     "build:languages": "cp -r ./languages ./build/pkg/",
     "test": "run jest",
     "jest": "jest --verbose --runInBand --no-cache ",
+    "watch": "nodemon --watch ./src -e fnk  --exec \"npx run build\"",
     "release": "semantic-release"
   },
   "devDependencies": {
@@ -91,6 +92,7 @@
     "commitizen": "^4.0.3",
     "cz-conventional-changelog": "^3.1.0",
     "jest-cli": "^26.0.0",
+    "nodemon": "^2.0.3",
     "npx-run": "^2.1.2",
     "semantic-release": "^17.0.4",
     "semantic-release-vsce": "^3.0.1"
