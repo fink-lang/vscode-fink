@@ -7,6 +7,7 @@ module.exports = {
     '^.+\\.fnk$': ['@fink/jest/transform']
   },
   transformIgnorePatterns: ['<rootDir>/node_modules/', '<rootDir>/build/'],
+  snapshotResolver: '@fink/jest/snapshot-resolver',
 
   modulePathIgnorePatterns: ['<rootDir>/build/'],
 
