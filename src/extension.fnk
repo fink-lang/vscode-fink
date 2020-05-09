@@ -4,6 +4,8 @@
 {add_sem_tokens_provider} = import './provide-sem-tkn'
 {add_completion_provider} = import './provide-compl'
 {add_definition_provider} = import './provide-def'
+{add_highlights_provider} = import './provide-highlights'
+{add_refs_provider} = import './provide-refs'
 {add_linter} = import './lint'
 
 
@@ -13,5 +15,7 @@ activate = fn ctx:
   add_sem_tokens_provider ctx, async_parse
   add_completion_provider ctx, async_parse
   add_definition_provider ctx, async_parse
+  add_highlights_provider ctx, async_parse
+  add_refs_provider ctx, async_parse
   add_linter async_parse
 
