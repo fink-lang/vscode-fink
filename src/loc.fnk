@@ -9,10 +9,6 @@ to_larix_pos = fn {line, character}:
   {line: line + 1, column: character}
 
 
-doc_loc = fn doc, pos:
-  new Location doc.uri, to_vs_pos pos
-
-
 range = fn {start, end}:
   new Range
     to_vs_pos start

@@ -162,6 +162,14 @@ get_decls = fn node, scopes:
   find_decls node.expr, node.scope, scopes
 
 
+get_refs_for_decl = fn refs, decl:
+  decl_id = expr_id decl.expr
+  pipe refs:
+    filter ref:
+      ref_id = expr_id ref.decl.expr
+      decl_id == ref_id
+
+
 get_refs = fn idents, scopes:
   init_refs = pipe idents:
     filter {decl}: decl
