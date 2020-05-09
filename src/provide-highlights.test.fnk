@@ -1,0 +1,65 @@
+{describe, it, expect, mock, mock_fn} = import '@fink/jest'
+{to_equal} = import '@fink/jest'
+
+{parse} = import '@fink/larix'
+
+
+mock
+  'vscode'
+  fn: dict:
+    Position: mock_fn fn ...pos: {pos}
+    Range: mock_fn fn ...range: {range}
+    Location: mock_fn fn ...location: {location}
+    DocumentHighlight: mock_fn fn ...highlight: {highlight}
+    DocumentHighlightKind: dict:
+      Write: 'test-write'
+      Read: 'test-read'
+
+    languages: dict:
+      registerDocumentHighlightProvider: mock_fn()
+
+  {virtual: true}
+
+
+{languages} = import 'vscode'
+
+{add_highlights_provider} = import './provide-highlights'
+
+
+async_parse = fn doc:
+  await parse doc.getText(), `${doc.uri}`
+
+
+describe 'highlights provider', fn:
+
+  it 'provides highlight locations of ident', fn:
+    ctx = dict:
+      subscriptions: dict:
+        push: mock_fn()
+
+    add_highlights_provider ctx, async_parse
+    {mock: {calls: [[, provider]]}} = languages.registerDocumentHighlightProvider
+
+    document = dict:
+      getText: fn: `
+        foo = 123
+        bar = foo + 456
+        spam = fn foo:
+          log foo, bar
+      `
+      uri: {test: 'test-uri:test.fnk'}
+      languageId: 'fink'
+
+    pos = {line: 1, character: 7}
+
+    expect
+      await provider.provideDocumentHighlights document, pos
+      to_equal list:
+        dict: 'highlight': list:
+          {range: [{pos: [0, 0]}, {pos: [0, 3]}]}
+          'test-write'
+
+        dict: 'highlight': list:
+          {range: [{pos: [1, 6]}, {pos: [1, 9]}]}
+          'test-read'
+
