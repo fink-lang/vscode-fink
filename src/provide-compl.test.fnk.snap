@@ -4,7 +4,26 @@ exports[`completion provider provides completions 1`] = `
 Array [
   Object {
     "completion": Array [
+      "foo",
+      "test-var",
+    ],
+  },
+  Object {
+    "completion": Array [
+      "bar",
+      "test-var",
+    ],
+  },
+  Object {
+    "completion": Array [
+      "spam",
+      "test-var",
+    ],
+  },
+  Object {
+    "completion": Array [
       "match",
+      "test-func",
     ],
     "documentation": Object {
       "appendCodeblock": [MockFunction],
@@ -34,6 +53,7 @@ $0",
   Object {
     "completion": Array [
       "fold",
+      "test-func",
     ],
     "documentation": Object {
       "appendCodeblock": [MockFunction],
@@ -62,6 +82,7 @@ $0",
   Object {
     "completion": Array [
       "unfold",
+      "test-func",
     ],
     "documentation": Object {
       "appendCodeblock": [MockFunction],
@@ -90,6 +111,7 @@ $0",
   Object {
     "completion": Array [
       "map",
+      "test-func",
     ],
     "documentation": Object {
       "appendCodeblock": [MockFunction],
@@ -117,6 +139,7 @@ $0",
   Object {
     "completion": Array [
       "filter",
+      "test-func",
     ],
     "documentation": Object {
       "appendCodeblock": [MockFunction],
@@ -145,6 +168,7 @@ $0",
   Object {
     "completion": Array [
       "while",
+      "test-func",
     ],
     "documentation": Object {
       "appendCodeblock": [MockFunction],
@@ -173,6 +197,7 @@ $0",
   Object {
     "completion": Array [
       "find",
+      "test-func",
     ],
     "documentation": Object {
       "appendCodeblock": [MockFunction],
@@ -201,6 +226,7 @@ $0",
   Object {
     "completion": Array [
       "pipe",
+      "test-func",
     ],
     "documentation": Object {
       "appendCodeblock": [MockFunction],

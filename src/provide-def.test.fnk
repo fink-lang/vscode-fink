@@ -51,7 +51,7 @@ describe 'definition provider', fn:
       to_equal list:
         dict: 'location': list:
           {test: 'test-uri:test.fnk'}
-          {pos: [0, 0]}
+          {range: [{pos: [0, 0]}, {pos: [0, 3]}]}
 
 
  it 'provides no definition', fn:

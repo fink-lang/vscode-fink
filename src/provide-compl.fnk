@@ -1,6 +1,8 @@
-{MarkdownString, CompletionItem, SnippetString, languages} = import 'vscode'
+{MarkdownString, CompletionItem, CompletionItemKind, SnippetString, languages} = import 'vscode'
 
 {assign} = import './js-compat'
+{get_idents} = import './traverse'
+{to_larix_pos} = import './loc'
 
 
 doc_md = fn header, code:
@@ -122,7 +124,7 @@ api = dict:
 comp_item = fn key:
   {(key): {doc, snippet: code_snippet}} = api
 
-  item = new CompletionItem key
+  item = new CompletionItem key, CompletionItemKind.Function
 
   assign item, {insertText: code_snippet}
   assign item, {documentation: doc}
@@ -130,8 +132,27 @@ comp_item = fn key:
   item
 
 
-provide_completions = fn:
+completions_from_loc = fn ast, pos:
+  idents = get_idents ast
+
+  pipe idents:
+    filter {decl}: decl
+    filter {expr}: expr.loc.start.line <= pos.line
+    filter {scope}:
+      match scope.expr.loc:
+        {start: {line: ? < pos.line}, end: {line: ? >= pos.line}}: true
+        else: false
+    map {expr}:
+      kind = CompletionItemKind.Variable
+      new CompletionItem expr.value, kind
+
+
+completion_provider = fn async_parse: fn doc, pos:
+  [ast] = await async_parse doc
+  completions = completions_from_loc ast, to_larix_pos pos
+
   list:
+    ...completions
     comp_item 'match'
     comp_item 'fold'
     comp_item 'unfold'
@@ -142,10 +163,10 @@ provide_completions = fn:
     comp_item 'pipe'
 
 
-add_completion_provider = fn {subscriptions}:
+add_completion_provider = fn {subscriptions}, async_parse:
 
   subscr = languages.registerCompletionItemProvider
     'fink'
-    {provideCompletionItems: provide_completions}
+    {provideCompletionItems: completion_provider async_parse}
 
   subscriptions.push subscr

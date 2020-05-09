@@ -1,4 +1,4 @@
-{Location, Position} = import 'vscode'
+{Location, Position, Range} = import 'vscode'
 
 
 to_vs_pos = fn {line, column}:
@@ -9,5 +9,11 @@ to_larix_pos = fn {line, character}:
   {line: line + 1, column: character}
 
 
-doc_loc = fn doc, pos:
-  new Location doc.uri, to_vs_pos pos
+range = fn {start, end}:
+  new Range
+    to_vs_pos start
+    to_vs_pos end
+
+
+doc_range = fn doc, loc:
+  new Location doc.uri, range loc

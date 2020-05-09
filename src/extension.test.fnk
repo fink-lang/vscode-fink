@@ -9,14 +9,16 @@ mock
     SemanticTokensLegend: mock_fn()
     SnippetString: mock_fn()
     MarkdownString: mock_fn fn: dict:
-      appendCodeblock: mock_fn ()
+      appendCodeblock: mock_fn()
 
     languages: dict:
       setLanguageConfiguration: mock_fn()
       registerDocumentSemanticTokensProvider: mock_fn()
+      registerDocumentHighlightProvider: mock_fn()
       registerCompletionItemProvider: mock_fn()
-      createDiagnosticCollection: mock_fn()
+      registerReferenceProvider: mock_fn()
       registerDefinitionProvider: mock_fn()
+      createDiagnosticCollection: mock_fn()
 
     workspace: dict:
       onDidChangeTextDocument: mock_fn()
@@ -57,9 +59,17 @@ describe 'extension', fn:
       was_called
 
     expect
+      languages.registerDocumentHighlightProvider
+      was_called
+
+    expect
       languages.registerCompletionItemProvider
       was_called
 
     expect
       languages.registerDefinitionProvider
+      was_called_with 'fink', any object
+
+    expect
+      languages.registerReferenceProvider
       was_called_with 'fink', any object

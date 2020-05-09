@@ -1,6 +1,6 @@
-{workspace, languages, Range, Diagnostic, DiagnosticSeverity} = import 'vscode'
+{workspace, languages, Diagnostic, DiagnosticSeverity} = import 'vscode'
 
-{to_vs_pos} = import './loc'
+{range} = import './loc'
 {concat, get_refs, get_decls, decls_by_scope, get_idents} = import './traverse'
 
 
@@ -38,9 +38,7 @@ get_errors = fn ast:
 
 
 diagnostic = fn loc, msg, severity:
-  start = to_vs_pos loc.start
-  end = to_vs_pos loc.end
-  rng = new Range start, end
+  rng = range loc
   new Diagnostic rng, msg, severity
 
 

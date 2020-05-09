@@ -6,6 +6,10 @@ mock
   'vscode'
   fn: dict:
     CompletionItem: mock_fn fn ...completion: {completion}
+    CompletionItemKind: dict:
+      Variable: 'test-var'
+      Function: 'test-func'
+
     SnippetString: mock_fn fn ...snippet: {snippet}
     MarkdownString: mock_fn fn ...markdown: dict:
       markdown
@@ -19,7 +23,13 @@ mock
 
 
 {languages} = import 'vscode'
+{parse} = import '@fink/larix'
+
 {add_completion_provider} = import './provide-compl'
+
+
+async_parse = fn doc:
+  await parse doc.getText(), `${doc.uri}`
 
 
 describe 'completion provider', fn:
@@ -29,10 +39,24 @@ describe 'completion provider', fn:
       subscriptions: dict:
         push: mock_fn()
 
-    add_completion_provider ctx
+    add_completion_provider ctx, async_parse
     {mock: {calls: [[, provider]]}} = languages.registerCompletionItemProvider
 
-    completions = provider.provideCompletionItems {}
+    document = dict:
+      getText: fn: `
+        foo = 1234
+        bar = fn spam:
+          fn ni:
+            ni
+          shr
+        na = 567
+      `
+      uri: {test: 'test-uri:test.fnk'}
+      languageId: 'fink'
+
+    pos = {line: 4, character: 5}
+
+    completions = await provider.provideCompletionItems document, pos
 
     expect
       completions
