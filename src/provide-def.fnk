@@ -2,7 +2,7 @@
 
 {get_decls, decls_by_scope, get_idents} = import './traverse'
 {is_at_loc} = import './traverse'
-{to_larix_pos, doc_loc} = import './loc'
+{to_larix_pos, doc_range} = import './loc'
 
 
 find_decls_by_loc = fn ast, loc:
@@ -23,7 +23,7 @@ def_provider = fn async_parse: fn doc, pos:
 
   [...locs] = pipe find_decls_by_loc ast, to_larix_pos pos:
     map decl:
-      doc_loc doc, decl.loc.start
+      doc_range doc, decl.loc
 
   locs
 
