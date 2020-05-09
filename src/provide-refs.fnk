@@ -1,0 +1,44 @@
+{languages} = import 'vscode'
+
+{is_at_loc, decls_by_scope, get_idents, get_decls, get_refs, get_refs_for_decl} = import './traverse'
+{to_larix_pos, doc_range} = import './loc'
+
+
+
+find_refs_by_loc = fn ast, loc:
+  idents = get_idents ast
+  scopes = decls_by_scope idents
+  all_refs = get_refs idents, scopes
+
+  pipe idents:
+    filter {expr}: is_at_loc expr, loc
+
+    map ident:
+      [decl] = get_decls ident, scopes
+      ...get_refs_for_decl all_refs, decl
+
+    map {idents}:
+      ...idents
+
+
+
+provide_refs = fn async_parse: fn doc, pos:
+  [ast] = await async_parse doc
+
+  refs = find_refs_by_loc ast, to_larix_pos pos
+
+  [...locs] = pipe refs:
+    map {expr}:
+      doc_range doc, expr.loc
+  locs
+
+
+
+add_refs_provider = fn {subscriptions}, async_parse:
+
+  subscr = languages.registerReferenceProvider
+    'fink'
+    {provideReferences: provide_refs async_parse}
+
+  subscriptions.push subscr
+

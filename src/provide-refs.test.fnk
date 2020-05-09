@@ -1,0 +1,92 @@
+{describe, it, expect, mock, mock_fn} = import '@fink/jest'
+{to_equal} = import '@fink/jest'
+
+{parse} = import '@fink/larix'
+
+
+mock
+  'vscode'
+  fn: dict:
+    Position: mock_fn fn ...pos: {pos}
+    Range: mock_fn fn ...range: {range}
+    Location: mock_fn fn ...location: {location}
+
+    languages: dict:
+      registerReferenceProvider: mock_fn()
+
+  {virtual: true}
+
+
+{languages} = import 'vscode'
+
+{add_refs_provider} = import './provide-refs'
+
+
+async_parse = fn doc:
+  await parse doc.getText(), `${doc.uri}`
+
+
+describe 'reference provider', fn:
+
+  it 'provides refs of ident', fn:
+    ctx = dict:
+      subscriptions: dict:
+        push: mock_fn()
+
+    add_refs_provider ctx, async_parse
+    {mock: {calls: [[, provider]]}} = languages.registerReferenceProvider
+
+    document = dict:
+      getText: fn: `
+        foo = 123
+        bar = foo + 456
+        spam = fn foo:
+          log foo, bar
+      `
+      uri: {test: 'test-uri:test.fnk'}
+      languageId: 'fink'
+
+    pos = {line: 0, character: 2}
+
+    expect
+      await provider.provideReferences document, pos
+      to_equal list:
+        dict: 'location': list:
+          {test: 'test-uri:test.fnk'}
+          {range: [{pos: [0, 0]}, {pos: [0, 3]}]}
+
+        dict: 'location': list:
+          {test: 'test-uri:test.fnk'}
+          {range: [{pos: [1, 6]}, {pos: [1, 9]}]}
+
+
+  it 'provides refs for shaddowed idents', fn:
+    ctx = dict:
+      subscriptions: dict:
+        push: mock_fn()
+
+    add_refs_provider ctx, async_parse
+    {mock: {calls: [[, provider]]}} = languages.registerReferenceProvider
+
+    document = dict:
+      getText: fn: `
+        foo = 123
+        bar = foo + 456
+        spam = fn foo:
+          log foo, bar
+      `
+      uri: {test: 'test-uri:test.fnk'}
+      languageId: 'fink'
+
+    pos = {line: 3, character: 7}
+
+    expect
+      await provider.provideReferences document, pos
+      to_equal list:
+        dict: 'location': list:
+          {test: 'test-uri:test.fnk'}
+          {range: [{pos: [2, 10]}, {pos: [2, 13]}]}
+
+        dict: 'location': list:
+          {test: 'test-uri:test.fnk'}
+          {range: [{pos: [3, 6]}, {pos: [3, 9]}]}
