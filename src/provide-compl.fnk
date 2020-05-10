@@ -10,7 +10,6 @@ doc_md = fn header, code:
   doc.appendCodeblock code, 'fink'
   doc
 
-
 snippet = fn txt: new SnippetString txt
 
 
