@@ -179,8 +179,8 @@
 					]
 				},
 				{
-					"name": "meta.function-call.no-parens.fink",
-					"match": "\\b((?!and|or|not)\\b)(\\w+)[ ](?![-+*/=|&><%^#}:]|!=|\\b(and|or)\\b|$)",
+					"name": "meta.function-call.op-less.fink",
+					"match": "\\b((?!and|or|not|in)\\b)(\\w+)[ ](?![-+*/=|&><%^#}:]|!=|\\b(and|or|in)\\b|$)",
 					"captures": {
 						"2": {"name": "entity.name.function.fink"},
 						"3": {"name": "keyword.operator.call.fink"}
