@@ -19,7 +19,7 @@ find_decls_by_loc = fn ast, loc:
 
 
 def_provider = fn async_parse: fn doc, pos:
-  [ast] = await async_parse doc
+  ast = await async_parse doc
 
   [...locs] = pipe find_decls_by_loc ast, to_larix_pos pos:
     map decl:

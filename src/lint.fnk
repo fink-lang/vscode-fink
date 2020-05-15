@@ -1,4 +1,5 @@
 {workspace, languages, Diagnostic, DiagnosticSeverity} = import 'vscode'
+{length} = import '@fink/std-lib/iter'
 
 {range} = import './loc'
 {concat, get_refs, get_decls, decls_by_scope, get_idents} = import './traverse'
@@ -17,7 +18,7 @@ get_errors = fn ast:
 
     filter {idents}:
       match idents:
-        {length: 1}: true
+        1 == length ?: true
         else:
           false
 
@@ -28,7 +29,7 @@ get_errors = fn ast:
     filter node:
       decls = get_decls node, scopes
       match decls:
-        {length: 0}: true
+        0 == length ?: true
         else: false
 
     map node:
@@ -43,7 +44,7 @@ diagnostic = fn loc, msg, severity:
 
 
 process_doc = fn doc, dc, parse:
-  [ast, {errors}] = await parse doc
+  {errors, ...ast} = await parse doc
 
   [...diags] = concat
     pipe get_errors ast:

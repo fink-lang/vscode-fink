@@ -7,8 +7,11 @@ mock
   fn: dict:
     CompletionItem: mock_fn fn ...completion: {completion}
     CompletionItemKind: dict:
-      Variable: 'test-var'
+      Reference: 'test-ref'
+      Constant: 'test-const'
       Function: 'test-func'
+      Struct: 'test-struct'
+      Text: 'test-text'
 
     SnippetString: mock_fn fn ...snippet: {snippet}
     MarkdownString: mock_fn fn ...markdown: dict:
