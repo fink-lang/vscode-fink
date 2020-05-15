@@ -1,4 +1,6 @@
-{obj_values} = import './js-compat'
+{obj_values} = import '@fink/std-lib/obj'
+{length} = import '@fink/std-lib/iter'
+
 
 
 concat = fn ...iterables:
@@ -84,6 +86,9 @@ walk = fn expr, props={scope: {expr}}:
 
       {right: {}}:
         walk expr.right, {parent, decl: props.decl, scope: node.scope}
+
+      {op: 'try'}:
+        walk_exprs expr.exprs, {parent, decl: false, scope: node.scope}
 
       else:
         []
@@ -182,7 +187,7 @@ get_refs = fn idents, scopes:
       decls = get_decls node, scopes
 
       match decls:
-        {length: 0}:
+        0 == length ?:
           refs
         else:
           [decl] = decls
