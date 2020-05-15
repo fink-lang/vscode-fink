@@ -1,7 +1,2 @@
-
-obj_items = Object.items
-obj_values = Object.values
-assign = Object.assign
 object = Object
-
 hash_map = fn ...args: new Map ...args

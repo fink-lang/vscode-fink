@@ -5,19 +5,19 @@ Array [
   Object {
     "completion": Array [
       "foo",
-      "test-var",
+      "test-const",
     ],
   },
   Object {
     "completion": Array [
       "bar",
-      "test-var",
+      "test-func",
     ],
   },
   Object {
     "completion": Array [
       "spam",
-      "test-var",
+      "test-const",
     ],
   },
   Object {

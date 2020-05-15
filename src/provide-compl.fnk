@@ -1,6 +1,6 @@
 {MarkdownString, CompletionItem, CompletionItemKind, SnippetString, languages} = import 'vscode'
+{set_props} = import '@fink/std-lib/obj'
 
-{assign} = import './js-compat'
 {get_idents} = import './traverse'
 {to_larix_pos} = import './loc'
 
@@ -125,9 +125,8 @@ comp_item = fn key:
 
   item = new CompletionItem key, CompletionItemKind.Function
 
-  assign item, {insertText: code_snippet}
-  assign item, {documentation: doc}
-
+  set_props item, {insertText: code_snippet}
+  set_props item, {documentation: doc}
   item
 
 
@@ -141,13 +140,25 @@ completions_from_loc = fn ast, pos:
       match scope.expr.loc:
         {start: {line: ? < pos.line}, end: {line: ? >= pos.line}}: true
         else: false
-    map {expr}:
-      kind = CompletionItemKind.Variable
+
+    map {expr, parent}:
+      kind = match parent:
+        {parent: {parent: {expr: {type: 'assign', right: {op: 'import'}}}}}:
+          CompletionItemKind.Reference
+        {expr: {type: 'assign', right: {op: ? in ['fn', 'fold', 'unfold', 'map', 'filter', 'while', 'find']}}}:
+          CompletionItemKind.Function
+        {expr: {type: 'assign', right: {type: 'string'}}}:
+          CompletionItemKind.Text
+        {expr: {type: 'assign', right: {type: 'object'}}}:
+          CompletionItemKind.Struct
+        else:
+          CompletionItemKind.Constant
+
       new CompletionItem expr.value, kind
 
 
 completion_provider = fn async_parse: fn doc, pos:
-  [ast] = await async_parse doc
+  ast = await async_parse doc
   completions = completions_from_loc ast, to_larix_pos pos
 
   list:

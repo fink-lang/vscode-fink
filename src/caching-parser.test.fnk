@@ -1,5 +1,5 @@
-{describe, it, expect, mock, mock_fn} = import '@fink/jest'
-{to_equal} = import '@fink/jest'
+{describe, it, expect, mock, mock_fn, to_equal} = import '@fink/jest'
+{length} = import '@fink/std-lib/iter'
 
 
 mock
@@ -38,7 +38,7 @@ describe 'caching parser', fn:
     await result2
 
     expect
-      parse.mock.calls.length
+      length parse.mock.calls
       to_equal 1
 
     expect
@@ -63,7 +63,7 @@ describe 'caching parser', fn:
     await result2
 
     expect
-      parse.mock.calls.length
+      length parse.mock.calls
       to_equal 2
 
     expect
@@ -93,7 +93,7 @@ describe 'caching parser', fn:
     await result2
 
     expect
-      parse.mock.calls.length
+      length parse.mock.calls
       to_equal 2
 
     expect

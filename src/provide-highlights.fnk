@@ -27,7 +27,7 @@ find_refs_by_loc = fn ast, loc:
 
 
 provide_highlights = fn async_parse: fn doc, pos:
-  [ast] = await async_parse doc
+  ast = await async_parse doc
 
   refs = find_refs_by_loc ast, to_larix_pos pos
 

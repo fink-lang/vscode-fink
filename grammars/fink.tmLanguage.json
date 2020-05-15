@@ -214,7 +214,7 @@
 		},
 
 		"dict": {
-			"begin": "(^[ ]{1,}(?! ))(?=.*\\bdict:$)",
+			"begin": "(^[ ]{1,}(?! )(?!#))(?=.*\\bdict:$)",
 			"while": "(?=^$|\\1[ ]{1,}(?! ))",
 			"contentName": "meta.block.dict.fink",
 			"patterns": [
