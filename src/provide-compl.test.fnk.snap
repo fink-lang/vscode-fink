@@ -231,7 +231,7 @@ $0",
     "documentation": Object {
       "appendCodeblock": [MockFunction],
       "markdown": Array [
-        "Calls all expressions with the result of the previous call, starting
+        "Call all expressions with the result of the previous call, starting
 with the pipe arg for the first call.",
         Array [
           "pipe [1, 2, 3, 4]:
@@ -250,6 +250,32 @@ with the pipe arg for the first call.",
       "snippet": Array [
         "pipe $1:
   $2
+$0",
+      ],
+    },
+  },
+  Object {
+    "completion": Array [
+      "import",
+      "test-func",
+    ],
+    "documentation": Object {
+      "appendCodeblock": [MockFunction],
+      "markdown": Array [
+        "Import a module from the given URI.",
+        Array [
+          "{foo} = import './spam.fnk'
+
+async_load = fn:
+  {a} = await import './shrub.fnk'
+",
+          "fink",
+        ],
+      ],
+    },
+    "insertText": Object {
+      "snippet": Array [
+        "import '$1'
 $0",
       ],
     },
