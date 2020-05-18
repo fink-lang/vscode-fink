@@ -90,6 +90,17 @@ walk = fn expr, props={scope: {expr}}:
       {op: 'try'}:
         walk_exprs expr.exprs, {parent, decl: false, scope: node.scope}
 
+      {type: 'jsx-elem'}:
+        concat
+          walk_exprs expr.props, {parent, decl: false, scope: node.scope}
+          walk_exprs expr.children, {parent, decl: false, scope: node.scope}
+
+      {type: 'jsx-attr', value: {}}:
+        walk expr.value, {parent, decl: false, scope: node.scope}
+
+      {type: 'jsx-expr-container'}:
+        walk expr.expr, {parent, decl: false, scope: node.scope}
+
       else:
         []
 
@@ -136,6 +147,29 @@ is_at_loc = fn expr, loc:
       true
     else:
       false
+
+
+get_exprs_from_loc = fn ast, pos:
+  pipe walk ast:
+    while {expr}:
+      match expr:
+        {loc: {start: {line: ? <= pos.line}}}: true
+        else: false
+
+    filter {expr}:
+      match expr:
+        {type: 'ident'}: true
+        {type: 'number'}: true
+        {type: 'string:text'}: true
+        else: false
+
+    filter {expr}:
+      match expr.loc:
+        {
+          start: {line: ? <= pos.line, column: ? <= pos.column},
+          end: {line: ? >= pos.line, column: ? >= pos.column}
+        }: true
+        else: false
 
 
 is_declaring = fn node:
@@ -211,3 +245,5 @@ decls_by_scope = fn idents:
       new_decls = insert_to_prop decls, decl_id, decl
 
       {...scopes, (scope_id): new_decls}
+
+
