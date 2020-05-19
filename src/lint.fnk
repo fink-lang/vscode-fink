@@ -1,8 +1,8 @@
 {workspace, languages, Diagnostic, DiagnosticSeverity} = import 'vscode'
-{length} = import '@fink/std-lib/iter'
+{length, chain} = import '@fink/std-lib/iter'
 
 {range} = import './loc'
-{concat, get_refs, get_decls, decls_by_scope, get_idents} = import './traverse'
+{get_refs, get_decls, decls_by_scope, get_idents} = import './traverse'
 
 
 get_errors = fn ast:
@@ -46,7 +46,7 @@ diagnostic = fn loc, msg, severity:
 process_doc = fn doc, dc, parse:
   {errors, ...ast} = await parse doc
 
-  [...diags] = concat
+  [...diags] = chain
     pipe get_errors ast:
       map [kind, {expr: {loc}}]:
         diagnostic loc, kind, DiagnosticSeverity.Error
