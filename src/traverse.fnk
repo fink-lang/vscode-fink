@@ -107,11 +107,11 @@ expr_id = fn {loc: {start, end}}:
   `${start.pos}:${end.pos}`
 
 
-ident_id = fn {value}:
-  `id:${value}`
+ident_id = fn {value, name}:
+  `id:${value || name}`
 
 
-is_var = fn node:
+is_referanceable = fn node:
   {expr} = node
   match node:
     {
@@ -126,6 +126,8 @@ is_var = fn node:
       false
     {expr: {type: 'ident'}}:
       true
+    {expr: {type: 'jsx-elem'}}:
+      true
     else:
       false
 
@@ -134,8 +136,8 @@ is_at_loc = fn expr, loc:
   {line, column} = loc
   match expr.loc:
     {
-      start: {line, column: ? <= column},
-      end: {line, column: ? >= column}
+      start: {line: ? <= line, column: ? <= column},
+      end: {line: ? >= line, column: ? >= column}
     }:
       true
     else:
@@ -154,10 +156,12 @@ get_exprs_from_loc = fn ast, pos:
         {type: 'ident'}: true
         {type: 'number'}: true
         {type: 'string:text'}: true
+        {type: 'jsx-elem'}: true
         else: false
 
     filter {expr}:
-      match expr.loc:
+      # is_at_loc expr, pos
+      match ref_loc expr:
         {
           start: {line: ? <= pos.line, column: ? <= pos.column},
           end: {line: ? >= pos.line, column: ? >= pos.column}
@@ -173,7 +177,7 @@ is_declaring = fn node:
 
 get_idents = fn ast:
   [...idents] = pipe walk ast:
-    filter node: is_var node
+    filter node: is_referanceable node
   idents
 
 
@@ -224,6 +228,19 @@ get_refs = fn idents, scopes:
           {...refs, (decl_id): {...ref, idents: [...ref.idents, node]}}
 
     fn refs: obj_values refs
+
+
+ref_loc = fn expr:
+  match expr:
+    {type: 'jsx-elem'}:
+      {name, loc: {start}} = expr
+      column = start.column + 1
+      dict:
+        start: {...start, column}
+        end: {...start, column: column + length name}
+    else:
+      expr.loc
+
 
 
 decls_by_scope = fn idents:

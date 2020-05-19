@@ -3,6 +3,7 @@
 
 {parse} = import '@fink/larix'
 
+
 mock_diags = dict:
   set: mock_fn()
 
@@ -43,7 +44,8 @@ describe 'linter provider', fn:
 
     document = dict:
       getText: fn: `
-          foo bar
+        foo bar
+        spam = <div></div>
         `
       uri: {test: 'test-uri:test.fnk'}
       languageId: 'fink'
@@ -55,11 +57,11 @@ describe 'linter provider', fn:
       was_called_with document.uri,
         list:
           dict: 'diagnostic': list:
-            {range: [{pos: [0, 2]}, {pos: [0, 5]}]}
+            {range: [{pos: [0, 0]}, {pos: [0, 3]}]}
             'undefined'
             'test-diag-error'
           dict: 'diagnostic': list:
-            {range: [{pos: [0, 6]}, {pos: [0, 9]}]}
+            {range: [{pos: [0, 4]}, {pos: [0, 7]}]}
             'undefined'
             'test-diag-error'
 

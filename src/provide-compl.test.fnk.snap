@@ -4,13 +4,25 @@ exports[`completion provider provides completions 1`] = `
 Array [
   Object {
     "completion": Array [
+      "ni",
+      "test-ref",
+    ],
+  },
+  Object {
+    "completion": Array [
       "foo",
-      "test-const",
+      "test-struct",
     ],
   },
   Object {
     "completion": Array [
       "bar",
+      "test-text",
+    ],
+  },
+  Object {
+    "completion": Array [
+      "shrub",
       "test-func",
     ],
   },

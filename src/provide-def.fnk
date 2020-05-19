@@ -2,7 +2,7 @@
 
 {set_props} = import '@fink/std-lib/obj'
 
-{get_decls, decls_by_scope, get_idents, get_exprs_from_loc} = import './traverse'
+{get_decls, decls_by_scope, get_idents, get_exprs_from_loc, ref_loc} = import './traverse'
 {to_larix_pos, doc_range, range} = import './loc'
 
 
@@ -18,6 +18,9 @@ find_decls_by_loc = fn ast, loc:
     map node:
       delcs = match node:
         {expr: {type: 'ident'}}:
+          find_decls_for_ident ast, node
+
+        {expr: {type: 'jsx-elem'}}:
           find_decls_for_ident ast, node
 
         {parent: {parent: {expr: {op: 'import'}}}}:
@@ -67,7 +70,7 @@ def_provider = fn async_parse: fn doc, pos:
         {op: 'import'}:
           import_link doc, expr
         else:
-          doc_range doc, expr.loc
+          doc_range doc, ref_loc expr
 
     fold link, out=[]:
       [...out, await link]

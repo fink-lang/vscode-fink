@@ -40,6 +40,9 @@ document = dict:
     bar = foo + 456
     spam = fn foo:
       log foo, bar
+
+    Shrub = fn: null
+    <Shrub />
     `
   uri: {test: 'test-uri:test.fnk'}
   languageId: 'fink'
@@ -62,6 +65,24 @@ describe 'highlights provider', fn:
 
         dict: 'highlight': list:
           {range: [{pos: [1, 6]}, {pos: [1, 9]}]}
+          'test-read'
+
+
+  it 'provides highlight locations of jsx elems', fn:
+    add_highlights_provider ctx, async_parse
+    {mock: {calls: [[, provider]]}} = languages.registerDocumentHighlightProvider
+
+    pos = {line: 6, character: 3}
+
+    expect
+      await provider.provideDocumentHighlights document, pos
+      to_equal list:
+        dict: 'highlight': list:
+          {range: [{pos: [5, 0]}, {pos: [5, 5]}]}
+          'test-write'
+
+        dict: 'highlight': list:
+          {range: [{pos: [6, 1]}, {pos: [6, 6]}]}
           'test-read'
 
 

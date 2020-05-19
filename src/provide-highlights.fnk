@@ -1,6 +1,9 @@
 {languages, DocumentHighlight, DocumentHighlightKind} = import 'vscode'
 
-{decls_by_scope, get_idents, get_decls, get_refs, get_refs_for_decl, get_exprs_from_loc} = import './traverse'
+{
+  decls_by_scope, get_idents, get_decls, get_refs, get_refs_for_decl
+  get_exprs_from_loc, ref_loc
+} = import './traverse'
 {to_larix_pos, range} = import './loc'
 
 
@@ -33,7 +36,7 @@ get_ref_highlights = fn ast, ident:
         else: DocumentHighlightKind.Read
 
       new DocumentHighlight
-        range expr.loc
+        range ref_loc expr
         kind
   locs
 
@@ -49,6 +52,9 @@ provide_highlights = fn async_parse: fn doc, pos:
 
       highlights = match node:
         {expr: {type: 'ident'}}:
+          get_ref_highlights ast, node
+
+        {expr: {type: 'jsx-elem'}}:
           get_ref_highlights ast, node
 
         {expr: {type: 'string:text'}}:
