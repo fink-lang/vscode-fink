@@ -1,6 +1,9 @@
 {languages, DocumentHighlight, DocumentHighlightKind} = import 'vscode'
 
-{is_at_loc, decls_by_scope, get_idents, get_decls, get_refs, get_refs_for_decl} = import './traverse'
+{
+  decls_by_scope, get_idents, get_decls, get_refs, get_refs_for_decl
+  get_exprs_from_loc, ref_loc
+} = import './traverse'
 {to_larix_pos, range} = import './loc'
 
 
@@ -12,24 +15,19 @@ find_refs_for_decl = fn all_refs, decl:
 
 
 
-find_refs_by_loc = fn ast, loc:
+find_refs_by_ident = fn ast, ident:
   idents = get_idents ast
   scopes = decls_by_scope idents
   all_refs = get_refs idents, scopes
 
-  pipe idents:
-    filter {expr}: is_at_loc expr, loc
-    map ident:
-      # all other decls are shaddowed by ident
-      [decl] = get_decls ident, scopes
-      ...find_refs_for_decl all_refs, decl
+  # all other decls are shaddowed by ident
+  [decl] = get_decls ident, scopes
+  [...find_refs_for_decl all_refs, decl]
 
 
 
-provide_highlights = fn async_parse: fn doc, pos:
-  ast = await async_parse doc
-
-  refs = find_refs_by_loc ast, to_larix_pos pos
+get_ref_highlights = fn ast, ident:
+  refs = find_refs_by_ident ast, ident
 
   [...locs] = pipe refs:
     map {decl, expr}:
@@ -38,9 +36,38 @@ provide_highlights = fn async_parse: fn doc, pos:
         else: DocumentHighlightKind.Read
 
       new DocumentHighlight
-        range expr.loc
+        range ref_loc expr
         kind
   locs
+
+
+
+provide_highlights = fn async_parse: fn doc, pos:
+  ast = await async_parse doc
+  loc = to_larix_pos pos
+
+  pipe get_exprs_from_loc ast, loc:
+    map node:
+      {parent} = node
+
+      highlights = match node:
+        {expr: {type: 'ident'}}:
+          get_ref_highlights ast, node
+
+        {expr: {type: 'jsx-elem'}}:
+          get_ref_highlights ast, node
+
+        {expr: {type: 'string:text'}}:
+          list:
+            new DocumentHighlight
+              range parent.expr.loc
+              DocumentHighlightKind.Text
+
+        else:
+          []
+
+      ...highlights
+    [...?]
 
 
 

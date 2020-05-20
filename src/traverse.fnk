@@ -1,12 +1,5 @@
 {obj_values} = import '@fink/std-lib/obj'
-{length} = import '@fink/std-lib/iter'
-
-
-
-concat = fn ...iterables:
-  pipe iterables:
-    map iterable:
-      ...iterable
+{length, chain} = import '@fink/std-lib/iter'
 
 
 walk_exprs = fn exprs, props:
@@ -19,24 +12,24 @@ walk = fn expr, props={scope: {expr}}:
   node = {expr, ...props}
   parent = node
 
-  concat
+  chain
     [node]
     match expr:
       {type: 'module'}:
         walk_exprs expr.exprs, {parent, decl: false, scope: node}
 
       {type: 'block', op: 'match'}:
-        concat
+        chain
           walk_exprs expr.args, {parent, decl: false, scope: node.scope}
           walk_exprs expr.exprs, {parent, decl: false, scope: node}
 
       {type: 'block', op: 'pipe'}:
-        concat
+        chain
           walk_exprs expr.args, {parent, decl: false, scope: node.scope}
           walk_exprs expr.exprs, {parent, decl: false, scope: node}
 
       {type: 'block', args: []}:
-        concat
+        chain
           walk_exprs expr.args, {parent, decl: true, scope: node}
           walk_exprs expr.exprs, {parent, decl: false, scope: node}
 
@@ -44,7 +37,7 @@ walk = fn expr, props={scope: {expr}}:
         walk_exprs expr.exprs, {parent, decl: false, scope: node}
 
       {type: 'call'}:
-        concat
+        chain
           walk expr.callee, {parent, decl: false, scope: node.scope}
           walk_exprs expr.args, {parent, decl: false, scope: node.scope}
 
@@ -52,21 +45,21 @@ walk = fn expr, props={scope: {expr}}:
         walk_exprs expr.exprs, {parent, decl: props.decl, scope: node.scope}
 
       {type: 'object:prop', left: ? == expr.right}:
-        concat
+        chain
           walk expr.left, {parent, decl: props.decl, scope: node.scope}
 
       {type: 'object:prop'}:
-        concat
+        chain
           walk expr.left, {parent, decl: false, scope: node.scope}
           walk expr.right, {parent, decl: props.decl, scope: node.scope}
 
       {type: 'member'}:
-        concat
+        chain
           walk expr.left, {parent, decl: false, scope: node.scope}
           walk expr.right, {parent, decl: false, scope: node.scope}
 
       {type: 'assign'}:
-        concat
+        chain
           walk expr.left, {parent, decl: true, scope: node.scope}
           walk expr.right, {parent, decl: false, scope: node.scope}
 
@@ -80,7 +73,7 @@ walk = fn expr, props={scope: {expr}}:
         walk_exprs expr.exprs, {parent, decl: props.decl, scope: node.scope}
 
       {left: {}, right: {}}:
-        concat
+        chain
           walk expr.left, {parent, decl: false, scope: node.scope}
           walk expr.right, {parent, decl: false, scope: node.scope}
 
@@ -89,6 +82,17 @@ walk = fn expr, props={scope: {expr}}:
 
       {op: 'try'}:
         walk_exprs expr.exprs, {parent, decl: false, scope: node.scope}
+
+      {type: 'jsx-elem'}:
+        chain
+          walk_exprs expr.props, {parent, decl: false, scope: node.scope}
+          walk_exprs expr.children, {parent, decl: false, scope: node.scope}
+
+      {type: 'jsx-attr', value: {}}:
+        walk expr.value, {parent, decl: false, scope: node.scope}
+
+      {type: 'jsx-expr-container'}:
+        walk expr.expr, {parent, decl: false, scope: node.scope}
 
       else:
         []
@@ -103,11 +107,11 @@ expr_id = fn {loc: {start, end}}:
   `${start.pos}:${end.pos}`
 
 
-ident_id = fn {value}:
-  `id:${value}`
+ident_id = fn {value, name}:
+  `id:${value || name}`
 
 
-is_var = fn node:
+is_referanceable = fn node:
   {expr} = node
   match node:
     {
@@ -122,6 +126,8 @@ is_var = fn node:
       false
     {expr: {type: 'ident'}}:
       true
+    {expr: {type: 'jsx-elem'}}:
+      true
     else:
       false
 
@@ -130,12 +136,37 @@ is_at_loc = fn expr, loc:
   {line, column} = loc
   match expr.loc:
     {
-      start: {line, column: ? <= column},
-      end: {line, column: ? >= column}
+      start: {line: ? <= line, column: ? <= column},
+      end: {line: ? >= line, column: ? >= column}
     }:
       true
     else:
       false
+
+
+get_exprs_from_loc = fn ast, pos:
+  pipe walk ast:
+    while {expr}:
+      match expr:
+        {loc: {start: {line: ? <= pos.line}}}: true
+        else: false
+
+    filter {expr}:
+      match expr:
+        {type: 'ident'}: true
+        {type: 'number'}: true
+        {type: 'string:text'}: true
+        {type: 'jsx-elem'}: true
+        else: false
+
+    filter {expr}:
+      # is_at_loc expr, pos
+      match ref_loc expr:
+        {
+          start: {line: ? <= pos.line, column: ? <= pos.column},
+          end: {line: ? >= pos.line, column: ? >= pos.column}
+        }: true
+        else: false
 
 
 is_declaring = fn node:
@@ -146,7 +177,7 @@ is_declaring = fn node:
 
 get_idents = fn ast:
   [...idents] = pipe walk ast:
-    filter node: is_var node
+    filter node: is_referanceable node
   idents
 
 
@@ -199,6 +230,19 @@ get_refs = fn idents, scopes:
     fn refs: obj_values refs
 
 
+ref_loc = fn expr:
+  match expr:
+    {type: 'jsx-elem'}:
+      {name, loc: {start}} = expr
+      column = start.column + 1
+      dict:
+        start: {...start, column}
+        end: {...start, column: column + length name}
+    else:
+      expr.loc
+
+
+
 decls_by_scope = fn idents:
   pipe idents:
     filter node: is_declaring node
@@ -211,3 +255,5 @@ decls_by_scope = fn idents:
       new_decls = insert_to_prop decls, decl_id, decl
 
       {...scopes, (scope_id): new_decls}
+
+

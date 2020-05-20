@@ -25,26 +25,35 @@ mock
 async_parse = fn doc:
   await parse doc.getText(), `${doc.uri}`
 
+ctx = dict:
+  subscriptions: dict:
+    push: mock_fn()
+
+document = dict:
+  getText: fn: `
+    foo = 123
+    bar = foo.bar + 456
+    spam = fn foo:
+      log foo, bar
+
+    try:
+      foo + 1
+
+    Foo = fn: <></>
+
+    <Foo ni={foo}>
+      {foo}
+    </Foo>
+    `
+  uri: {test: 'test-uri:test.fnk'}
+  languageId: 'fink'
+
 
 describe 'reference provider', fn:
 
-  it 'provides refs of ident', fn:
-    ctx = dict:
-      subscriptions: dict:
-        push: mock_fn()
-
+  it 'provides refs for ident', fn:
     add_refs_provider ctx, async_parse
     {mock: {calls: [[, provider]]}} = languages.registerReferenceProvider
-
-    document = dict:
-      getText: fn: `
-        foo = 123
-        bar = foo + 456
-        spam = fn foo:
-          log foo, bar
-      `
-      uri: {test: 'test-uri:test.fnk'}
-      languageId: 'fink'
 
     pos = {line: 0, character: 2}
 
@@ -59,24 +68,40 @@ describe 'reference provider', fn:
           {test: 'test-uri:test.fnk'}
           {range: [{pos: [1, 6]}, {pos: [1, 9]}]}
 
+        dict: 'location': list:
+          {test: 'test-uri:test.fnk'}
+          {range: [{pos: [6, 2]}, {pos: [6, 5]}]}
 
-  it 'provides refs for shaddowed idents', fn:
-    ctx = dict:
-      subscriptions: dict:
-        push: mock_fn()
+        dict: 'location': list:
+          {test: 'test-uri:test.fnk'}
+          {range: [{pos: [10, 9]}, {pos: [10, 12]}]}
 
+        dict: 'location': list:
+          {test: 'test-uri:test.fnk'}
+          {range: [{pos: [11, 3]}, {pos: [11, 6]}]}
+
+
+  it 'provides refs for jsx elem', fn:
     add_refs_provider ctx, async_parse
     {mock: {calls: [[, provider]]}} = languages.registerReferenceProvider
 
-    document = dict:
-      getText: fn: `
-        foo = 123
-        bar = foo + 456
-        spam = fn foo:
-          log foo, bar
-      `
-      uri: {test: 'test-uri:test.fnk'}
-      languageId: 'fink'
+    pos = {line: 8, character: 2}
+
+    expect
+      await provider.provideReferences document, pos
+      to_equal list:
+        dict: 'location': list:
+          {test: 'test-uri:test.fnk'}
+          {range: [{pos: [8, 0]}, {pos: [8, 3]}]}
+
+        dict: 'location': list:
+          {test: 'test-uri:test.fnk'}
+          {range: [{pos: [10, 1]}, {pos: [10, 4]}]}
+
+
+  it 'provides refs for shadowed idents', fn:
+    add_refs_provider ctx, async_parse
+    {mock: {calls: [[, provider]]}} = languages.registerReferenceProvider
 
     pos = {line: 3, character: 7}
 

@@ -1,31 +1,82 @@
-{languages} = import 'vscode'
+{languages, Uri, Location, workspace} = import 'vscode'
 
-{get_decls, decls_by_scope, get_idents} = import './traverse'
-{is_at_loc} = import './traverse'
-{to_larix_pos, doc_range} = import './loc'
+{set_props} = import '@fink/std-lib/obj'
+
+{get_decls, decls_by_scope, get_idents, get_exprs_from_loc, ref_loc} = import './traverse'
+{to_larix_pos, doc_range, range} = import './loc'
+
+
+find_decls_for_ident = fn ast, ident:
+  idents = get_idents ast
+  scopes = decls_by_scope idents
+  [decl] = get_decls ident, scopes
+  [decl.expr]
 
 
 find_decls_by_loc = fn ast, loc:
-  idents = get_idents ast
-  scopes = decls_by_scope idents
+  pipe get_exprs_from_loc ast, loc:
+    map node:
+      delcs = match node:
+        {expr: {type: 'ident'}}:
+          find_decls_for_ident ast, node
 
-  pipe idents:
-    filter {expr}: is_at_loc expr, loc
+        {expr: {type: 'jsx-elem'}}:
+          find_decls_for_ident ast, node
 
-    map ident:
-      [decl] = get_decls ident, scopes
-      decl.expr
+        {parent: {parent: {expr: {op: 'import'}}}}:
+          [node.parent.parent.expr]
+
+        else: []
+
+      ...delcs
+
+
+resolve = fn doc, path:
+  paths = list:
+    Uri.joinPath doc.uri, '..', `${path}`
+    Uri.joinPath doc.uri, '..', `${path}.fnk`
+    Uri.joinPath doc.uri, '..', `${path}/index.fnk`
+
+  pipe paths:
+    # istanbul ignore next
+    find uri:
+      [err, stat] = try: await workspace.fs.stat uri
+      err == null && stat.type == 1
+
+
+import_link = fn doc, import_expr:
+  {right: {exprs: [path]}} = import_expr
+  origin_range = range path.loc
+
+  target = await resolve doc, path.value
+
+  target_range = range {start: {line: 1, column: 1}, end: {line: 1, column: 1}}
+
+  link = new Location
+    target
+    target_range
+
+  set_props link, {originSelectionRange: origin_range}
+  link
 
 
 
 def_provider = fn async_parse: fn doc, pos:
   ast = await async_parse doc
 
-  [...locs] = pipe find_decls_by_loc ast, to_larix_pos pos:
-    map decl:
-      doc_range doc, decl.loc
+  locs = pipe find_decls_by_loc ast, to_larix_pos pos:
+    map expr:
+      match expr:
+        {op: 'import'}:
+          import_link doc, expr
+        else:
+          doc_range doc, ref_loc expr
 
-  locs
+    fold link, out=[]:
+      [...out, await link]
+
+  await locs
+
 
 
 add_definition_provider = fn {subscriptions}, async_parse:
@@ -35,3 +86,4 @@ add_definition_provider = fn {subscriptions}, async_parse:
     {provideDefinition: def_provider async_parse }
 
   subscriptions.push subscr
+

@@ -106,7 +106,7 @@ api = dict:
 
   pipe: dict:
     doc: doc_md
-      'Calls all expressions with the result of the previous call, starting
+      'Call all expressions with the result of the previous call, starting
        with the pipe arg for the first call.'
       `
         pipe [1, 2, 3, 4]:
@@ -118,6 +118,17 @@ api = dict:
         # == 6
       `
     snippet: snippet 'pipe $1:\n  $2\n$0'
+
+  import: dict:
+    doc: doc_md
+      'Import a module from the given URI.'
+      `
+        {foo} = import './spam.fnk'
+
+        async_load = fn:
+          {a} = await import './shrub.fnk'
+      `
+    snippet: snippet `import '$1'\n$0`
 
 
 comp_item = fn key:
@@ -171,6 +182,7 @@ completion_provider = fn async_parse: fn doc, pos:
     comp_item 'while'
     comp_item 'find'
     comp_item 'pipe'
+    comp_item 'import'
 
 
 add_completion_provider = fn {subscriptions}, async_parse:

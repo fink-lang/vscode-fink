@@ -7,12 +7,19 @@
 mock
   'vscode'
   fn: dict:
+    Uri: dict:
+      joinPath: fn ...join_path: {join_path}
+
     Position: mock_fn fn ...pos: {pos}
     Range: mock_fn fn ...range: {range}
     Location: mock_fn fn ...location: {location}
 
     languages: dict:
       registerDefinitionProvider: mock_fn()
+
+    workspace: dict:
+      fs: dict:
+        stat: fn: {type: 1}
 
   {virtual: true}
 
@@ -25,52 +32,83 @@ mock
 async_parse = fn doc:
   await parse doc.getText(), `${doc.uri}`
 
+ctx = dict:
+  subscriptions: dict:
+    push: mock_fn()
+
+
+document = dict:
+  getText: fn: `
+    {Spam} = import './foobar'
+
+    foo = 1234
+    log foo
+
+    <Spam />
+    `
+  uri: {test: 'test-uri:test.fnk'}
+  languageId: 'fink'
+
 
 describe 'definition provider', fn:
 
   it 'provides definition of ident', fn:
-    ctx = dict:
-      subscriptions: dict:
-        push: mock_fn()
-
     add_definition_provider ctx, async_parse
     {mock: {calls: [[, provider]]}} = languages.registerDefinitionProvider
 
-    document = dict:
-      getText: fn: `
-        foo = 1234
-        log foo
-      `
-      uri: {test: 'test-uri:test.fnk'}
-      languageId: 'fink'
-
-    pos = {line: 1, character: 5}
+    pos = {line: 3, character: 5}
 
     expect
       await provider.provideDefinition document, pos
       to_equal list:
-        dict: 'location': list:
+        dict: location: list:
           {test: 'test-uri:test.fnk'}
-          {range: [{pos: [0, 0]}, {pos: [0, 3]}]}
+          {range: [{pos: [2, 0]}, {pos: [2, 3]}]}
 
 
- it 'provides no definition', fn:
-    ctx = dict:
-      subscriptions: dict:
-        push: mock_fn()
-
+  it 'provides definition of jsx elem', fn:
     add_definition_provider ctx, async_parse
     {mock: {calls: [[, provider]]}} = languages.registerDefinitionProvider
 
-    document = dict:
-      getText: fn: `
-        foo = 1234
-        log foo
-      `
-      uri: {test: 'test-uri:test.fnk'}
-      languageId: 'fink'
+    pos = {line: 5, character: 2}
 
-    pos = {line: 0, character: 8}
+    expect
+      await provider.provideDefinition document, pos
+      to_equal list:
+        dict: location: list:
+          {test: 'test-uri:test.fnk'}
+          {range: [{pos: [0, 1]}, {pos: [0, 5]}]}
+
+
+  it 'provides definition for module', fn:
+    add_definition_provider ctx, async_parse
+    {mock: {calls: [[, provider]]}} = languages.registerDefinitionProvider
+
+    pos = {line: 0, character: 22}
+
+    expect
+      await provider.provideDefinition document, pos
+      to_equal list:
+        dict:
+          location: list:
+            dict:
+              join_path: list:
+                {test: 'test-uri:test.fnk'}
+                '..'
+                './foobar'
+
+            {range: [{pos: [0, 1]}, {pos: [0, 1]}]}
+          originSelectionRange:
+            {range: [{pos: [0, 17]}, {pos: [0, 25]}]}
+
+
+
+
+ it 'provides no definition', fn:
+    add_definition_provider ctx, async_parse
+    {mock: {calls: [[, provider]]}} = languages.registerDefinitionProvider
+
+    pos = {line: 2, character: 8}
 
     expect
       await provider.provideDefinition document, pos
