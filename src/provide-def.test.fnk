@@ -39,12 +39,14 @@ ctx = dict:
 
 document = dict:
   getText: fn: `
-    {Spam} = import './foobar'
+    {Spam, shrub} = import './foobar'
 
     foo = 1234
     log foo
 
     <Spam />
+
+    shrub'foobar'
     `
   uri: {test: 'test-uri:test.fnk'}
   languageId: 'fink'
@@ -80,11 +82,25 @@ describe 'definition provider', fn:
           {range: [{pos: [0, 1]}, {pos: [0, 5]}]}
 
 
+  it 'provides definition for template tag', fn:
+    add_definition_provider ctx, async_parse
+    {mock: {calls: [[, provider]]}} = languages.registerDefinitionProvider
+
+    pos = {line: 7, character: 2}
+
+    expect
+      await provider.provideDefinition document, pos
+      to_equal list:
+        dict: location: list:
+          {test: 'test-uri:test.fnk'}
+          {range: [{pos: [0, 7]}, {pos: [0, 12]}]}
+
+
   it 'provides definition for module', fn:
     add_definition_provider ctx, async_parse
     {mock: {calls: [[, provider]]}} = languages.registerDefinitionProvider
 
-    pos = {line: 0, character: 22}
+    pos = {line: 0, character: 30}
 
     expect
       await provider.provideDefinition document, pos
@@ -99,8 +115,7 @@ describe 'definition provider', fn:
 
             {range: [{pos: [0, 1]}, {pos: [0, 1]}]}
           originSelectionRange:
-            {range: [{pos: [0, 17]}, {pos: [0, 25]}]}
-
+            {range: [{pos: [0, 24]}, {pos: [0, 32]}]}
 
 
 
