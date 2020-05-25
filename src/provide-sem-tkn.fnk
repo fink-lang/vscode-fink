@@ -23,7 +23,7 @@ add_call_tokens = fn expr, builder:
   match callee:
     {type: 'ident'}:
       {value, loc: {start}} = callee
-      ident_len = value.length
+      ident_len = length value
       builder.push start.line - 1, start.column, ident_len, 0
 
     {type: 'group'}:
@@ -39,7 +39,7 @@ add_prop_tokens = fn prop, builder:
 
     {left: {type: 'ident'}, right: ? != prop.left}:
       {value, loc: {start}} = prop.left
-      key_len = value.length
+      key_len = length value
       builder.push start.line - 1, start.column, key_len, 1, 0
 
 
