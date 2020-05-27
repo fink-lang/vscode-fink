@@ -5,7 +5,8 @@
 
 
 parse_doc_async = fn doc:
-  await parse doc.getText(), `${doc.uri}`
+  code = await doc.getText()
+  await parse code, `${doc.uri}`
 
 
 cache_set = fn cache, id, value:
