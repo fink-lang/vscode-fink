@@ -1,6 +1,6 @@
 {workspace, languages, Diagnostic, DiagnosticSeverity} = import 'vscode'
 {length, chain} = import '@fink/std-lib/iter'
-{lower_case} = import '@fink/std-lib/str'
+{lower_case, decode} = import '@fink/std-lib/str'
 
 {range} = import './loc'
 {get_refs, get_decls, decls_by_scope, get_idents, ref_loc} = import './traverse'
@@ -63,12 +63,34 @@ process_doc = fn doc, dc, parse:
         diagnostic loc, error, DiagnosticSeverity.Error
 
   dc.set doc.uri, diags
+  [diags, errors, ast.exprs]
 
 
 handle_doc_change = fn doc, dc, parse:
   match doc:
     {languageId: 'fink'}: process_doc doc, dc, parse
     else: false
+
+
+
+fake_doc = fn uri: dict:
+  uri
+  version: 0
+  getText: fn:
+    data = await workspace.fs.readFile uri
+    decode data, 'utf-8'
+
+
+lint_workspace = fn diags, async_parse:
+  files = await workspace.findFiles '**/*.fnk', '**/node_modules/**'
+
+  pipe files:
+    map uri:
+      doc = fake_doc uri
+      process_doc doc, diags, async_parse
+    [...?]
+
+
 
 
 add_linter = fn async_parse:
@@ -80,4 +102,5 @@ add_linter = fn async_parse:
   workspace.onDidOpenTextDocument
     fn document: handle_doc_change document, diags, async_parse
 
+  lint_workspace diags, async_parse
 

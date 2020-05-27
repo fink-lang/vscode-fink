@@ -41,7 +41,7 @@ resolve = fn doc, path:
     # istanbul ignore next
     find uri:
       [err, stat] = try: await workspace.fs.stat uri
-      err == null && stat.type == 1
+      not err and stat.type == 1
 
 
 import_link = fn doc, import_expr:

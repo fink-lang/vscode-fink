@@ -21,6 +21,7 @@ mock
       createDiagnosticCollection: mock_fn()
 
     workspace: dict:
+      findFiles: mock_fn fn: []
       onDidChangeTextDocument: mock_fn()
       onDidOpenTextDocument: mock_fn()
       onDidCloseTextDocument: mock_fn()

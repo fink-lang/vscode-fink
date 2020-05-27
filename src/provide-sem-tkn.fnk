@@ -1,5 +1,5 @@
 {languages, SemanticTokensLegend, SemanticTokensBuilder} = import 'vscode'
-{for_each} = import '@fink/std-lib/iter'
+{for_each, length} = import '@fink/std-lib/iter'
 
 {walk} = import './traverse'
 
@@ -23,7 +23,9 @@ add_call_tokens = fn expr, builder:
   match callee:
     {type: 'ident'}:
       {value, loc: {start}} = callee
-      builder.push start.line - 1, start.column, value.length, 0
+      ident_len = length value
+      builder.push start.line - 1, start.column, ident_len, 0
+
     {type: 'group'}:
       {loc: {start, end}} = callee
       builder.push start.line - 1, start.column, 1, 0
@@ -34,9 +36,11 @@ add_prop_tokens = fn prop, builder:
   match prop:
     {left: {type: 'ident'}, right: {type: 'assign'}}:
       false
+
     {left: {type: 'ident'}, right: ? != prop.left}:
       {value, loc: {start}} = prop.left
-      builder.push start.line - 1, start.column, value.length, 1, 0
+      key_len = length value
+      builder.push start.line - 1, start.column, key_len, 1, 0
 
 
 get_tokens = fn {errors, ...ast}:

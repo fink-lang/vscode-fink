@@ -63,8 +63,14 @@ walk = fn expr, props={scope: {expr}}:
           walk expr.left, {parent, decl: true, scope: node.scope}
           walk expr.right, {parent, decl: false, scope: node.scope}
 
+      {type: 'string', tag: {}}:
+        chain
+          walk expr.tag, {parent, decl: false, scope: node.scope}
+          walk_exprs expr.exprs, {parent, decl: false, scope: node.scope}
+
       {type: 'string'}:
-        walk_exprs expr.exprs, {parent, decl: false, scope: node.scope}
+        chain
+          walk_exprs expr.exprs, {parent, decl: false, scope: node.scope}
 
       {type: 'array'}:
         walk_exprs expr.exprs, {parent, decl: props.decl, scope: node.scope}
@@ -108,7 +114,7 @@ expr_id = fn {loc: {start, end}}:
 
 
 ident_id = fn {value, name}:
-  `id:${value || name}`
+  `id:${value or name}`
 
 
 is_referanceable = fn node:
@@ -183,8 +189,8 @@ get_idents = fn ast:
 
 find_decls = fn ident, scope, scopes:
   scope_id = expr_id scope.expr
-  decls_by_id = scopes.(scope_id) || []
-  decls = decls_by_id.(ident_id ident) || []
+  decls_by_id = scopes.(scope_id) or []
+  decls = decls_by_id.(ident_id ident) or []
 
   match scope:
     {parent: {}}:

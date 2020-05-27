@@ -70,7 +70,7 @@
 		"block-like": {
 			"patterns": [
 				{
-					"begin": "\\b(fn|match|fold|unfold|map|filter|while|find|pipe|else|try|list|dict)\\b",
+					"begin": "\\b(fn|match|fold|unfold|map|filter|while|until|find|pipe|else|try|list|dict)\\b",
 					"end": "(:)",
 					"contentName": "meta.function.parameters",
 					"beginCaptures": {
@@ -180,7 +180,7 @@
 				},
 				{
 					"name": "meta.function-call.op-less.fink",
-					"match": "\\b((?!and|or|not|in)\\b)(\\w+)[ ](?![-+*/=|&><%^#}:]|!=|\\b(and|or|in)\\b|$)",
+					"match": "\\b((?!and|or|not|in|await)\\b)(\\w+)[ ](?![-+*/=|&><%^#}:]|!=|\\b(and|or|in)\\b|$)",
 					"captures": {
 						"2": {"name": "entity.name.function.fink"},
 						"3": {"name": "keyword.operator.call.fink"}

@@ -1,5 +1,8 @@
-{describe, it, expect, mock, mock_fn} = import '@fink/jest'
+{describe, only, it, expect, mock, mock_fn} = import '@fink/jest'
 {was_not_called, was_called_with} = import '@fink/jest'
+
+{encode} = import '@fink/std-lib/str'
+{parallel} = import '@fink/std-lib/async'
 
 {parse} = import '@fink/larix'
 
@@ -24,6 +27,9 @@ mock
     workspace: dict:
       onDidChangeTextDocument: mock_fn()
       onDidOpenTextDocument: mock_fn()
+      findFiles: mock_fn fn: []
+      fs: dict:
+        readFile: mock_fn()
 
   {virtual: true}
 
@@ -33,7 +39,9 @@ mock
 
 
 async_parse = fn doc:
-  await parse doc.getText(), `${doc.uri}`
+  await parse
+    await doc.getText()
+    `${doc.uri}`
 
 
 describe 'linter provider', fn:
@@ -55,6 +63,42 @@ describe 'linter provider', fn:
     expect
       mock_diags.set
       was_called_with document.uri,
+        list:
+          dict: 'diagnostic': list:
+            {range: [{pos: [0, 0]}, {pos: [0, 3]}]}
+            'undefined'
+            'test-diag-error'
+          dict: 'diagnostic': list:
+            {range: [{pos: [0, 4]}, {pos: [0, 7]}]}
+            'undefined'
+            'test-diag-error'
+
+
+  it 'provides diagnostics for workspace files', fn:
+    mock_uri = {test: 'test-uri:test.fnk'}
+
+    workspace.findFiles.mockImplementation fn: [mock_uri]
+
+    workspace.fs.readFile.mockImplementation fn:
+      await 'delay'
+      encode '
+        foo bar
+        spam = <div></div>
+        '
+        'utf-8'
+
+
+    ws_tasks = await add_linter async_parse
+    await parallel ws_tasks
+
+
+    expect
+      workspace.findFiles
+      was_called_with '**/*.fnk', '**/node_modules/**'
+
+    expect
+      mock_diags.set
+      was_called_with mock_uri,
         list:
           dict: 'diagnostic': list:
             {range: [{pos: [0, 0]}, {pos: [0, 3]}]}
@@ -95,7 +139,7 @@ describe 'linter provider', fn:
              2|   spam [
                         ^
 
-             Expected ',' or indented new line or ']'.
+             Expected ',' or indented(>=3) new line or ']'.
             `
             'test-diag-error'
 
