@@ -41,7 +41,7 @@ document = dict:
     spam = fn foo:
       log foo, bar
 
-    Shrub = fn: null
+    Shrub = fn: false
     <Shrub />
     `
   uri: {test: 'test-uri:test.fnk'}
