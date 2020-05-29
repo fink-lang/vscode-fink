@@ -1,4 +1,4 @@
-{describe, only, it, expect, mock, mock_fn} = import '@fink/jest'
+{describe, it, expect, mock, mock_fn} = import '@fink/jest'
 {was_not_called, was_called_with} = import '@fink/jest'
 
 {encode} = import '@fink/std-lib/str'
@@ -8,7 +8,7 @@
 
 
 mock_diags = dict:
-  set: mock_fn()
+  set: mock_fn ()
 
 
 mock
@@ -25,11 +25,11 @@ mock
       createDiagnosticCollection: mock_fn fn: mock_diags
 
     workspace: dict:
-      onDidChangeTextDocument: mock_fn()
-      onDidOpenTextDocument: mock_fn()
+      onDidChangeTextDocument: mock_fn ()
+      onDidOpenTextDocument: mock_fn ()
       findFiles: mock_fn fn: []
       fs: dict:
-        readFile: mock_fn()
+        readFile: mock_fn ()
 
   {virtual: true}
 
@@ -40,7 +40,7 @@ mock
 
 async_parse = fn doc:
   await parse
-    await doc.getText()
+    await doc.getText ()
     `${doc.uri}`
 
 

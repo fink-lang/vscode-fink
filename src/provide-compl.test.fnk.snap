@@ -102,10 +102,10 @@ $0",
         "Return a function \`fn curr:\` that generates items from the \`curr\`
 value.",
         Array [
-          "count = unfold curr=0:
+          "count = unfold curr:
   (curr + inc, curr + inc)
 
-[a, b, c] = count()
+[a, b, c] = count 0
 # [0, 1, 2]
 ",
           "fink",
@@ -201,6 +201,35 @@ while the block returns true",
     "insertText": Object {
       "snippet": Array [
         "while $1:
+  $2
+$0",
+      ],
+    },
+  },
+  Object {
+    "completion": Array [
+      "until",
+      "test-func",
+    ],
+    "documentation": Object {
+      "appendCodeblock": [MockFunction],
+      "markdown": Array [
+        "Return a function \`fn iterable:\` that yields each \`item\` of \`iterable\`
+until the block returns true",
+        Array [
+          "pipe [1, 2, 3, 4]:
+  until item:
+    item == 3
+
+# == [1, 2, 3]
+",
+          "fink",
+        ],
+      ],
+    },
+    "insertText": Object {
+      "snippet": Array [
+        "until $1:
   $2
 $0",
       ],

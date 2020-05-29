@@ -12,7 +12,7 @@ mock
     Location: mock_fn fn ...location: {location}
 
     languages: dict:
-      registerReferenceProvider: mock_fn()
+      registerReferenceProvider: mock_fn ()
 
   {virtual: true}
 
@@ -23,11 +23,13 @@ mock
 
 
 async_parse = fn doc:
-  await parse doc.getText(), `${doc.uri}`
+  await parse
+    doc.getText ()
+    `${doc.uri}`
 
 ctx = dict:
   subscriptions: dict:
-    push: mock_fn()
+    push: mock_fn ()
 
 document = dict:
   getText: fn: `
