@@ -52,7 +52,9 @@ get_tokens = fn {errors, ...ast}:
         {type: 'call'}: add_call_tokens expr, builder
         {type: 'object:prop'}: add_prop_tokens expr, builder
 
-  [builder.build(), errors]
+  list:
+    builder.build ()
+    errors
 
 
 provide_sem_tokens = fn async_parse: fn doc:

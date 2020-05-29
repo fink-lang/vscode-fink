@@ -15,7 +15,7 @@ mock
     Location: mock_fn fn ...location: {location}
 
     languages: dict:
-      registerDefinitionProvider: mock_fn()
+      registerDefinitionProvider: mock_fn ()
 
     workspace: dict:
       fs: dict:
@@ -30,11 +30,13 @@ mock
 
 
 async_parse = fn doc:
-  await parse doc.getText(), `${doc.uri}`
+  await parse
+    doc.getText ()
+    `${doc.uri}`
 
 ctx = dict:
   subscriptions: dict:
-    push: mock_fn()
+    push: mock_fn ()
 
 
 document = dict:

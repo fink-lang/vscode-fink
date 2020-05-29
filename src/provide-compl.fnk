@@ -57,10 +57,10 @@ api = dict:
       'Return a function `fn curr:` that generates items from the `curr`
        value.'
       `
-        count = unfold curr=0:
+        count = unfold curr:
           (curr + inc, curr + inc)
 
-        [a, b, c] = count()
+        [a, b, c] = count 0
         # [0, 1, 2]
       `
     snippet: snippet 'unfold $1:\n  ($2, $3)\n$0'
@@ -90,6 +90,19 @@ api = dict:
         # == [1, 2]
       `
     snippet: snippet 'while $1:\n  $2\n$0'
+
+  until: dict:
+    doc: doc_md
+      'Return a function `fn iterable:` that yields each `item` of `iterable`
+       until the block returns true'
+      `
+        pipe [1, 2, 3, 4]:
+          until item:
+            item == 3
+
+        # == [1, 2, 3]
+      `
+    snippet: snippet 'until $1:\n  $2\n$0'
 
   find: dict:
     doc: doc_md
@@ -180,6 +193,7 @@ completion_provider = fn async_parse: fn doc, pos:
     comp_item 'map'
     comp_item 'filter'
     comp_item 'while'
+    comp_item 'until'
     comp_item 'find'
     comp_item 'pipe'
     comp_item 'import'

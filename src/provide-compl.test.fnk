@@ -20,7 +20,7 @@ mock
         markdown.push args
 
     languages: dict:
-      registerCompletionItemProvider: mock_fn()
+      registerCompletionItemProvider: mock_fn ()
 
   {virtual: true}
 
@@ -32,12 +32,14 @@ mock
 
 
 async_parse = fn doc:
-  await parse doc.getText(), `${doc.uri}`
+  await parse
+    doc.getText ()
+    `${doc.uri}`
 
 
 ctx = dict:
   subscriptions: dict:
-    push: mock_fn()
+    push: mock_fn ()
 
 
 document = dict:
