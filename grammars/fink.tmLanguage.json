@@ -167,22 +167,6 @@
 		"function-call": {
 			"patterns": [
 				{
-					"name": "meta.function-call.fink",
-					"begin": "\\b(\\w*+)\\s*+(\\()",
-					"end": "\\)",
-					"contentName": "meta.function.parameters",
-					"beginCaptures": {
-						"1": {"name": "entity.name.function.fink"},
-						"2": {"name": "meta.brace.round"}
-					},
-					"endCaptures": {
-						"0": {"name": "meta.brace.round"}
-					},
-					"patterns": [
-						{"include": "$base"}
-					]
-				},
-				{
 					"name": "meta.function-call.op-less.fink",
 					"match": "\\b((?!and|or|not|in|await|new|throw)\\b)(\\w+)[ ](?![-+*/=|&><%^#}:]|!=|\\b(and|or|in)\\b|$)",
 					"captures": {
