@@ -376,7 +376,7 @@
       "patterns": [
 				{
           "name": "string.regexp.fink",
-          "begin": "(rx?)(/)",
+          "begin": "(rx)(/)",
           "end": "(/)([gimyu]*)",
           "beginCaptures": {
 						"1": {"name": "keyword.control.fink"},
@@ -387,6 +387,57 @@
             "2": {"name": "keyword.other.fink"}
           },
           "patterns": [
+            {"include": "source.regexp.fink"}
+          ]
+				},
+				{
+          "name": "string.regexp.fink",
+          "begin": "(rx)(')",
+          "end": "(')([gimyu]*)",
+          "beginCaptures": {
+						"1": {"name": "keyword.control.fink"},
+						"2": {"name": "punctuation.definition.regexp.begin.fink"}
+          },
+          "endCaptures": {
+            "1": {"name": "punctuation.definition.regexp.end.fink"},
+            "2": {"name": "keyword.other.fink"}
+          },
+          "patterns": [
+						{"include": "#string-content"},
+            {"include": "source.regexp.fink"}
+          ]
+				},
+				{
+          "name": "string.regexp.fink",
+          "begin": "(rx)(\")",
+          "end": "(\")([gimyu]*)",
+          "beginCaptures": {
+						"1": {"name": "keyword.control.fink"},
+						"2": {"name": "punctuation.definition.regexp.begin.fink"}
+          },
+          "endCaptures": {
+            "1": {"name": "punctuation.definition.regexp.end.fink"},
+            "2": {"name": "keyword.other.fink"}
+          },
+          "patterns": [
+						{"include": "#string-content"},
+            {"include": "source.regexp.fink"}
+          ]
+				},
+				{
+          "name": "string.regexp.fink",
+          "begin": "(rx)(`)",
+          "end": "(`)([gimyu]*)",
+          "beginCaptures": {
+						"1": {"name": "keyword.control.fink"},
+						"2": {"name": "punctuation.definition.regexp.begin.fink"}
+          },
+          "endCaptures": {
+            "1": {"name": "punctuation.definition.regexp.end.fink"},
+            "2": {"name": "keyword.other.fink"}
+          },
+          "patterns": [
+						{"include": "#string-content"},
             {"include": "source.regexp.fink"}
           ]
 				}
