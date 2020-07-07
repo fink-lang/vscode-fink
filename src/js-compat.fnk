@@ -1,2 +1,5 @@
+{new} = import '@fink/js-interop/reflect'
+
+
 object = Object
-hash_map = fn ...args: new Map ...args
+hash_map = fn ...args: new Map, ...args

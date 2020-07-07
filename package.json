@@ -21,9 +21,7 @@
   "publisher": "fink",
   "main": "./build/pkg/extension.js",
   "activationEvents": [
-    "onLanguage:fink",
-    "onLanguage:jsx",
-    "onLanguage:jsx-attr"
+    "onLanguage:fink"
   ],
   "contributes": {
     "languages": [
@@ -39,29 +37,40 @@
         ],
         "firstLine": "^#!.*\\bfink",
         "configuration": "./languages/fink.language-configuration.json"
+      },
+      {
+        "id": "fink-jsx",
+        "configuration": "./languages/jsx.language-configuration.json"
+      },
+      {
+        "id": "fink-jsx-attr",
+        "aliases": [
+            "fink-jsx-tags"
+        ],
+        "configuration": "./languages/jsx-attr.language-configuration.json"
       }
     ],
     "grammars": [
       {
         "language": "fink",
         "scopeName": "source.fink",
-        "path": "./grammars/fink.tmLanguage.json",
+        "path": "./build/pkg/grammars/fink.tmLanguage.json",
         "embeddedLanguages": {
           "meta.embedded.inline.sql": "source.sql",
           "meta.embedded.block.fink": "fink",
-          "meta.tag.jsx": "jsx",
-          "meta.jsx.tag.termination": "jsx",
-          "JSXNested": "jsx",
-          "JSXAttrs": "jsx-attr"
+          "meta.tag.jsx": "fink-jsx",
+          "meta.jsx.tag.termination": "fink-jsx",
+          "meta.embedded.jsk.fink": "fink-jsx",
+          "meta.embedded.jsk.attr.fink": "fink-jsx-attr"
         }
       },
       {
         "scopeName": "source.regexp.fink",
-        "path": "./grammars/regex.tmLanguage.json"
+        "path": "./build/pkg/grammars/regex.tmLanguage.json"
       },
       {
         "scopeName": "source.jsx.fink",
-        "path": "./grammars/jsx.tmLanguage.json"
+        "path": "./build/pkg/grammars/jsx.tmLanguage.json"
       }
     ],
     "breakpoints": [
@@ -75,10 +84,10 @@
     "cd": "run clean test build release",
     "clean": "rimraf ./build",
     "build": "run build:*",
-    "build:dir": "mkdir -p ./build/pkg/",
+    "build:dir": "mkdir -p ./build/pkg/grammars",
     "build:fnk": "fnk --src ./src --out-dir build/pkg --ignore './src/**/*.test.fnk'",
     "build:files": "cp ./package.json ./README.md ./LICENSE ./build/pkg/",
-    "build:grammars": "cp -r ./grammars ./build/pkg/",
+    "build:grammars": "node -r @fink/require-hook ./scripts/build-grammars.fnk",
     "build:languages": "cp -r ./languages ./build/pkg/",
     "test": "run jest",
     "jest": "jest --verbose --runInBand --no-cache ",
@@ -88,13 +97,13 @@
   "devDependencies": {
     "@fink/cli": "^6.0.0",
     "@fink/jest": "^5.0.3",
-    "@fink/loxia": "^10.1.1",
+    "@fink/loxia": "^12.0.0",
     "commitizen": "^4.0.3",
     "cz-conventional-changelog": "^3.1.0",
-    "jest-cli": "^26.0.0",
+    "jest-cli": "^26.1.0",
     "nodemon": "^2.0.3",
     "npx-run": "^2.1.2",
-    "semantic-release": "^17.0.4",
+    "semantic-release": "^17.1.1",
     "semantic-release-vsce": "^3.0.1"
   },
   "config": {
@@ -103,7 +112,9 @@
     }
   },
   "dependencies": {
-    "@fink/larix": "^10.0.1",
-    "@fink/std-lib": "^2.2.0"
+    "@fink/js-interop": "^1.0.0",
+    "@fink/larix": "^12.0.0",
+    "@fink/require-hook": "^5.0.0",
+    "@fink/std-lib": "^2.4.0"
   }
 }

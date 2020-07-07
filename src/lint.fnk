@@ -1,6 +1,7 @@
 {workspace, languages, Diagnostic, DiagnosticSeverity} = import 'vscode'
 {length, chain} = import '@fink/std-lib/iter'
 {lower_case, decode} = import '@fink/std-lib/str'
+{new} = import '@fink/js-interop/reflect'
 
 {range} = import './loc'
 {get_refs, get_decls, decls_by_scope, get_idents, ref_loc} = import './traverse'
@@ -29,7 +30,7 @@ get_errors = fn ast:
   [...undef] = pipe idents:
     filter {expr}:
        match expr:
-         {type: 'jsx-elem', name: lower_case expr.name}: false
+         {type: 'jsx:elem', name: lower_case expr.name}: false
          else: true
 
     filter node:
@@ -46,7 +47,7 @@ get_errors = fn ast:
 
 diagnostic = fn loc, msg, severity:
   rng = range loc
-  new Diagnostic rng, msg, severity
+  new Diagnostic, rng, msg, severity
 
 
 process_doc = fn doc, dc, parse:
@@ -103,4 +104,5 @@ add_linter = fn async_parse:
     fn document: handle_doc_change document, diags, async_parse
 
   lint_workspace diags, async_parse
+
 

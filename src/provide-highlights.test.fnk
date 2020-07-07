@@ -30,14 +30,14 @@ mock
 async_parse = fn doc:
   await parse
     doc.getText ()
-    `${doc.uri}`
+    '${doc.uri}'
 
 ctx = dict:
   subscriptions: dict:
     push: mock_fn ()
 
 document = dict:
-  getText: fn: `
+  getText: fn: "
     foo = '123'
     bar = foo + 456
     spam = fn foo:
@@ -45,7 +45,7 @@ document = dict:
 
     Shrub = fn: false
     <Shrub />
-    `
+    "
   uri: {test: 'test-uri:test.fnk'}
   languageId: 'fink'
 

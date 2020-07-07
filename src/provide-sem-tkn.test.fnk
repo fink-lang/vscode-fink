@@ -35,7 +35,7 @@ mock
 async_parse = fn doc:
   await parse
     doc.getText ()
-    `${doc.uri}`
+    '${doc.uri}'
 
 
 describe 'sem token provider', fn:
@@ -50,7 +50,7 @@ describe 'sem token provider', fn:
 
 
     tokens = await provider.provideDocumentSemanticTokens dict:
-      getText: fn: `
+      getText: fn: "
         foo bar.spam shrub
         bar = 'spam \${ham egg} ni'
         ni = foo.(bar) shrub
@@ -63,11 +63,11 @@ describe 'sem token provider', fn:
               [..., ni]: {na: []}
 
             ...items
-        `
+        "
 
     expect
       SemanticTokensBuilder
-      was_called_with {mock_legend: [['function', 'string'], []]}
+      was_called_with {mock_legend: [['function', 'string', 'variable'], []]}
 
     expect
       mock_builder.push.mock.calls
@@ -77,7 +77,7 @@ describe 'sem token provider', fn:
         [1, 14, 3, 0]
         [2, 9, 1, 0]
         [2, 13, 1, 0]
-        [9, 18, 2, 1, 0]
+        [9, 18, 2, 2, 0]
 
     expect
       tokens
@@ -94,14 +94,14 @@ describe 'sem token provider', fn:
 
 
     tokens = await provider.provideDocumentSemanticTokens dict:
-      uri: {toString: fn: `./test.fnk`}
-      getText: fn: `
+      uri: {toString: fn: './test.fnk'}
+      getText: fn: '
           foo bar
-          [`
+          ['
 
     expect
       SemanticTokensBuilder
-      was_called_with {mock_legend: [['function', 'string'], []]}
+      was_called_with {mock_legend: [['function', 'string', 'variable'], []]}
 
     expect
       mock_builder.push.mock.calls

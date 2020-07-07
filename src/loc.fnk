@@ -1,8 +1,10 @@
 {Location, Position, Range} = import 'vscode'
 
+{new} = import '@fink/js-interop/reflect'
+
 
 to_vs_pos = fn {line, column}:
-  new Position line - 1, column
+  new Position, line - 1, column
 
 
 to_larix_pos = fn {line, character}:
@@ -10,10 +12,11 @@ to_larix_pos = fn {line, character}:
 
 
 range = fn {start, end}:
-  new Range
+  new
+    Range
     to_vs_pos start
     to_vs_pos end
 
 
 doc_range = fn doc, loc:
-  new Location doc.uri, range loc
+  new Location, doc.uri, range loc

@@ -41,7 +41,7 @@ mock
 async_parse = fn doc:
   await parse
     await doc.getText ()
-    `${doc.uri}`
+    '${doc.uri}'
 
 
 describe 'linter provider', fn:
@@ -51,10 +51,10 @@ describe 'linter provider', fn:
     {mock: {calls: [[handler]]}} = workspace.onDidChangeTextDocument
 
     document = dict:
-      getText: fn: `
+      getText: fn: '
         foo bar
         spam = <div></div>
-        `
+        '
       uri: {test: 'test-uri:test.fnk'}
       languageId: 'fink'
 
@@ -115,9 +115,9 @@ describe 'linter provider', fn:
     {mock: {calls: [[handler]]}} = workspace.onDidOpenTextDocument
 
     document = dict:
-      getText: fn: `
+      getText: fn: '
         foo = fn bar, spam:
-          spam [`
+          spam ['
       uri: {toString: fn: 'test-uri:test.fnk'}
       languageId: 'fink'
 
@@ -134,13 +134,13 @@ describe 'linter provider', fn:
 
           dict: 'diagnostic': list:
             {range: [{pos: [1, 8]}, {pos: [1, 8]}]}
-            `test-uri:test.fnk:2:8
+            "test-uri:test.fnk:2:8
              1| foo = fn bar, spam:
              2|   spam [
                         ^
 
              Expected ',' or indented(>=3) new line or ']'.
-            `
+            "
             'test-diag-error'
 
 
@@ -149,7 +149,7 @@ describe 'linter provider', fn:
     {mock: {calls: [[handler]]}} = workspace.onDidOpenTextDocument
 
     document = dict:
-      getText: fn: `foo-bar-spam`
+      getText: fn: 'foo-bar-spam'
       uri: {toString: fn: 'test-uri:test.foo'}
       languageId: 'foobar'
 

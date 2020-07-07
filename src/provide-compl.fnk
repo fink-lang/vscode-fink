@@ -1,127 +1,128 @@
 {MarkdownString, CompletionItem, CompletionItemKind, SnippetString, languages} = import 'vscode'
-{set_props} = import '@fink/std-lib/obj'
+
+{new, set_props} = import '@fink/js-interop/reflect'
 
 {get_idents} = import './traverse'
 {to_larix_pos} = import './loc'
 
 
 doc_md = fn header, code:
-  doc = new MarkdownString header
+  doc = new MarkdownString, header
   doc.appendCodeblock code, 'fink'
   doc
 
-snippet = fn txt: new SnippetString txt
+snippet = fn txt: new SnippetString, txt
 
 
 api = dict:
   match: dict:
     doc: doc_md
       'Return the first result of `test: result` where foo matches `test`.'
-      `
+      "
         match foo:
           test: result
           {bar: 'spam'}: shrub
           [bar, 'spam']: shrub
           'spam': shrub
           else: ni
-      `
+      "
     snippet: snippet 'match $1:\n  $2: $3\n  else: $4\n$0'
 
   map: dict:
     doc: doc_md
       'Return a function `fn iterable:` that maps each `item` of `iterable`.'
-      `
+      '
         pipe [1, 2, 3]:
           map item:
             item * 2
 
         # == [2, 4, 6]
-      `
+      '
     snippet: snippet 'map $1:\n  $2\n$0'
 
   fold: dict:
     doc: doc_md
       'Return a function `fn iterable:` that reduces all items of `iterable`
        to a single value.'
-      `
+      '
         pipe [1, 2, 3]:
           fold item, acc=0:
             item + acc
 
         # == 6
-      `
+      '
     snippet: snippet 'fold $1, $2:\n  $3\n$0'
 
   unfold: dict:
     doc: doc_md
       'Return a function `fn curr:` that generates items from the `curr`
        value.'
-      `
+      '
         count = unfold curr:
           (curr + inc, curr + inc)
 
         [a, b, c] = count 0
         # [0, 1, 2]
-      `
+      '
     snippet: snippet 'unfold $1:\n  ($2, $3)\n$0'
 
   filter: dict:
     doc: doc_md
       'Return a function `fn iterable:` that only yields `item` of `iterable`
        for which the block returns `true`.'
-      `
+      '
         pipe [1, 2, 3, 4]:
           filter item:
             item % 2
 
         # == [2, 4]
-      `
+      '
     snippet: snippet 'filter $1:\n  $2\n$0'
 
   while: dict:
     doc: doc_md
       'Return a function `fn iterable:` that yields each `item` of `iterable`
        while the block returns true'
-      `
+      '
         pipe [1, 2, 3, 4]:
           while item:
             item < 3
 
         # == [1, 2]
-      `
+      '
     snippet: snippet 'while $1:\n  $2\n$0'
 
   until: dict:
     doc: doc_md
       'Return a function `fn iterable:` that yields each `item` of `iterable`
        until the block returns true'
-      `
+      '
         pipe [1, 2, 3, 4]:
           until item:
             item == 3
 
         # == [1, 2, 3]
-      `
+      '
     snippet: snippet 'until $1:\n  $2\n$0'
 
   find: dict:
     doc: doc_md
       'Return a function `fn iterable:` that returns the first `item` of
        `iterable` for which the block returns true'
-      `
+      '
         pipe [1, 2, 3, 4]:
           find item:
             item > 2
 
         # == 3
-      `
+      '
     snippet: snippet 'find $1:\n  $2\n$0'
 
   pipe: dict:
     doc: doc_md
       'Call all expressions with the result of the previous call, starting
        with the pipe arg for the first call.'
-      `
+      '
         pipe [1, 2, 3, 4]:
           map item:
             item * 2
@@ -129,25 +130,26 @@ api = dict:
             item > 4
 
         # == 6
-      `
+      '
     snippet: snippet 'pipe $1:\n  $2\n$0'
 
   import: dict:
     doc: doc_md
       'Import a module from the given URI.'
-      `
+      "
         {foo} = import './spam.fnk'
 
         async_load = fn:
           {a} = await import './shrub.fnk'
-      `
-    snippet: snippet `import '$1'\n$0`
+      "
+    snippet: snippet "import '$1'\n$0"
+
 
 
 comp_item = fn key:
   {(key): {doc, snippet: code_snippet}} = api
 
-  item = new CompletionItem key, CompletionItemKind.Function
+  item = new CompletionItem, key, CompletionItemKind.Function
 
   set_props item, {insertText: code_snippet}
   set_props item, {documentation: doc}
@@ -178,7 +180,7 @@ completions_from_loc = fn ast, pos:
         else:
           CompletionItemKind.Constant
 
-      new CompletionItem expr.value, kind
+      new CompletionItem, expr.value, kind
 
 
 completion_provider = fn async_parse: fn doc, pos:

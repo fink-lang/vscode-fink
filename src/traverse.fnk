@@ -89,15 +89,15 @@ walk = fn expr, props={scope: {expr}}:
       {op: 'try'}:
         walk_exprs expr.exprs, {parent, decl: false, scope: node.scope}
 
-      {type: 'jsx-elem'}:
+      {type: 'jsx:elem'}:
         chain
           walk_exprs expr.props, {parent, decl: false, scope: node.scope}
           walk_exprs expr.children, {parent, decl: false, scope: node.scope}
 
-      {type: 'jsx-attr', value: {}}:
+      {type: 'jsx:attr', value: {}}:
         walk expr.value, {parent, decl: false, scope: node.scope}
 
-      {type: 'jsx-expr-container'}:
+      {type: 'jsx:expr'}:
         walk expr.expr, {parent, decl: false, scope: node.scope}
 
       else:
@@ -110,11 +110,11 @@ insert_to_prop = fn obj, key, item:
 
 
 expr_id = fn {loc: {start, end}}:
-  `${start.pos}:${end.pos}`
+  '${start.pos}:${end.pos}'
 
 
 ident_id = fn {value, name}:
-  `id:${value or name}`
+  'id:${value or name}'
 
 
 is_referanceable = fn node:
@@ -132,7 +132,7 @@ is_referanceable = fn node:
       false
     {expr: {type: 'ident'}}:
       true
-    {expr: {type: 'jsx-elem'}}:
+    {expr: {type: 'jsx:elem'}}:
       true
     else:
       false
@@ -162,7 +162,7 @@ get_exprs_from_loc = fn ast, pos:
         {type: 'ident'}: true
         {type: 'number'}: true
         {type: 'string:text'}: true
-        {type: 'jsx-elem'}: true
+        {type: 'jsx:elem'}: true
         else: false
 
     filter {expr}:
@@ -239,7 +239,7 @@ get_refs = fn idents, scopes:
 
 ref_loc = fn expr:
   match expr:
-    {type: 'jsx-elem'}:
+    {type: 'jsx:elem'}:
       {name, loc: {start}} = expr
       column = start.column + 1
       dict:

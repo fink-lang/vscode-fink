@@ -34,7 +34,7 @@ mock
 async_parse = fn doc:
   await parse
     doc.getText ()
-    `${doc.uri}`
+    '${doc.uri}'
 
 
 ctx = dict:
@@ -43,7 +43,7 @@ ctx = dict:
 
 
 document = dict:
-  getText: fn: `
+  getText: fn: "
     {ni} = import './ni'
     foo = {bar: 1234}
     bar = 'spam'
@@ -53,7 +53,7 @@ document = dict:
         ni
       shr
     na = 567
-    `
+    "
   uri: {test: 'test-uri:test.fnk'}
   languageId: 'fink'
 
