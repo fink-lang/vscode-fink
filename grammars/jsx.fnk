@@ -1,0 +1,228 @@
+{rx} = import './utils'
+
+
+lang = dict:
+  name: 'JSX'
+  'scopeName': 'source.jsx.fink'
+  'fileTypes': []
+
+  patterns: list:
+    {include: '#jsx'}
+
+  'repository': dict:
+    'jsx': dict:
+      patterns: list:
+        dict:
+          begin: rx'(?=<[$_\p{L}]|<\s*>)'
+          end: rx'(?=.)'
+          applyEndPatternLast: 1
+          patterns: list:
+            {include: '#jsx-tag-element-name'}
+
+
+    'jsx-tag-element-name': dict:
+      patterns: list:
+        dict:
+          comment: 'JSX Fragment'
+          name: 'meta.tag.jsx'
+          contentName: 'meta.embedded.jsk-attr.fink'
+          begin: rx'\s*+(<)\s*(?=>)'
+          end: rx'(?<=</)(>)'
+          beginCaptures: dict:
+            '1': {name: 'punctuation.definition.tag.jsx'}
+
+          endCaptures: dict:
+            '1': {name: 'punctuation.definition.tag.jsx'}
+
+          patterns: list:
+            {include: '#jsx-tag-termination'}
+
+
+        dict:
+          comment: 'Tags that end > are trapped in #jsx-tag-termination'
+          name: 'meta.tag.jsx'
+          contentName: 'meta.embedded.jsk-attr.fink'
+          begin: rx'
+            \s*+(<)
+            (
+              (\p{Ll}[\p{Ll}0-9]*)
+              |
+              (
+                (?:
+                  [$_\p{L}\p{Nl}]
+                  [$_\p{L}\p{Mn}\p{Mc}\p{Nd}\p{Nl}\p{Pc}-]*?
+                  :
+                )
+                ?+
+                (?:
+                  [$_\p{L}\p{Nl}]
+                  (?:
+                    [$_\p{L}\p{Mn}\p{Mc}\p{Nd}\p{Nl}\p{Pc}\.-]
+                    (?<!\.\.)
+                  )*+
+                )+
+              )
+            )
+            (?=[ />\s])
+            (?![:])
+            (?<!\.|:)'
+
+          end: rx'
+            \s*(?<=</)
+            (
+              (\4)
+              |\2
+            )
+            (>)
+            |(/>)
+            |((?<=</)[\S ]*?)
+            >'
+
+          beginCaptures: dict:
+            '1': {name: 'punctuation.definition.tag.jsx'}
+            '2': {name: 'entity.name.tag.open.jsx'}
+            '4': {name: 'support.class.component.open.jsx'}
+
+          endCaptures: dict:
+            '1': {name: 'entity.name.tag.close.jsx.fink'}
+            '2': {name: 'support.class.component.close.jsx'}
+            '3': {name: 'punctuation.definition.tag.jsx'}
+            '4': {name: 'punctuation.definition.tag.jsx'}
+            '5': {name: 'invalid.illegal.termination.jsx'}
+
+          patterns: list:
+            {include: '#jsx-tag-termination'}
+            {include: '#jsx-tag-attributes'}
+
+
+    'jsx-tag-termination': dict:
+      patterns: list:
+        dict:
+          comment: 'uses non consuming search for </ in </tag>'
+          contentName: 'meta.embedded.jsk.fink'
+          begin: rx'(>)'
+          end: rx'(</)'
+          beginCaptures: dict:
+            '0': {name: 'punctuation.definition.tag.jsx'}
+            '1': {name: 'JSXStartTagEnd'}
+
+          endCaptures: dict:
+            '0': {name: 'punctuation.definition.tag.jsx'}
+            '1': {name: 'JSXEndTagStart'}
+
+          patterns: list:
+            {include: '#jsx-evaluated-code'}
+            {include: '#jsx-entities'}
+            {include: '#jsx-tag-element-name'}
+
+
+    'jsx-tag-attributes': dict:
+      patterns: list:
+        {include: '#jsx-attribute-name'}
+        {include: '#jsx-assignment'}
+        {include: '#jsx-string-double-quoted'}
+        {include: '#jsx-string-single-quoted'}
+        {include: '#jsx-evaluated-code'}
+        {include: '#jsx-tag-element-name'}
+
+
+    'jsx-spread-attribute': dict:
+      patterns: list:
+        dict:
+          comment: 'spread attribute'
+          match: rx'(?<!\.)\.\.\.'
+          name: 'keyword.operator.spread.jsx'
+
+
+
+    'jsx-attribute-name': dict:
+      patterns: list:
+        dict:
+          comment: 'look for attribute name'
+          match: rx'
+            (?<!\S)
+            (
+              [$_\p{L}]
+              (?:
+                [$.\p{L}\p{Mn}\p{Mc}\p{Nd}\p{Nl}\p{Pc}-]
+                (?<!\.\.)
+              )*+
+            )
+            (?<!\.)
+            (?=//|/\*|=|\s|>|/>)'
+          captures: dict:
+            '0': {name: 'entity.other.attribute-name.jsx'}
+
+
+    'jsx-assignment': dict:
+      patterns: list:
+        dict:
+          comment: 'look for attribute assignment'
+          name: 'keyword.operator.assignment.jsx'
+          match: rx'=(?=\s*(?:\'|"|{|/\*|<|//|\n))'
+
+
+    'jsx-string-double-quoted': dict:
+      name: 'string.quoted.double.fink'
+      begin: rx'"'
+      end: rx'"(?<!\\")'
+      beginCaptures: dict:
+        '0': {name: 'punctuation.definition.string.begin.jsx'}
+
+      endCaptures: dict:
+        '0': {name: 'punctuation.definition.string.end.jsx'}
+
+      patterns: list:
+        {include: '#jsx-entities'}
+
+
+    'jsx-string-single-quoted': dict:
+      name: 'string.quoted.single.fink'
+      begin: rx"'"
+      end: rx"'(?<!\\')"
+      beginCaptures: dict:
+        '0': {name: 'punctuation.definition.string.begin.jsx'}
+
+      endCaptures: dict:
+        '0': {name: 'punctuation.definition.string.end.jsx'}
+
+      patterns: list:
+        {include: '#jsx-entities'}
+
+
+    'jsx-evaluated-code': dict:
+      patterns: list:
+        dict:
+          name: 'meta.embedded.expression.fink'
+          contentName: 'source.fink'
+          begin: rx'{'
+          end: rx'}'
+          beginCaptures: dict:
+            '0': {name: 'punctuation.section.embedded.begin.jsx'}
+
+          endCaptures: dict:
+            '0': {name: 'punctuation.section.embedded.end.jsx'}
+
+          patterns: list:
+            {include: '#jsx-string-double-quoted'}
+            {include: '#jsx-string-single-quoted'}
+            {include: '#jsx-spread-attribute'}
+            {include: '$base'}
+
+
+    'jsx-entities': dict:
+      patterns: list:
+        dict:
+          comment: 'Embeded HTML entities &blah'
+          match: rx'(&)([a-zA-Z0-9]+|#[0-9]+|#x[0-9a-fA-F]+)(;)'
+          captures: dict:
+            '0': {name: 'constant.character.entity.jsx'}
+            '1': {name: 'punctuation.definition.entity.jsx'}
+            '2': {name: 'entity.name.tag.html.jsx'}
+            '3': {name: 'punctuation.definition.entity.jsx'}
+
+        dict:
+          comment: 'Entity with & and invalid name'
+          match: rx'&\s*+;'
+          name: 'invalid.illegal.bad-ampersand.jsx'
+

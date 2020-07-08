@@ -1,12 +1,13 @@
 {languages, SemanticTokensLegend, SemanticTokensBuilder} = import 'vscode'
 {for_each, length} = import '@fink/std-lib/iter'
+{new} = import '@fink/js-interop/reflect'
 
 {walk} = import './traverse'
 
 
-token_types = ['function', 'string']
+token_types = ['function', 'string', 'variable']
 token_modifiers = []
-sem_token_legend = new SemanticTokensLegend token_types, token_modifiers
+sem_token_legend = new SemanticTokensLegend, token_types, token_modifiers
 
 get_callee = fn node:
   match node:
@@ -40,11 +41,11 @@ add_prop_tokens = fn prop, builder:
     {left: {type: 'ident'}, right: ? != prop.left}:
       {value, loc: {start}} = prop.left
       key_len = length value
-      builder.push start.line - 1, start.column, key_len, 1, 0
+      builder.push start.line - 1, start.column, key_len, 2, 0
 
 
 get_tokens = fn {errors, ...ast}:
-  builder = new SemanticTokensBuilder sem_token_legend
+  builder = new SemanticTokensBuilder, sem_token_legend
 
   pipe walk ast:
     for_each fn {expr}:

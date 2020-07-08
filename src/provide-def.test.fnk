@@ -32,7 +32,7 @@ mock
 async_parse = fn doc:
   await parse
     doc.getText ()
-    `${doc.uri}`
+    '${doc.uri}'
 
 ctx = dict:
   subscriptions: dict:
@@ -40,7 +40,7 @@ ctx = dict:
 
 
 document = dict:
-  getText: fn: `
+  getText: fn: "
     {Spam, shrub} = import './foobar'
 
     foo = 1234
@@ -49,7 +49,7 @@ document = dict:
     <Spam />
 
     shrub'foobar'
-    `
+    "
   uri: {test: 'test-uri:test.fnk'}
   languageId: 'fink'
 

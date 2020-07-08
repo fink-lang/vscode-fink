@@ -1,0 +1,20 @@
+{writeFileSync} = import 'fs'
+{obj_to_json} = import '@fink/std-lib/json'
+
+{lang: fink} = import '../grammars/fink'
+{lang: regex} = import '../grammars/regex'
+{lang: jsx} = import '../grammars/jsx'
+
+
+build = fn lang, filename:
+  data = obj_to_json lang, , 2
+  console.log 'generating', filename
+  writeFileSync filename, data
+
+
+build fink, './build/pkg/grammars/fink.tmLanguage.json'
+
+build regex, './build/pkg/grammars/regex.tmLanguage.json'
+
+build jsx, './build/pkg/grammars/jsx.tmLanguage.json'
+

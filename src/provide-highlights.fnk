@@ -1,4 +1,5 @@
 {languages, DocumentHighlight, DocumentHighlightKind} = import 'vscode'
+{new} = import '@fink/js-interop/reflect'
 
 {
   decls_by_scope, get_idents, get_decls, get_refs, get_refs_for_decl
@@ -35,7 +36,8 @@ get_ref_highlights = fn ast, ident:
         true: DocumentHighlightKind.Write
         else: DocumentHighlightKind.Read
 
-      new DocumentHighlight
+      new
+        DocumentHighlight
         range ref_loc expr
         kind
   locs
@@ -54,12 +56,13 @@ provide_highlights = fn async_parse: fn doc, pos:
         {expr: {type: 'ident'}}:
           get_ref_highlights ast, node
 
-        {expr: {type: 'jsx-elem'}}:
+        {expr: {type: 'jsx:elem'}}:
           get_ref_highlights ast, node
 
         {expr: {type: 'string:text'}}:
           list:
-            new DocumentHighlight
+            new
+              DocumentHighlight,
               range parent.expr.loc
               DocumentHighlightKind.Text
 

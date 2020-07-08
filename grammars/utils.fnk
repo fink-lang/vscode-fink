@@ -1,0 +1,17 @@
+{raw} = import '@fink/std-lib/str'
+{rx: real_rx, replace_all} = import '@fink/std-lib/regex'
+
+
+
+rx = fn strings, ...exprs:
+  # implement in loxia or larix for optimization
+  ingorables = real_rx'(\s+\#.*\n)|((\n|\s)*)'
+  esc = real_rx'(^|[^\\])((\\{2})*)\\(?=[\#\'"])'
+
+  [...parts] = pipe strings.raw:
+    map part:
+      pipe part:
+        replace_all ?, ingorables, ''
+        replace_all ?, esc, '$1$3'
+
+  raw {raw: parts}, ...exprs

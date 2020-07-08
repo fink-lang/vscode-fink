@@ -19,8 +19,7 @@
     ["[", "]"],
     ["(", ")"],
     ["'", "'"],
-    ["\"", "\""],
-    ["`", "`"]
+    ["\"", "\""]
   ],
 
   "autoClosingPairs": [
@@ -29,24 +28,22 @@
     {"open": "(", "close": ")"},
     {"open": "'", "close": "'", "notIn": ["string"]},
     {"open": "\"", "close": "\"", "notIn": ["string"]},
-    {"open": "`", "close": "`", "notIn": ["string"]},
-    {"open": "rx/", "close": "/", "notIn": ["string"]},
     {"open": "---", "close": "---", "notIn": ["string", "comment"]}
   ],
 
-  "autoCloseBefore": ";:.,=}])>` \n\t",
+  "autoCloseBefore": ";:.,=}])> \n\t",
 
   "folding": {
     // leave blank line after block
     "offSide": true,
-    "markers": {
-      "start": "^\\s*//\\s*#?region\\b",
-      "end": "^\\s*//\\s*#?endregion\\b"
-    }
-  }
+    // "markers": {
+    //   "start": "^\\s*//\\s*#?region\\b",
+    //   "end": "^\\s*//\\s*#?endregion\\b"
+    // }
+  },
 
   // "indentationRules": {
-  //   "increaseIndentPattern": "^[^\\-]+([`'\":=+<\\-/\\*]{1}\\s*)$",
+  //   "increaseIndentPattern": "^[^\\-]+(['\":=+<\\-/\\*]{1}\\s*)$",
   //   // TODO: this is not working to unindent empty lines
   //   "decreaseIndentPattern": "^ni$"
   // }

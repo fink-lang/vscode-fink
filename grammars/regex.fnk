@@ -1,0 +1,207 @@
+{rx} = import './utils'
+
+
+lang = dict:
+  name: 'Fink Regular Expressions'
+  scopeName: 'source.regexp.fink'
+  fileTypes: []
+  patterns: list:
+    {include: '#templ_expr'}
+    {include: '#anchor'}
+    {include: '#backref'}
+    {include: '#quantifier'}
+    {include: '#operator'}
+    {include: '#group_assertion'}
+    {include: '#group_definition'}
+    {include: '#character_class_definition'}
+    {include: '#character_class'}
+    {include: '#comments'}
+
+  repository: dict:
+    comments: dict:
+        patterns: list:
+          dict:
+            name: 'comment.line.hash.fink'
+            match: rx'(?<=\s+)#.+$'
+
+
+    templ_expr: dict:
+      name: 'constant.character.escape.quasi.element.fink'
+      begin: rx'(\${)'
+      end: rx'(})'
+
+      beginCaptures: dict:
+        '0': {name: 'punctuation.definition.template-expression.begin.fink'}
+      endCaptures: dict:
+        '0': {name: 'punctuation.definition.template-expression.end.fink'}
+
+
+      patterns: list:
+        {include: 'source.fink'}
+
+
+    character_class_definition: dict:
+      patterns: list:
+        dict:
+          name: 'constant.other.character-class.set.regexp'
+          begin: rx'(\[)(\^)?'
+          end: rx'(\])'
+          beginCaptures: dict:
+            '1': {name: 'punctuation.definition.character-class.regexp'}
+            '2': {name: 'keyword.operator.negation.regexp'}
+
+          endCaptures: dict:
+            '1': {name: 'punctuation.definition.character-class.regexp'}
+
+          patterns: list:
+            dict:
+              name: 'constant.other.character-class.range.regexp'
+              match: rx'
+                (
+                  (\\[wWsSdD]|\.)
+                  |(\\
+                    (
+                      [trnvf0]
+                      |c[A-Z]
+                      |x[\da-fA-F]{2}
+                      |u[\da-fA-F]{4}
+                      |u\{[\da-fA-F]+\}
+                      |.
+                    )
+                    |([^\]\s])
+                  )
+                )
+                (\-)
+                (
+                  (\\[wWsSdD]|\.)
+                  |(\\
+                    (
+                      [trnvf0]
+                      |c[A-Z]
+                      |x[\da-fA-F]{2}
+                      |u[\da-fA-F]{4}
+                      |u\{[\da-fA-F]+\}
+                      |.
+                    )
+                    |([^\]\s])
+                  )
+                )'
+              captures: dict:
+                '2': {name: 'constant.character.escape.backslash.regexp'}
+                '3': {name: 'constant.character.escape.backslash.regexp'}
+                '5': {name: 'constant.character.regexp'}
+                '6': {name: 'punctuation.definition.range.regexp'}
+                '8': {name: 'constant.character.escape.backslash.regexp'}
+                '9': {name: 'constant.character.escape.backslash.regexp'}
+                '11': {name: 'constant.character.regexp'}
+
+            {include: '#character_class'}
+
+
+    group_assertion: dict:
+      patterns: list:
+        dict:
+          begin: rx'(\()((\?=)|(\?!)|(\?<=)|(\?<!))'
+          end: rx'(\))'
+          name: 'meta.group.assertion.regexp'
+
+          beginCaptures: dict:
+            '1': {name: 'punctuation.definition.group.regexp'}
+            '2': {name: 'punctuation.definition.group.assertion.regexp'}
+            '3': {name: 'meta.assertion.look-ahead.regexp'}
+            '4': {name: 'meta.assertion.negative-look-ahead.regexp'}
+            '5': {name: 'meta.assertion.look-behind.regexp'}
+            '6': {name: 'meta.assertion.negative-look-behind.regexp'}
+
+          endCaptures: dict:
+            '1': {name: 'punctuation.definition.group.regexp'}
+
+          patterns: list:
+            {include: '$self'}
+
+
+    anchor: dict:
+      patterns: list:
+        dict:
+          name: 'keyword.control.anchor.regexp'
+          match: rx'\\[bB]|\^|\$'
+
+
+    operator: dict:
+      patterns: list:
+        dict:
+          name: 'keyword.operator.or.regexp'
+          match: rx'\|'
+
+
+    group_definition: dict:
+      patterns: list:
+        dict:
+          begin: rx'(\()((\?:)|(\?(<\w+>)))?'
+          end: rx'(\))'
+          name: 'meta.group.regexp'
+          endCaptures: dict:
+            '1': {name: 'punctuation.definition.group.regexp'}
+
+          beginCaptures: dict:
+            '1': {name: 'punctuation.definition.group.regexp'}
+            '3': {name: 'punctuation.definition.group.capture.regexp'}
+            '5': {name: 'support.type.property-name'}
+
+          patterns: list:
+            {include: '$self'}
+
+
+    quantifier: dict:
+      patterns: list:
+        dict:
+          name: 'keyword.operator.quantifier.regexp'
+          match: rx'
+            (\?|\*\??|\+\??)
+            |
+            \{(\d+,\d+|\d+,|\d+)\}'
+
+
+    backref: dict:
+      patterns: list:
+        dict:
+          name: 'keyword.other.back-reference.regexp'
+          match: rx'\\[1-9][0-9]*'
+
+
+    character_class: dict:
+      patterns: list:
+        dict:
+          name: 'constant.character.escape.backslash.regexp'
+          match: rx'\\[wWsSdD]'
+
+        dict:
+          name: 'constant.character.escape.backslash.regexp'
+          match: rx'\\(
+              \[|\]|\{|\}|\(|\)|\?|-|\+|\*|\||\$|\^|\.|\||\\|\'|"
+            )'
+          captures: dict:
+            '1': {name: 'constant.character.set.regexp'}
+
+        dict:
+          name: 'constant.character.escape.backslash.regexp'
+          match: rx'\\k(<\w+?>)'
+          captures: dict:
+            '1': {name: 'support.type.property-name'}
+
+        dict:
+          match: rx'
+            (\\
+              (
+                [trnvf0\\]
+                |c[A-Z]
+                |x[\da-fA-F]{2}
+                |u[\da-fA-F]{4}
+                |u\{[\da-fA-F]+\}
+                |p\{.+?\}
+                |(.)
+              )
+            )'
+          captures: dict:
+            '1': {name: 'constant.character.escape.backslash.regexp'}
+            '3': {name: 'invalid'}
