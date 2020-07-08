@@ -45,9 +45,11 @@ get_errors = fn ast:
   [...unrefed, ...undef]
 
 
+
 diagnostic = fn loc, msg, severity:
   rng = range loc
   new Diagnostic, rng, msg, severity
+
 
 
 process_doc = fn doc, dc, parse:
@@ -67,6 +69,7 @@ process_doc = fn doc, dc, parse:
   [diags, errors, ast.exprs]
 
 
+
 handle_doc_change = fn doc, dc, parse:
   match doc:
     {languageId: 'fink'}: process_doc doc, dc, parse
@@ -82,6 +85,7 @@ fake_doc = fn uri: dict:
     decode data, 'utf-8'
 
 
+
 lint_workspace = fn diags, async_parse:
   files = await workspace.findFiles '**/*.fnk', '**/node_modules/**'
 
@@ -90,7 +94,6 @@ lint_workspace = fn diags, async_parse:
       doc = fake_doc uri
       process_doc doc, diags, async_parse
     [...?]
-
 
 
 
