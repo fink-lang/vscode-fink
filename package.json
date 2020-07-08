@@ -98,6 +98,7 @@
     "@fink/cli": "^6.0.0",
     "@fink/jest": "^5.0.3",
     "@fink/loxia": "^12.0.0",
+    "@fink/require-hook": "^5.0.0",
     "@semantic-release/exec": "^5.0.0",
     "commitizen": "^4.0.3",
     "cz-conventional-changelog": "^3.1.0",
@@ -115,7 +116,6 @@
   "dependencies": {
     "@fink/js-interop": "^1.0.0",
     "@fink/larix": "^12.0.0",
-    "@fink/require-hook": "^5.0.0",
     "@fink/std-lib": "^2.4.0"
   }
 }
