@@ -204,10 +204,7 @@ lang = dict:
             '0': {name: 'punctuation.section.embedded.end.jsx'}
 
           patterns: list:
-            {include: '#jsx-string-double-quoted'}
-            {include: '#jsx-string-single-quoted'}
-            {include: '#jsx-spread-attribute'}
-            {include: '$base'}
+            {include: 'source.fink'}
 
 
     'jsx-entities': dict:

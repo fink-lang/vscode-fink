@@ -1,5 +1,6 @@
 {writeFileSync} = import 'fs'
 {obj_to_json} = import '@fink/std-lib/json'
+{console} = import '@fink/js-interop/globals'
 
 {lang: fink} = import '../grammars/fink'
 {lang: regex} = import '../grammars/regex'

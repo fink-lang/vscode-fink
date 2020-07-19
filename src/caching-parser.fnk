@@ -1,7 +1,9 @@
 {workspace} = import 'vscode'
 
 {parse} = import '@fink/larix'
-{hash_map} = import './js-compat'
+{new} = import '@fink/js-interop/reflect'
+{Map} = import '@fink/js-interop/globals'
+
 
 
 parse_doc_async = fn doc:
@@ -37,7 +39,7 @@ caching_doc_parser = fn cache: fn doc:
 
 
 caching_parser = fn:
-  cache = hash_map ()
+  cache = new Map
   async_parse = caching_doc_parser cache
 
   workspace.onDidCloseTextDocument
