@@ -95,10 +95,10 @@
     "release": "semantic-release"
   },
   "devDependencies": {
-    "@fink/cli": "^6.2.0",
-    "@fink/jest": "^5.2.0",
-    "@fink/loxia": "^12.2.0",
-    "@fink/require-hook": "^5.2.0",
+    "@fink/cli": "^6.2.1",
+    "@fink/jest": "^5.2.1",
+    "@fink/loxia": "^12.2.1",
+    "@fink/require-hook": "^5.2.1",
     "@semantic-release/exec": "^5.0.0",
     "commitizen": "^4.2.1",
     "cz-conventional-changelog": "^3.3.0",
@@ -114,8 +114,8 @@
     }
   },
   "dependencies": {
-    "@fink/js-interop": "^1.1.0",
-    "@fink/larix": "^12.2.0",
-    "@fink/std-lib": "^4.0.0"
+    "@fink/js-interop": "^1.1.1",
+    "@fink/larix": "^12.2.1",
+    "@fink/std-lib": "^4.0.1"
   }
 }
