@@ -1,5 +1,5 @@
 {workspace, languages, Diagnostic, DiagnosticSeverity} = import 'vscode'
-{length, chain} = import '@fink/std-lib/iter'
+{length, is_empty, chain} = import '@fink/std-lib/iter'
 {lower_case, decode} = import '@fink/std-lib/str'
 {new} = import '@fink/js-interop/reflect'
 
@@ -36,7 +36,7 @@ get_errors = fn ast:
     filter node:
       decls = get_decls node, scopes
       match decls:
-        0 == length ?: true
+        is_empty ?: true
         else: false
 
     map node:
