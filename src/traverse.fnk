@@ -1,5 +1,5 @@
 {obj_values} = import '@fink/std-lib/obj'
-{length, chain} = import '@fink/std-lib/iter'
+{length, is_empty, chain} = import '@fink/std-lib/iter'
 
 
 walk_exprs = fn exprs, props:
@@ -224,7 +224,7 @@ get_refs = fn idents, scopes:
       decls = get_decls node, scopes
 
       match decls:
-        0 == length ?:
+        is_empty ?:
           refs
         else:
           [decl] = decls
