@@ -94,6 +94,9 @@ walk = fn expr, props={scope: {expr}}:
           walk_exprs expr.props, {parent, decl: false, scope: node.scope}
           walk_exprs expr.children, {parent, decl: false, scope: node.scope}
 
+      {type: 'jsx:frag'}:
+        walk_exprs expr.children, {parent, decl: false, scope: node.scope}
+
       {type: 'jsx:attr', value: {}}:
         walk expr.value, {parent, decl: false, scope: node.scope}
 
