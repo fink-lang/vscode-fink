@@ -41,7 +41,7 @@ document = dict:
     try:
       foo + 1
 
-    Foo = fn: <></>
+    Foo = fn: <>{foo}</>
 
     <Foo ni={foo}>
       {foo}
@@ -73,6 +73,10 @@ describe 'reference provider', fn:
         dict: 'location': list:
           {test: 'test-uri:test.fnk'}
           {range: [{pos: [6, 2]}, {pos: [6, 5]}]}
+
+        dict: 'location': list:
+          {test: 'test-uri:test.fnk'}
+          {range: [{pos: [8, 13]}, {pos: [8, 16]}]}
 
         dict: 'location': list:
           {test: 'test-uri:test.fnk'}

@@ -108,7 +108,7 @@ lang = dict:
           name: 'keyword.operator.assignment.fink'
 
         dict:
-          match: rx'<=|>=|<>|<|>'
+          match: rx'<=|>=|<|>'
           name: 'keyword.operator.relational.fink'
 
         dict:
