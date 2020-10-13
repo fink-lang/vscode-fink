@@ -1,12 +1,12 @@
-{init_lang} = import './lang-config'
+{init_lang} = import './lang-config.fnk'
 
-{caching_parser} = import './caching-parser'
-{add_sem_tokens_provider} = import './provide-sem-tkn'
-{add_completion_provider} = import './provide-compl'
-{add_definition_provider} = import './provide-def'
-{add_highlights_provider} = import './provide-highlights'
-{add_refs_provider} = import './provide-refs'
-{add_linter} = import './lint'
+{caching_parser} = import './caching-parser.fnk'
+{add_sem_tokens_provider} = import './provide-sem-tkn.fnk'
+{add_completion_provider} = import './provide-compl.fnk'
+{add_definition_provider} = import './provide-def.fnk'
+{add_highlights_provider} = import './provide-highlights.fnk'
+{add_refs_provider} = import './provide-refs.fnk'
+{add_linter} = import './lint.fnk'
 
 
 activate = fn ctx:

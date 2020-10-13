@@ -1,5 +1,5 @@
-{obj_values} = import '@fink/std-lib/obj'
-{length, is_empty, chain} = import '@fink/std-lib/iter'
+{obj_values} = import '@fink/std-lib/obj.fnk'
+{length, is_empty, chain} = import '@fink/std-lib/iter.fnk'
 
 
 walk_exprs = fn exprs, props:
@@ -41,14 +41,14 @@ walk = fn expr, props={scope: {expr}}:
           walk expr.callee, {parent, decl: false, scope: node.scope}
           walk_exprs expr.args, {parent, decl: false, scope: node.scope}
 
-      {type: 'object'}:
+      {type: 'rec'}:
         walk_exprs expr.exprs, {parent, decl: props.decl, scope: node.scope}
 
-      {type: 'object:prop', left: ? == expr.right}:
+      {type: 'rec:kv', left: ? == expr.right}:
         chain
           walk expr.left, {parent, decl: props.decl, scope: node.scope}
 
-      {type: 'object:prop'}:
+      {type: 'rec:kv'}:
         chain
           walk expr.left, {parent, decl: false, scope: node.scope}
           walk expr.right, {parent, decl: props.decl, scope: node.scope}
@@ -72,7 +72,7 @@ walk = fn expr, props={scope: {expr}}:
         chain
           walk_exprs expr.exprs, {parent, decl: false, scope: node.scope}
 
-      {type: 'array'}:
+      {type: 'list'}:
         walk_exprs expr.exprs, {parent, decl: props.decl, scope: node.scope}
 
       {type: 'group'}:
@@ -130,7 +130,7 @@ is_referanceable = fn node:
       false
     {
       expr: {type: 'ident'}
-      parent: {expr: {type: 'object:prop', left: expr, right: ? != expr}}
+      parent: {expr: {type: 'rec:kv', left: expr, right: ? != expr}}
     }:
       false
     {expr: {type: 'ident'}}:

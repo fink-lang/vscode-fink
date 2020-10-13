@@ -1,13 +1,13 @@
 {workspace} = import 'vscode'
 
-{parse} = import '@fink/larix'
-{new} = import '@fink/js-interop/reflect'
-{Map} = import '@fink/js-interop/globals'
+{parse} = import '@fink/larix/parser.fnk'
+{new} = import '@fink/js-interop/reflect.fnk'
+{Map} = import '@fink/js-interop/globals.fnk'
 
 
 
 parse_doc_async = fn doc:
-  code = await doc.getText ()
+  code = await doc.getText _
   await parse code, '${doc.uri}'
 
 

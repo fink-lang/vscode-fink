@@ -1,11 +1,11 @@
 {languages, DocumentHighlight, DocumentHighlightKind} = import 'vscode'
-{new} = import '@fink/js-interop/reflect'
+{new} = import '@fink/js-interop/reflect.fnk'
 
 {
   decls_by_scope, get_idents, get_decls, get_refs, get_refs_for_decl
   get_exprs_from_loc, ref_loc
-} = import './traverse'
-{to_larix_pos, range} = import './loc'
+} = import './traverse.fnk'
+{to_larix_pos, range} = import './loc.fnk'
 
 
 

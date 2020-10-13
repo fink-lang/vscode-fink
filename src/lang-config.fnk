@@ -1,5 +1,5 @@
 {IndentAction, languages} = import 'vscode'
-{rx} = import '@fink/std-lib/regex'
+{rx} = import '@fink/std-lib/regex.fnk'
 
 wordPattern = rx'
     (-?\d*\.\d\w*)

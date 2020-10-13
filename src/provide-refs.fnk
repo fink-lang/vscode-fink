@@ -3,8 +3,8 @@
 {
   is_at_loc, decls_by_scope, get_idents, get_decls, get_refs, get_refs_for_decl
   ref_loc
-} = import './traverse'
-{to_larix_pos, doc_range} = import './loc'
+} = import './traverse.fnk'
+{to_larix_pos, doc_range} = import './loc.fnk'
 
 
 
@@ -22,7 +22,6 @@ find_refs_by_loc = fn ast, loc:
 
     map {idents}:
       ...idents
-
 
 
 provide_refs = fn async_parse: fn doc, pos:

@@ -1,7 +1,8 @@
-{describe, it, expect, mock, mock_fn} = import '@fink/jest'
-{to_equal} = import '@fink/jest'
+{describe, it, expect, mock, mock_fn} = import '@fink/jest/test.fnk'
+{to_equal} = import '@fink/jest/test.fnk'
+{encode} = import '@fink/std-lib/str.fnk'
 
-{parse} = import '@fink/larix'
+{parse} = import '@fink/larix/parser.fnk'
 
 
 mock
@@ -21,17 +22,23 @@ mock
       fs: dict:
         stat: fn: {type: 1}
 
+        readFile: fn: encode '
+          Spam = fn: "ham"
+          shrub = fn: "ni"
+          '
+
+
   {virtual: true}
 
 
 {languages} = import 'vscode'
 
-{add_definition_provider} = import './provide-def'
+{add_definition_provider} = import './provide-def.fnk'
 
 
 async_parse = fn doc:
   await parse
-    doc.getText ()
+    await doc.getText _
     '${doc.uri}'
 
 ctx = dict:
@@ -41,7 +48,7 @@ ctx = dict:
 
 document = dict:
   getText: fn: "
-    {Spam, shrub} = import './foobar'
+    {Spam, shrub} = import './foobar.fnk'
 
     foo = 1234
     log foo
@@ -80,8 +87,8 @@ describe 'definition provider', fn:
       await provider.provideDefinition document, pos
       to_equal list:
         dict: location: list:
-          {test: 'test-uri:test.fnk'}
-          {range: [{pos: [0, 1]}, {pos: [0, 5]}]}
+          {join_path: [{test: 'test-uri:test.fnk'}, '..', './foobar.fnk']}
+          {range: [{pos: [0, 0]}, {pos: [0, 4]}]}
 
 
   it 'provides definition for template tag', fn:
@@ -94,8 +101,8 @@ describe 'definition provider', fn:
       await provider.provideDefinition document, pos
       to_equal list:
         dict: location: list:
-          {test: 'test-uri:test.fnk'}
-          {range: [{pos: [0, 7]}, {pos: [0, 12]}]}
+          {join_path: [{test: 'test-uri:test.fnk'}, '..', './foobar.fnk']}
+          {range: [{pos: [1, 0]}, {pos: [1, 5]}]}
 
 
   it 'provides definition for module', fn:
@@ -113,11 +120,11 @@ describe 'definition provider', fn:
               join_path: list:
                 {test: 'test-uri:test.fnk'}
                 '..'
-                './foobar'
+                './foobar.fnk'
 
             {range: [{pos: [0, 1]}, {pos: [0, 1]}]}
           originSelectionRange:
-            {range: [{pos: [0, 24]}, {pos: [0, 32]}]}
+            {range: [{pos: [0, 24]}, {pos: [0, 36]}]}
 
 
 

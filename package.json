@@ -85,7 +85,8 @@
     "clean": "rimraf ./build",
     "build": "run build:*",
     "build:dir": "mkdir -p ./build/pkg/grammars",
-    "build:fnk": "fnk --src ./src --out-dir build/pkg --ignore './src/**/*.test.fnk'",
+    "build:rollup-config": "fnk --module-type esm --module-ext .mjs --src ./rollup.config.fnk --out-dir ./build/rollup/",
+    "build:bundle": "rollup -c ./build/rollup/rollup.config.mjs",
     "build:files": "cp ./package.json ./README.md ./LICENSE ./build/pkg/",
     "build:grammars": "node -r @fink/require-hook ./scripts/build-grammars.fnk",
     "build:languages": "cp -r ./languages ./build/pkg/",
@@ -95,17 +96,23 @@
     "release": "semantic-release"
   },
   "devDependencies": {
-    "@fink/cli": "^6.2.1",
-    "@fink/jest": "^5.4.0",
-    "@fink/loxia": "^12.3.0",
-    "@fink/require-hook": "^5.2.1",
+    "@babel/preset-env": "^7.11.5",
+    "@fink/cli": "^8.0.0",
+    "@fink/jest": "^7.0.0",
+    "@fink/loxia": "^14.0.2",
+    "@fink/require-hook": "^6.0.1",
+    "@fink/rollup": "^1.0.0",
+    "@rollup/plugin-commonjs": "^15.1.0",
+    "@rollup/plugin-json": "^4.1.0",
+    "@rollup/plugin-node-resolve": "^9.0.0",
     "@semantic-release/exec": "^5.0.0",
     "commitizen": "^4.2.1",
     "cz-conventional-changelog": "^3.3.0",
-    "jest-cli": "^26.4.2",
+    "jest-cli": "^26.5.3",
     "nodemon": "^2.0.3",
     "npx-run": "^2.1.2",
-    "semantic-release": "^17.1.2",
+    "rollup": "^2.29.0",
+    "semantic-release": "^17.2.1",
     "semantic-release-vsce": "^3.0.1"
   },
   "config": {
@@ -114,8 +121,8 @@
     }
   },
   "dependencies": {
-    "@fink/js-interop": "^1.1.1",
-    "@fink/larix": "^12.3.0",
-    "@fink/std-lib": "^4.0.1"
+    "@fink/js-interop": "^2.0.1",
+    "@fink/larix": "^13.1.0",
+    "@fink/std-lib": "^5.0.0"
   }
 }

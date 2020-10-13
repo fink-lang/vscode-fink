@@ -1,7 +1,7 @@
-{describe, it, expect, mock, mock_fn} = import '@fink/jest'
-{to_equal} = import '@fink/jest'
+{describe, it, expect, mock, mock_fn} = import '@fink/jest/test.fnk'
+{to_equal} = import '@fink/jest/test.fnk'
 
-{parse} = import '@fink/larix'
+{parse} = import '@fink/larix/parser.fnk'
 
 
 mock
@@ -19,7 +19,7 @@ mock
 
 {languages} = import 'vscode'
 
-{add_refs_provider} = import './provide-refs'
+{add_refs_provider} = import './provide-refs.fnk'
 
 
 async_parse = fn doc:

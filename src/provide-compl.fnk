@@ -1,9 +1,9 @@
 {MarkdownString, CompletionItem, CompletionItemKind, SnippetString, languages} = import 'vscode'
 
-{new, set_props} = import '@fink/js-interop/reflect'
+{new, set_props} = import '@fink/js-interop/reflect.fnk'
 
-{get_idents} = import './traverse'
-{to_larix_pos} = import './loc'
+{get_idents} = import './traverse.fnk'
+{to_larix_pos} = import './loc.fnk'
 
 
 doc_md = fn header, code:
@@ -175,7 +175,7 @@ completions_from_loc = fn ast, pos:
           CompletionItemKind.Function
         {expr: {type: 'assign', right: {type: 'string'}}}:
           CompletionItemKind.Text
-        {expr: {type: 'assign', right: {type: 'object'}}}:
+        {expr: {type: 'assign', right: {type: 'rec'}}}:
           CompletionItemKind.Struct
         else:
           CompletionItemKind.Constant

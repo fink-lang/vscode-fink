@@ -1,5 +1,5 @@
-{describe, it, expect, mock, mock_fn} = import '@fink/jest'
-{was_called, was_called_with, any} = import '@fink/jest'
+{describe, it, expect, mock, mock_fn} = import '@fink/jest/test.fnk'
+{was_called, was_called_with, any} = import '@fink/jest/test.fnk'
 
 
 mock
@@ -31,8 +31,8 @@ mock
 
 {languages} = import 'vscode'
 
-{activate} = import './extension'
-{Object} = import '@fink/js-interop/globals'
+{activate} = import './extension.fnk'
+{Object} = import '@fink/js-interop/globals.fnk'
 
 describe 'extension', fn:
 

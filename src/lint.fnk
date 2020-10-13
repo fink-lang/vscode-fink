@@ -1,10 +1,10 @@
 {workspace, languages, Diagnostic, DiagnosticSeverity} = import 'vscode'
-{length, is_empty, chain} = import '@fink/std-lib/iter'
-{lower_case, decode} = import '@fink/std-lib/str'
-{new} = import '@fink/js-interop/reflect'
+{length, is_empty, chain} = import '@fink/std-lib/iter.fnk'
+{lower_case, decode} = import '@fink/std-lib/str.fnk'
+{new} = import '@fink/js-interop/reflect.fnk'
 
-{range} = import './loc'
-{get_refs, get_decls, decls_by_scope, get_idents, ref_loc} = import './traverse'
+{range} = import './loc.fnk'
+{get_refs, get_decls, decls_by_scope, get_idents, ref_loc} = import './traverse.fnk'
 
 
 get_errors = fn ast:
