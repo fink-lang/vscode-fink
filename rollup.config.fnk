@@ -1,0 +1,48 @@
+
+resolve = import '@rollup/plugin-node-resolve'
+commonjs = import '@rollup/plugin-commonjs'
+json = import '@rollup/plugin-json'
+builtins = import 'builtin-modules'
+
+{null} = import '@fink/js-interop/nullish.fnk'
+{fink} = import '@fink/rollup/plugin.fnk'
+
+
+default = dict:
+  input: './src/extension.fnk'
+
+  output: list:
+    dict:
+      dir: './build/pkg'
+      format: 'cjs'
+      sourcemap: true
+      manualChunks: fn id:
+        match id:
+          ?.includes 'node_modules/@fink': 'fink'
+          ?.includes 'node_modules': 'vendor'
+          else: null
+      # preserveModules: true
+
+  plugins: list:
+    resolve dict:
+      preferBuiltins: false
+    commonjs _
+    # json _
+    fink dict:
+      include: './src/**/*.fnk'
+      babel: dict:
+        sourceMaps: 'both'
+        presets: list:
+          list:
+            '@babel/preset-env'
+            dict:
+              modules: false
+              useBuiltIns: false
+              shippedProposals: true
+              # corejs: '3.0.0'
+              targets: dict:
+                node: '12.14'
+
+  external: [...builtins, 'vscode']
+
+  strictDeprecations: true
