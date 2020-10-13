@@ -1,7 +1,7 @@
-{describe, it, expect, mock, mock_fn} = import '@fink/jest'
-{to_equal} = import '@fink/jest'
+{describe, it, expect, mock, mock_fn} = import '@fink/jest/test.fnk'
+{to_equal} = import '@fink/jest/test.fnk'
 
-{parse} = import '@fink/larix'
+{parse} = import '@fink/larix/parser.fnk'
 
 
 mock
@@ -26,7 +26,7 @@ mock
 
 {languages} = import 'vscode'
 
-{add_definition_provider} = import './provide-def'
+{add_definition_provider} = import './provide-def.fnk'
 
 
 async_parse = fn doc:
@@ -41,7 +41,7 @@ ctx = dict:
 
 document = dict:
   getText: fn: "
-    {Spam, shrub} = import './foobar'
+    {Spam, shrub} = import './foobar.fnk'
 
     foo = 1234
     log foo
@@ -113,11 +113,11 @@ describe 'definition provider', fn:
               join_path: list:
                 {test: 'test-uri:test.fnk'}
                 '..'
-                './foobar'
+                './foobar.fnk'
 
             {range: [{pos: [0, 1]}, {pos: [0, 1]}]}
           originSelectionRange:
-            {range: [{pos: [0, 24]}, {pos: [0, 32]}]}
+            {range: [{pos: [0, 24]}, {pos: [0, 36]}]}
 
 
 

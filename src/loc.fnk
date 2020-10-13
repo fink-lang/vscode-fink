@@ -1,6 +1,6 @@
 {Location, Position, Range} = import 'vscode'
 
-{new} = import '@fink/js-interop/reflect'
+{new} = import '@fink/js-interop/reflect.fnk'
 
 
 to_vs_pos = fn {line, column}:

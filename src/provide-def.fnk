@@ -1,16 +1,18 @@
 {languages, Uri, Location, workspace} = import 'vscode'
 
-{new, set_props} = import '@fink/js-interop/reflect'
+{new, set_props} = import '@fink/js-interop/reflect.fnk'
 
-{get_decls, decls_by_scope, get_idents, get_exprs_from_loc, ref_loc} = import './traverse'
-{to_larix_pos, doc_range, range} = import './loc'
+{get_decls, decls_by_scope, get_idents, get_exprs_from_loc, ref_loc} = import './traverse.fnk'
+{to_larix_pos, doc_range, range} = import './loc.fnk'
+
 
 
 find_decls_for_ident = fn ast, ident:
   idents = get_idents ast
   scopes = decls_by_scope idents
   [decl] = get_decls ident, scopes
-  [decl.expr]
+  [decl]
+
 
 
 find_decls_by_loc = fn ast, loc:
@@ -24,7 +26,7 @@ find_decls_by_loc = fn ast, loc:
           find_decls_for_ident ast, node
 
         {parent: {parent: {expr: {op: 'import'}}}}:
-          [node.parent.parent.expr]
+          [node.parent.parent]
 
         else: []
 
@@ -37,11 +39,13 @@ resolve = fn doc, path:
     Uri.joinPath doc.uri, '..', '${path}.fnk'
     Uri.joinPath doc.uri, '..', '${path}/index.fnk'
 
+
   pipe paths:
     # istanbul ignore next
     find uri:
       [err, stat] = try: await workspace.fs.stat uri
       not err and stat.type == 1
+
 
 
 import_link = fn doc, import_expr:
@@ -63,12 +67,13 @@ def_provider = fn async_parse: fn doc, pos:
   ast = await async_parse doc
 
   locs = pipe find_decls_by_loc ast, to_larix_pos pos:
-    map expr:
-      match expr:
-        {op: 'import'}:
-          import_link doc, expr
+    map decl:
+      match decl:
+        {expr: {op: 'import'}}:
+          import_link doc, decl.expr
+
         else:
-          doc_range doc, ref_loc expr
+          doc_range doc, ref_loc decl.expr
 
     # TODO: use std-lib async parallel or sequential
     fold link, out=[]:
@@ -82,7 +87,7 @@ add_definition_provider = fn {subscriptions}, async_parse:
 
   subscr = languages.registerDefinitionProvider
     'fink'
-    {provideDefinition: def_provider async_parse }
+    {provideDefinition: def_provider async_parse}
 
   subscriptions.push subscr
 

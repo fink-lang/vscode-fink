@@ -1,8 +1,8 @@
-{raw} = import '@fink/std-lib/str'
-{rx: real_rx, replace_all} = import '@fink/std-lib/regex'
+{raw} = import '@fink/std-lib/str.fnk'
+{rx: real_rx, replace_all} = import '@fink/std-lib/regex.fnk'
 
 
-
+# TODO: is this not already done in std-lib
 rx = fn strings, ...exprs:
   # implement in loxia or larix for optimization
   ingorables = real_rx'(\s+\#.*\n)|((\n|\s)*)'

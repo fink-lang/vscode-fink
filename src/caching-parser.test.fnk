@@ -1,5 +1,5 @@
-{describe, it, expect, mock, mock_fn, to_equal} = import '@fink/jest'
-{length} = import '@fink/std-lib/iter'
+{describe, it, expect, mock, mock_fn, to_equal} = import '@fink/jest/test.fnk'
+{length} = import '@fink/std-lib/iter.fnk'
 
 
 mock
@@ -16,8 +16,8 @@ mock
 
 
 {workspace} = import 'vscode'
-{parse} = import '@fink/larix'
-{caching_parser} = import './caching-parser'
+{parse} = import '@fink/larix/parser.fnk'
+{caching_parser} = import './caching-parser.fnk'
 
 
 

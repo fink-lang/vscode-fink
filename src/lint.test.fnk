@@ -1,10 +1,10 @@
-{describe, it, expect, mock, mock_fn} = import '@fink/jest'
-{was_not_called, was_called_with} = import '@fink/jest'
+{describe, it, expect, mock, mock_fn} = import '@fink/jest/test.fnk'
+{was_not_called, was_called_with} = import '@fink/jest/test.fnk'
 
-{encode} = import '@fink/std-lib/str'
-{parallel} = import '@fink/std-lib/async'
+{encode} = import '@fink/std-lib/str.fnk'
+{parallel} = import '@fink/std-lib/async.fnk'
 
-{parse} = import '@fink/larix'
+{parse} = import '@fink/larix/parser.fnk'
 
 
 mock_diags = dict:
@@ -35,7 +35,7 @@ mock
 
 
 {workspace} = import 'vscode'
-{add_linter} = import './lint'
+{add_linter} = import './lint.fnk'
 
 
 async_parse = fn doc:

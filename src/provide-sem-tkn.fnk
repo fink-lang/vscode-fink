@@ -1,8 +1,8 @@
 {languages, SemanticTokensLegend, SemanticTokensBuilder} = import 'vscode'
-{length} = import '@fink/std-lib/iter'
-{new} = import '@fink/js-interop/reflect'
+{length} = import '@fink/std-lib/iter.fnk'
+{new} = import '@fink/js-interop/reflect.fnk'
 
-{walk} = import './traverse'
+{walk} = import './traverse.fnk'
 
 
 token_types = ['function', 'string', 'variable']
@@ -51,7 +51,7 @@ get_tokens = fn {errors, ...ast}:
     fold {expr}:
       match expr:
         {type: 'call'}: add_call_tokens expr, builder
-        {type: 'object:prop'}: add_prop_tokens expr, builder
+        {type: 'rec:kv'}: add_prop_tokens expr, builder
 
   list:
     builder.build ()

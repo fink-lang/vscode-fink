@@ -1,5 +1,5 @@
-{describe, it, expect, mock, mock_fn} = import '@fink/jest'
-{to_match_snapshot} = import '@fink/jest'
+{describe, it, expect, mock, mock_fn} = import '@fink/jest/test.fnk'
+{to_match_snapshot} = import '@fink/jest/test.fnk'
 
 
 mock
@@ -26,9 +26,9 @@ mock
 
 
 {languages} = import 'vscode'
-{parse} = import '@fink/larix'
+{parse} = import '@fink/larix/parser.fnk'
 
-{add_completion_provider} = import './provide-compl'
+{add_completion_provider} = import './provide-compl.fnk'
 
 
 async_parse = fn doc:
@@ -44,7 +44,7 @@ ctx = dict:
 
 document = dict:
   getText: fn: "
-    {ni} = import './ni'
+    {ni} = import './ni.fnk'
     foo = {bar: 1234}
     bar = 'spam'
 
