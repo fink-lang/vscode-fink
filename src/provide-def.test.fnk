@@ -1,5 +1,6 @@
 {describe, it, expect, mock, mock_fn} = import '@fink/jest/test.fnk'
 {to_equal} = import '@fink/jest/test.fnk'
+{encode} = import '@fink/std-lib/str.fnk'
 
 {parse} = import '@fink/larix/parser.fnk'
 
@@ -21,6 +22,12 @@ mock
       fs: dict:
         stat: fn: {type: 1}
 
+        readFile: fn: encode '
+          Spam = fn: "ham"
+          shrub = fn: "ni"
+          '
+
+
   {virtual: true}
 
 
@@ -31,7 +38,7 @@ mock
 
 async_parse = fn doc:
   await parse
-    doc.getText ()
+    await doc.getText _
     '${doc.uri}'
 
 ctx = dict:
@@ -80,8 +87,8 @@ describe 'definition provider', fn:
       await provider.provideDefinition document, pos
       to_equal list:
         dict: location: list:
-          {test: 'test-uri:test.fnk'}
-          {range: [{pos: [0, 1]}, {pos: [0, 5]}]}
+          {join_path: [{test: 'test-uri:test.fnk'}, '..', './foobar.fnk']}
+          {range: [{pos: [0, 0]}, {pos: [0, 4]}]}
 
 
   it 'provides definition for template tag', fn:
@@ -94,8 +101,8 @@ describe 'definition provider', fn:
       await provider.provideDefinition document, pos
       to_equal list:
         dict: location: list:
-          {test: 'test-uri:test.fnk'}
-          {range: [{pos: [0, 7]}, {pos: [0, 12]}]}
+          {join_path: [{test: 'test-uri:test.fnk'}, '..', './foobar.fnk']}
+          {range: [{pos: [1, 0]}, {pos: [1, 5]}]}
 
 
   it 'provides definition for module', fn:
