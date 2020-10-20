@@ -71,7 +71,7 @@ lang = dict:
           begin: rx'
             \b(
               fn|pipe|
-              match|fold|unfold|map|filter|while|until|find|
+              match|fold|unfold|map|filter|while|until|
               else|
               try|
               list|dict

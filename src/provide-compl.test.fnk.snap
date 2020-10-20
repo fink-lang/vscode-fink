@@ -237,51 +237,22 @@ $0",
   },
   Object {
     "completion": Array [
-      "find",
-      "test-func",
-    ],
-    "documentation": Object {
-      "appendCodeblock": [MockFunction],
-      "markdown": Array [
-        "Return a function \`fn iterable:\` that returns the first \`item\` of
-\`iterable\` for which the block returns true",
-        Array [
-          "pipe [1, 2, 3, 4]:
-  find item:
-    item > 2
-
-# == 3
-",
-          "fink",
-        ],
-      ],
-    },
-    "insertText": Object {
-      "snippet": Array [
-        "find $1:
-  $2
-$0",
-      ],
-    },
-  },
-  Object {
-    "completion": Array [
       "pipe",
       "test-func",
     ],
     "documentation": Object {
       "appendCodeblock": [MockFunction],
       "markdown": Array [
-        "Call all expressions with the result of the previous call, starting
-with the pipe arg for the first call.",
+        "Call each expression in the block with the result of the previous call,
+starting with the pipe arg for the first call.",
         Array [
-          "pipe [1, 2, 3, 4]:
+          "[result] = pipe [1, 2, 3, 4, 5, 6]:
   map item:
     item * 2
-  find item:
+  filter item:
     item > 4
 
-# == 6
+# == 5
 ",
           "fink",
         ],

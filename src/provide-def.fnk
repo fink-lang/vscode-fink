@@ -34,18 +34,21 @@ find_decls_by_loc = fn ast, loc:
       ...delcs
 
 
+
 resolve = fn doc, path:
-  paths = list:
+  uris = list:
     Uri.joinPath doc.uri, '..', '${path}'
     Uri.joinPath doc.uri, '..', '${path}.fnk'
     Uri.joinPath doc.uri, '..', '${path}/index.fnk'
 
-
-  pipe paths:
-    # istanbul ignore next
-    find uri:
-      [err, stat] = try: await workspace.fs.stat uri
-      not err and stat.type == 1
+  [await uri] = pipe uris:
+    filter uri:
+      [err, stat] = try:
+        await workspace.fs.stat uri
+      match [err, stat]:
+        [false, {type: 1}]: uri
+        else: false
+  uri
 
 
 

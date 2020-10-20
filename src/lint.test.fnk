@@ -139,7 +139,7 @@ describe 'linter provider', fn:
              2|   spam [
                         ^
 
-             Expected ',' or indented(>=3) new line or ']'.
+             Expected `,` or indented(>=3) new line or `]`.
             "
             'test-diag-error'
 
