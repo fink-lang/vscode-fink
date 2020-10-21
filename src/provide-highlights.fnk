@@ -56,6 +56,10 @@ provide_highlights = fn async_parse: fn doc, pos:
         {expr: {type: 'ident'}}:
           get_ref_highlights ast, node
 
+        {expr: {type: 'jsx:attr', value: {}}}: []
+        {expr: {type: 'jsx:attr'}}:
+          get_ref_highlights ast, node
+
         {expr: {type: 'jsx:elem'}}:
           get_ref_highlights ast, node
 

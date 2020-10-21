@@ -45,11 +45,7 @@ describe 'extension', fn:
 
     expect
       languages.setLanguageConfiguration
-      was_called_with 'jsx', any Object
-
-    expect
-      languages.setLanguageConfiguration
-      was_called_with 'jsx:attr', any Object
+      was_called_with 'fink-jsx', any Object
 
     expect
       languages.setLanguageConfiguration

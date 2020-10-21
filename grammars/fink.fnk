@@ -12,7 +12,6 @@ lang = dict:
     {include: '#comments'}
 
     {include: '#block_like'}
-    {include: '#function_call'}
 
     {include: '#language_constant'}
 
@@ -74,7 +73,7 @@ lang = dict:
               match|fold|unfold|map|filter|while|until|
               else|
               try|
-              list|dict
+              list|seq|dict|rec
             )\b'
           end: '(:)'
 
@@ -124,6 +123,10 @@ lang = dict:
           name: 'keyword.control.partial.fink'
 
         dict:
+          match: rx'\|'
+          name: 'keyword.control.pipe.fink'
+
+        dict:
           match: rx'\b_\b'
           name: 'keyword.control.empty.fink'
 
@@ -170,21 +173,6 @@ lang = dict:
           match: rx'\b(\w+?)\b'
           captures: dict:
             '1': {name: 'variable.other.constant.fink'}
-
-
-    function_call: dict:
-      patterns: list:
-        dict:
-          name: 'meta.function-call.op-less.fink'
-          match: rx'
-            \b((?!and|or|not|in|await|throw)\b)
-            (\w+)\s
-            (?![-+*/=|&><%^#}:]|!=|\b(and|or|in)\b|$)
-            '
-
-          captures: dict:
-            '2': {name: 'entity.name.function.fink'}
-            '3': {name: 'keyword.operator.call.fink'}
 
 
     array: dict:

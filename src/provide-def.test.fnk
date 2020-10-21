@@ -20,20 +20,21 @@ mock
 
     workspace: dict:
       fs: dict:
-        stat: fn: {type: 1}
+        stat: fn uri:
+          match uri:
+            {join_path: [..., '@fink/std-lib/str.fnk']}: {type: 0}
+            else: {type: 1}
 
         readFile: fn: encode '
           Spam = fn: "ham"
           shrub = fn: "ni"
           '
-
-
   {virtual: true}
 
 
 {languages} = import 'vscode'
-
 {add_definition_provider} = import './provide-def.fnk'
+
 
 
 async_parse = fn doc:
@@ -41,24 +42,30 @@ async_parse = fn doc:
     await doc.getText _
     '${doc.uri}'
 
+
+
 ctx = dict:
   subscriptions: dict:
     push: mock_fn ()
 
 
+
 document = dict:
   getText: fn: "
+    {is_str} = import '@fink/std-lib/str.fnk'
     {Spam, shrub} = import './foobar.fnk'
 
     foo = 1234
     log foo
+    ham = 'ni'
 
-    <Spam />
+    <Spam ham ni=123/>
 
     shrub'foobar'
     "
   uri: {test: 'test-uri:test.fnk'}
   languageId: 'fink'
+
 
 
 describe 'definition provider', fn:
@@ -67,21 +74,21 @@ describe 'definition provider', fn:
     add_definition_provider ctx, async_parse
     {mock: {calls: [[, provider]]}} = languages.registerDefinitionProvider
 
-    pos = {line: 3, character: 5}
+    pos = {line: 4, character: 5}
 
     expect
       await provider.provideDefinition document, pos
       to_equal list:
         dict: location: list:
           {test: 'test-uri:test.fnk'}
-          {range: [{pos: [2, 0]}, {pos: [2, 3]}]}
+          {range: [{pos: [3, 0]}, {pos: [3, 3]}]}
 
 
   it 'provides definition of jsx elem', fn:
     add_definition_provider ctx, async_parse
     {mock: {calls: [[, provider]]}} = languages.registerDefinitionProvider
 
-    pos = {line: 5, character: 2}
+    pos = {line: 7, character: 2}
 
     expect
       await provider.provideDefinition document, pos
@@ -91,11 +98,36 @@ describe 'definition provider', fn:
           {range: [{pos: [0, 0]}, {pos: [0, 4]}]}
 
 
+  it 'provides definition of jsx short attr', fn:
+    add_definition_provider ctx, async_parse
+    {mock: {calls: [[, provider]]}} = languages.registerDefinitionProvider
+
+    pos = {line: 7, character: 8}
+
+    expect
+      await provider.provideDefinition document, pos
+      to_equal list:
+        dict: location: list:
+          {test: 'test-uri:test.fnk'}
+          {range: [{pos: [5, 0]}, {pos: [5, 3]}]}
+
+
+  it 'provides definition of jsx attr', fn:
+    add_definition_provider ctx, async_parse
+    {mock: {calls: [[, provider]]}} = languages.registerDefinitionProvider
+
+    pos = {line: 7, character: 12}
+
+    expect
+      await provider.provideDefinition document, pos
+      to_equal []
+
+
   it 'provides definition for template tag', fn:
     add_definition_provider ctx, async_parse
     {mock: {calls: [[, provider]]}} = languages.registerDefinitionProvider
 
-    pos = {line: 7, character: 2}
+    pos = {line: 9, character: 2}
 
     expect
       await provider.provideDefinition document, pos
@@ -109,7 +141,7 @@ describe 'definition provider', fn:
     add_definition_provider ctx, async_parse
     {mock: {calls: [[, provider]]}} = languages.registerDefinitionProvider
 
-    pos = {line: 0, character: 30}
+    pos = {line: 1, character: 30}
 
     expect
       await provider.provideDefinition document, pos
@@ -124,7 +156,7 @@ describe 'definition provider', fn:
 
             {range: [{pos: [0, 1]}, {pos: [0, 1]}]}
           originSelectionRange:
-            {range: [{pos: [0, 24]}, {pos: [0, 36]}]}
+            {range: [{pos: [1, 24]}, {pos: [1, 36]}]}
 
 
 
@@ -132,12 +164,22 @@ describe 'definition provider', fn:
     add_definition_provider ctx, async_parse
     {mock: {calls: [[, provider]]}} = languages.registerDefinitionProvider
 
-    pos = {line: 2, character: 8}
+    pos = {line: 3, character: 8}
 
     expect
       await provider.provideDefinition document, pos
       to_equal []
 
+
+  it 'provides no definition for module', fn:
+    add_definition_provider ctx, async_parse
+    {mock: {calls: [[, provider]]}} = languages.registerDefinitionProvider
+
+    pos = {line: 0, character: 3}
+
+    expect
+      await provider.provideDefinition document, pos
+      to_equal []
 
 
 
