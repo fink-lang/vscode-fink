@@ -1,17 +1,17 @@
 {
   "name": "vscode-fink",
-  "version": "0.0.0-semantically-released",
-  "license": "MIT",
-  "displayName": "fink",
-  "description": "VSCode syntax highlighting for fink.",
-  "engines": {
-    "vscode": "^1.31.0"
-  },
   "categories": [
     "Programming Languages",
     "Debuggers",
     "Snippets"
   ],
+  "version": "0.0.0-semantically-released",
+  "license": "MIT",
+  "displayName": "fink",
+  "description": "VSCode syntax highlighting for fink.",
+  "engines": {
+    "vscode": "^1.50.0"
+  },
   "repository": {
     "type": "git",
     "url": "git@github.com:fink-lang/vscode-fink"
@@ -41,13 +41,6 @@
       {
         "id": "fink-jsx",
         "configuration": "./languages/jsx.language-configuration.json"
-      },
-      {
-        "id": "fink-jsx-attr",
-        "aliases": [
-          "fink-jsx-tags"
-        ],
-        "configuration": "./languages/jsx-attr.language-configuration.json"
       }
     ],
     "grammars": [
@@ -58,10 +51,7 @@
         "embeddedLanguages": {
           "meta.embedded.inline.sql": "source.sql",
           "meta.embedded.block.fink": "fink",
-          "meta.tag.jsx": "fink-jsx",
-          "meta.jsx.tag.termination": "fink-jsx",
-          "meta.embedded.jsk.fink": "fink-jsx",
-          "meta.embedded.jsk.attr.fink": "fink-jsx-attr"
+          "meta.embedded.jsx.fink": "fink-jsx"
         }
       },
       {
@@ -99,7 +89,7 @@
     "@babel/preset-env": "^7.12.1",
     "@fink/cli": "^8.0.0",
     "@fink/jest": "^7.0.0",
-    "@fink/loxia": "^14.1.0",
+    "@fink/loxia": "^15.0.0",
     "@fink/require-hook": "^6.0.1",
     "@fink/rollup": "^1.0.0",
     "@rollup/plugin-commonjs": "^15.1.0",
@@ -115,14 +105,14 @@
     "semantic-release": "^17.2.1",
     "semantic-release-vsce": "^3.0.1"
   },
+  "dependencies": {
+    "@fink/js-interop": "^2.0.1",
+    "@fink/larix": "^14.0.0",
+    "@fink/std-lib": "^5.0.0"
+  },
   "config": {
     "commitizen": {
       "path": "cz-conventional-changelog"
     }
-  },
-  "dependencies": {
-    "@fink/js-interop": "^2.0.1",
-    "@fink/larix": "^13.1.0",
-    "@fink/std-lib": "^5.0.0"
   }
 }
