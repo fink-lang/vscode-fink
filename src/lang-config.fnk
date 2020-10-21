@@ -12,20 +12,17 @@ jsx_conf = dict:
   wordPattern,
   onEnterRules: list:
     dict:
-      beforeText: rx'.*'
-      afterText: rx'/>'
+      beforeText: rx'^.*[^/]>$'
+      afterText: rx'^$'
       action: dict:
-        indentAction: IndentAction.IndentOutdent
+        indentAction: IndentAction.Indent
 
-
-jsx_att_conf = dict:
-  wordPattern
-  onEnterRules: list:
     dict:
-      beforeText: rx'>'
-      afterText: rx'<\#'
+      beforeText: rx'^.*<.+$'
+      afterText: rx'^.*$'
       action: dict:
-        indentAction: IndentAction.IndentOutdent
+        indentAction: IndentAction.Indent
+
 
 
 fink_conf = dict:
@@ -65,7 +62,6 @@ fink_conf = dict:
 
 
 init_lang = fn:
-  languages.setLanguageConfiguration 'jsx', jsx_conf
-  languages.setLanguageConfiguration 'jsx:attr', jsx_att_conf
+  languages.setLanguageConfiguration 'fink-jsx', jsx_conf
   languages.setLanguageConfiguration 'fink', fink_conf
 

@@ -25,7 +25,7 @@ lang = dict:
         dict:
           comment: 'JSX Fragment'
           name: 'meta.tag.jsx'
-          contentName: 'meta.embedded.jsk-attr.fink'
+          contentName: 'meta.embedded.jsx.attr.fink'
           begin: rx'\s*+(<)\s*(?=>)'
           end: rx'(?<=</)(>)'
           beginCaptures: dict:
@@ -41,7 +41,7 @@ lang = dict:
         dict:
           comment: 'Tags that end > are trapped in #jsx-tag-termination'
           name: 'meta.tag.jsx'
-          contentName: 'meta.embedded.jsk-attr.fink'
+          contentName: 'meta.embedded.jsx.attr.fink'
           begin: rx'
             \s*+(<)
             (
@@ -69,10 +69,7 @@ lang = dict:
 
           end: rx'
             \s*(?<=</)
-            (
-              (\4)
-              |\2
-            )
+            ((\4)|\2)
             (>)
             |(/>)
             |((?<=</)[\S ]*?)
@@ -99,7 +96,7 @@ lang = dict:
       patterns: list:
         dict:
           comment: 'uses non consuming search for </ in </tag>'
-          contentName: 'meta.embedded.jsk.fink'
+          contentName: 'meta.embedded.jsx.fink'
           begin: rx'(>)'
           end: rx'(</)'
           beginCaptures: dict:
@@ -120,19 +117,20 @@ lang = dict:
       patterns: list:
         {include: '#jsx-attribute-name'}
         {include: '#jsx-assignment'}
-        {include: '#jsx-string-double-quoted'}
-        {include: '#jsx-string-single-quoted'}
         {include: '#jsx-evaluated-code'}
         {include: '#jsx-tag-element-name'}
+        {include: '#jsx-fink-spread-attr'}
 
 
-    'jsx-spread-attribute': dict:
+    'jsx-fink-spread-attr': dict:
       patterns: list:
         dict:
           comment: 'spread attribute'
-          match: rx'(?<!\.)\.\.\.'
+          begin: rx'(?<!\.)\.\.\.'
+          end: rx'(?=---|#|\s|>|/>)'
           name: 'keyword.operator.spread.jsx'
-
+          patterns: list:
+            {include: 'source.fink'}
 
 
     'jsx-attribute-name': dict:
@@ -149,7 +147,7 @@ lang = dict:
               )*+
             )
             (?<!\.)
-            (?=//|/\*|=|\s|>|/>)'
+            (?=---|#|=|\s|>|/>)'
           captures: dict:
             '0': {name: 'entity.other.attribute-name.jsx'}
 
@@ -159,35 +157,12 @@ lang = dict:
         dict:
           comment: 'look for attribute assignment'
           name: 'keyword.operator.assignment.jsx'
-          match: rx'=(?=\s*(?:\'|"|{|/\*|<|//|\n))'
-
-
-    'jsx-string-double-quoted': dict:
-      name: 'string.quoted.double.fink'
-      begin: rx'"'
-      end: rx'"(?<!\\")'
-      beginCaptures: dict:
-        '0': {name: 'punctuation.definition.string.begin.jsx'}
-
-      endCaptures: dict:
-        '0': {name: 'punctuation.definition.string.end.jsx'}
-
-      patterns: list:
-        {include: '#jsx-entities'}
-
-
-    'jsx-string-single-quoted': dict:
-      name: 'string.quoted.single.fink'
-      begin: rx"'"
-      end: rx"'(?<!\\')"
-      beginCaptures: dict:
-        '0': {name: 'punctuation.definition.string.begin.jsx'}
-
-      endCaptures: dict:
-        '0': {name: 'punctuation.definition.string.end.jsx'}
-
-      patterns: list:
-        {include: '#jsx-entities'}
+          # match: rx'=(?=\s*(?:\'|"|{|/\*|<|//|\n))'
+          begin: rx'=\s*'
+          end: rx'(?=---|#|\s|>|/>)'
+          patterns: list:
+            {include: '#jsx-evaluated-code'}
+            {include: 'source.fink'}
 
 
     'jsx-evaluated-code': dict:

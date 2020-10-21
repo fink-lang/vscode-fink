@@ -135,6 +135,11 @@ is_referanceable = fn node:
       false
     {expr: {type: 'ident'}}:
       true
+
+    {expr: {type: 'jsx:attr', value: {}}}:
+      false
+    {expr: {type: 'jsx:attr'}}:
+      true
     {expr: {type: 'jsx:elem'}}:
       true
     else:
@@ -166,6 +171,7 @@ get_exprs_from_loc = fn ast, pos:
         {type: 'number'}: true
         {type: 'string:text'}: true
         {type: 'jsx:elem'}: true
+        {type: 'jsx:attr'}: true
         else: false
 
     filter {expr}:
