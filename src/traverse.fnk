@@ -12,11 +12,13 @@ walk = fn expr, props={scope: {expr}}:
   node = {expr, ...props}
   parent = node
 
-  chain
-    [node]
+  pipe []:
+    chain [node]
+
     match expr:
       {type: 'module'}:
-        walk_exprs expr.exprs, {parent, decl: false, scope: node}
+        chain
+          walk_exprs expr.exprs, {parent, decl: false, scope: node}
 
       {type: 'block', op: 'match'}:
         chain
@@ -34,7 +36,8 @@ walk = fn expr, props={scope: {expr}}:
           walk_exprs expr.exprs, {parent, decl: false, scope: node}
 
       {type: 'block'}:
-        walk_exprs expr.exprs, {parent, decl: false, scope: node}
+        chain
+          walk_exprs expr.exprs, {parent, decl: false, scope: node}
 
       {type: 'call'}:
         chain
@@ -42,7 +45,8 @@ walk = fn expr, props={scope: {expr}}:
           walk_exprs expr.args, {parent, decl: false, scope: node.scope}
 
       {type: 'rec'}:
-        walk_exprs expr.exprs, {parent, decl: props.decl, scope: node.scope}
+        chain
+          walk_exprs expr.exprs, {parent, decl: props.decl, scope: node.scope}
 
       {type: 'rec:kv', left: ? == expr.right}:
         chain
@@ -73,10 +77,12 @@ walk = fn expr, props={scope: {expr}}:
           walk_exprs expr.exprs, {parent, decl: false, scope: node.scope}
 
       {type: 'list'}:
-        walk_exprs expr.exprs, {parent, decl: props.decl, scope: node.scope}
+        chain
+          walk_exprs expr.exprs, {parent, decl: props.decl, scope: node.scope}
 
       {type: 'group'}:
-        walk_exprs expr.exprs, {parent, decl: props.decl, scope: node.scope}
+        chain
+          walk_exprs expr.exprs, {parent, decl: props.decl, scope: node.scope}
 
       {left: {}, right: {}}:
         chain
@@ -84,10 +90,12 @@ walk = fn expr, props={scope: {expr}}:
           walk expr.right, {parent, decl: false, scope: node.scope}
 
       {right: {}}:
-        walk expr.right, {parent, decl: props.decl, scope: node.scope}
+        chain
+          walk expr.right, {parent, decl: props.decl, scope: node.scope}
 
       {op: 'try'}:
-        walk_exprs expr.exprs, {parent, decl: false, scope: node.scope}
+        chain
+          walk_exprs expr.exprs, {parent, decl: false, scope: node.scope}
 
       {type: 'jsx:elem'}:
         chain
@@ -95,16 +103,20 @@ walk = fn expr, props={scope: {expr}}:
           walk_exprs expr.children, {parent, decl: false, scope: node.scope}
 
       {type: 'jsx:frag'}:
-        walk_exprs expr.children, {parent, decl: false, scope: node.scope}
+        chain
+          walk_exprs expr.children, {parent, decl: false, scope: node.scope}
 
       {type: 'jsx:attr', value: {}}:
-        walk expr.value, {parent, decl: false, scope: node.scope}
+        chain
+          walk expr.value, {parent, decl: false, scope: node.scope}
 
       {type: 'jsx:expr'}:
-        walk expr.expr, {parent, decl: false, scope: node.scope}
+        chain
+          walk expr.expr, {parent, decl: false, scope: node.scope}
 
       else:
-        []
+        chain []
+
 
 
 insert_to_prop = fn obj, key, item:
@@ -112,12 +124,15 @@ insert_to_prop = fn obj, key, item:
   {...obj, (key): [item, ...items]}
 
 
+
 expr_id = fn {loc: {start, end}}:
   '${start.pos}:${end.pos}'
 
 
+
 ident_id = fn {value, name}:
   'id:${value or name}'
+
 
 
 is_referanceable = fn node:
