@@ -3,9 +3,11 @@
 
 
 mock
-  '@fink/larix'
+  # TODO: @fink/jest should allow .fnk ext
+  '@fink/larix/parser.js'
   fn: dict:
     parse: mock_fn fn ...parse: {parse}
+  {virtual: true}
 
 mock
   'vscode'

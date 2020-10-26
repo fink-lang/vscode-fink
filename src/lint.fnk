@@ -1,5 +1,5 @@
 {workspace, languages, Diagnostic, DiagnosticSeverity} = import 'vscode'
-{length, is_empty, chain} = import '@fink/std-lib/iter.fnk'
+{length, is_empty} = import '@fink/std-lib/iter.fnk'
 {lower_case, decode} = import '@fink/std-lib/str.fnk'
 {new} = import '@fink/js-interop/reflect.fnk'
 
@@ -55,13 +55,13 @@ diagnostic = fn loc, msg, severity:
 process_doc = fn doc, dc, parse:
   {errors, ...ast} = await parse doc
 
-  [...diags] = chain
-    pipe get_errors ast:
+  diags = list:
+    ...pipe get_errors ast:
       map [kind, {expr}]:
         loc = ref_loc expr
         diagnostic loc, kind, DiagnosticSeverity.Error
 
-    pipe errors:
+    ...pipe errors:
       map {error, token: {loc}}:
         diagnostic loc, error, DiagnosticSeverity.Error
 
