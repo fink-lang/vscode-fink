@@ -40,17 +40,18 @@ find_decls_by_loc = fn ast, loc:
 
 
 resolve = fn doc, path:
-  uris = list:
+  uris = seq:
     Uri.joinPath doc.uri, '..', '${path}'
     Uri.joinPath doc.uri, '..', '${path}.fnk'
     Uri.joinPath doc.uri, '..', '${path}/index.fnk'
 
   [await uri] = pipe uris:
-    filter uri:
+    filter await uri:
       [, stat] = try:
         await workspace.fs.stat uri
+
       match stat:
-        {type: 1}: uri
+        {type: 1}: true
         else: false
   uri
 
@@ -80,7 +81,7 @@ is_imported_decl = fn decl:
 
 
 fake_doc = fn uri:
-  dict:
+  rec:
     uri
     version: '0'
     getText: fn:
@@ -115,10 +116,10 @@ def_provider = fn async_parse: fn doc, pos:
   ast = await async_parse doc
 
   locs = pipe find_decls_by_loc ast, to_larix_pos pos:
-    map decl:
+    map await decl:
       loc = match decl:
         {expr: {op: 'import'}}:
-          import_link doc, decl.expr
+          await import_link doc, decl.expr
 
         is_imported_decl ?:
           await imported_decl async_parse, doc, decl
@@ -131,7 +132,7 @@ def_provider = fn async_parse: fn doc, pos:
         else: []
 
     # TODO: use std-lib async parallel or sequential
-    fold link, out=[]:
+    fold await link, out=[]:
       [...out, await link]
 
   await locs

@@ -4,9 +4,9 @@
 
 mock
   'vscode'
-  fn: dict:
+  fn: rec:
     CompletionItem: mock_fn fn ...completion: {completion}
-    CompletionItemKind: dict:
+    CompletionItemKind: rec:
       Reference: 'test-ref'
       Constant: 'test-const'
       Function: 'test-func'
@@ -14,12 +14,12 @@ mock
       Text: 'test-text'
 
     SnippetString: mock_fn fn ...snippet: {snippet}
-    MarkdownString: mock_fn fn ...markdown: dict:
+    MarkdownString: mock_fn fn ...markdown: rec:
       markdown
       appendCodeblock: mock_fn fn ...args:
         markdown.push args
 
-    languages: dict:
+    languages: rec:
       registerCompletionItemProvider: mock_fn ()
 
   {virtual: true}
@@ -37,12 +37,12 @@ async_parse = fn doc:
     '${doc.uri}'
 
 
-ctx = dict:
-  subscriptions: dict:
+ctx = rec:
+  subscriptions: rec:
     push: mock_fn ()
 
 
-document = dict:
+document = rec:
   getText: fn: "
     {ni} = import './ni.fnk'
     foo = {bar: 1234}

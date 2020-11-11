@@ -14,8 +14,8 @@ doc_md = fn header, code:
 snippet = fn txt: new SnippetString, txt
 
 
-api = dict:
-  match: dict:
+api = rec:
+  match: rec:
     doc: doc_md
       'Return the first result of `test: result` where foo matches `test`.'
       "
@@ -28,7 +28,7 @@ api = dict:
       "
     snippet: snippet 'match $1:\n  $2: $3\n  else: $4\n$0'
 
-  map: dict:
+  map: rec:
     doc: doc_md
       'Return a function `fn iterable:` that maps each `item` of `iterable`.'
       '
@@ -40,33 +40,34 @@ api = dict:
       '
     snippet: snippet 'map $1:\n  $2\n$0'
 
-  fold: dict:
+  fold: rec:
     doc: doc_md
       'Return a function `fn iterable:` that reduces all items of `iterable`
        to a single value.'
       '
         pipe [1, 2, 3]:
-          fold item, acc=0:
-            item + acc
+          fold item, prev=0:
+            item + prev
 
         # == 6
       '
     snippet: snippet 'fold $1, $2:\n  $3\n$0'
 
-  unfold: dict:
+  unfold: rec:
     doc: doc_md
       'Return a function `fn curr:` that generates items from the `curr`
        value.'
       '
         count = unfold curr:
-          (curr + inc, curr + inc)
+          curr + 1
 
         [a, b, c] = count 0
-        # [0, 1, 2]
+
+        # [1, 2, 3]
       '
     snippet: snippet 'unfold $1:\n  ($2, $3)\n$0'
 
-  filter: dict:
+  filter: rec:
     doc: doc_md
       'Return a function `fn iterable:` that only yields `item` of `iterable`
        for which the block returns `true`.'
@@ -79,7 +80,7 @@ api = dict:
       '
     snippet: snippet 'filter $1:\n  $2\n$0'
 
-  while: dict:
+  while: rec:
     doc: doc_md
       'Return a function `fn iterable:` that yields each `item` of `iterable`
        while the block returns true'
@@ -92,7 +93,7 @@ api = dict:
       '
     snippet: snippet 'while $1:\n  $2\n$0'
 
-  until: dict:
+  until: rec:
     doc: doc_md
       'Return a function `fn iterable:` that yields each `item` of `iterable`
        until the block returns true'
@@ -105,7 +106,7 @@ api = dict:
       '
     snippet: snippet 'until $1:\n  $2\n$0'
 
-  pipe: dict:
+  pipe: rec:
     doc: doc_md
       'Call each expression in the block with the result of the previous call,
        starting with the pipe arg for the first call.'
@@ -120,7 +121,7 @@ api = dict:
       '
     snippet: snippet 'pipe $1:\n  $2\n$0'
 
-  import: dict:
+  import: rec:
     doc: doc_md
       'Import a module from the given URI.'
       "
@@ -174,7 +175,7 @@ completion_provider = fn async_parse: fn doc, pos:
   ast = await async_parse doc
   completions = completions_from_loc ast, to_larix_pos pos
 
-  list:
+  seq:
     ...completions
     comp_item 'match'
     comp_item 'fold'

@@ -7,12 +7,9 @@
 {get_refs, get_decls, decls_by_scope, get_idents, ref_loc} = import './traverse.fnk'
 
 
-get_errors = fn ast:
-  idents = get_idents ast
-  scopes = decls_by_scope idents
-  refs = get_refs idents, scopes
 
-  [...unrefed] = pipe refs:
+get_unrefferenced = fn refs:
+  pipe refs:
     filter {decl}:
       match decl:
         {parent: {parent: {expr: {type: 'module'}}}}: false
@@ -24,10 +21,10 @@ get_errors = fn ast:
         else:
           false
 
-    map {decl}:
-      ['unused', decl]
 
-  [...undef] = pipe idents:
+
+get_undefined = fn scopes, idents:
+  pipe idents:
     filter {expr}:
        match expr:
          {type: 'jsx:elem', name: lower_case expr.name}: false
@@ -39,8 +36,20 @@ get_errors = fn ast:
         is_empty ?: true
         else: false
 
-    map node:
-      ['undefined', node]
+
+
+get_errors = fn ast:
+  idents = get_idents ast
+  scopes = decls_by_scope idents
+  refs = get_refs idents, scopes
+
+  unrefed = pipe refs:
+    get_unrefferenced
+    map {decl}: ['unused', decl]
+
+  undef = pipe idents:
+    get_undefined scopes, ?
+    map node: ['undefined', node]
 
   [...unrefed, ...undef]
 
@@ -55,7 +64,7 @@ diagnostic = fn loc, msg, severity:
 process_doc = fn doc, dc, parse:
   {errors, ...ast} = await parse doc
 
-  diags = list:
+  diags = seq:
     ...pipe get_errors ast:
       map [kind, {expr}]:
         loc = ref_loc expr
@@ -77,7 +86,7 @@ handle_doc_change = fn doc, dc, parse:
 
 
 
-fake_doc = fn uri: dict:
+fake_doc = fn uri: rec:
   uri
   version: 0
   getText: fn:

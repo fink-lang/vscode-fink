@@ -7,29 +7,29 @@
 {parse} = import '@fink/larix/parser.fnk'
 
 
-mock_diags = dict:
-  set: mock_fn ()
+mock_diags = rec:
+  set: mock_fn _
 
 
 mock
   'vscode'
-  fn: dict:
+  fn: rec:
     Position: mock_fn fn ...pos: {pos}
     Range: mock_fn fn ...range: {range}
     Diagnostic: mock_fn fn ...diagnostic: {diagnostic}
 
-    DiagnosticSeverity: dict:
+    DiagnosticSeverity: rec:
       Error: 'test-diag-error'
 
-    languages: dict:
+    languages: rec:
       createDiagnosticCollection: mock_fn fn: mock_diags
 
-    workspace: dict:
-      onDidChangeTextDocument: mock_fn ()
-      onDidOpenTextDocument: mock_fn ()
+    workspace: rec:
+      onDidChangeTextDocument: mock_fn _
+      onDidOpenTextDocument: mock_fn _
       findFiles: mock_fn fn: []
-      fs: dict:
-        readFile: mock_fn ()
+      fs: rec:
+        readFile: mock_fn _
 
   {virtual: true}
 
@@ -40,7 +40,7 @@ mock
 
 async_parse = fn doc:
   await parse
-    await doc.getText ()
+    await doc.getText _
     '${doc.uri}'
 
 
@@ -50,7 +50,7 @@ describe 'linter provider', fn:
     add_linter async_parse
     {mock: {calls: [[handler]]}} = workspace.onDidChangeTextDocument
 
-    document = dict:
+    document = rec:
       getText: fn: '
         foo bar
         spam = <div></div>
@@ -63,12 +63,12 @@ describe 'linter provider', fn:
     expect
       mock_diags.set
       was_called_with document.uri,
-        list:
-          dict: 'diagnostic': list:
+        seq:
+          rec: 'diagnostic': seq:
             {range: [{pos: [0, 0]}, {pos: [0, 3]}]}
             'undefined'
             'test-diag-error'
-          dict: 'diagnostic': list:
+          rec: 'diagnostic': seq:
             {range: [{pos: [0, 4]}, {pos: [0, 7]}]}
             'undefined'
             'test-diag-error'
@@ -99,12 +99,12 @@ describe 'linter provider', fn:
     expect
       mock_diags.set
       was_called_with mock_uri,
-        list:
-          dict: 'diagnostic': list:
+        seq:
+          rec: 'diagnostic': seq:
             {range: [{pos: [0, 0]}, {pos: [0, 3]}]}
             'undefined'
             'test-diag-error'
-          dict: 'diagnostic': list:
+          rec: 'diagnostic': seq:
             {range: [{pos: [0, 4]}, {pos: [0, 7]}]}
             'undefined'
             'test-diag-error'
@@ -114,7 +114,7 @@ describe 'linter provider', fn:
     add_linter async_parse
     {mock: {calls: [[handler]]}} = workspace.onDidOpenTextDocument
 
-    document = dict:
+    document = rec:
       getText: fn: '
         foo = fn bar, spam:
           spam ['
@@ -126,13 +126,13 @@ describe 'linter provider', fn:
     expect
       mock_diags.set
       was_called_with document.uri,
-        list:
-          dict: 'diagnostic': list:
+        seq:
+          rec: 'diagnostic': seq:
             {range: [{pos: [0, 9]}, {pos: [0, 12]}]}
             'unused'
             'test-diag-error'
 
-          dict: 'diagnostic': list:
+          rec: 'diagnostic': seq:
             {range: [{pos: [1, 8]}, {pos: [1, 8]}]}
             "test-uri:test.fnk:2:8
              1| foo = fn bar, spam:
@@ -148,7 +148,7 @@ describe 'linter provider', fn:
     add_linter async_parse
     {mock: {calls: [[handler]]}} = workspace.onDidOpenTextDocument
 
-    document = dict:
+    document = rec:
       getText: fn: 'foo-bar-spam'
       uri: {toString: fn: 'test-uri:test.foo'}
       languageId: 'foobar'

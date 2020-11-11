@@ -74,8 +74,8 @@ $0",
 to a single value.",
         Array [
           "pipe [1, 2, 3]:
-  fold item, acc=0:
-    item + acc
+  fold item, prev=0:
+    item + prev
 
 # == 6
 ",
@@ -103,10 +103,11 @@ $0",
 value.",
         Array [
           "count = unfold curr:
-  (curr + inc, curr + inc)
+  curr + 1
 
 [a, b, c] = count 0
-# [0, 1, 2]
+
+# [1, 2, 3]
 ",
           "fink",
         ],

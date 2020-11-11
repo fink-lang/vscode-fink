@@ -8,11 +8,11 @@ builtins = import 'builtin-modules'
 {fink} = import '@fink/rollup/plugin.fnk'
 
 
-default = dict:
+default = rec:
   input: './src/extension.fnk'
 
-  output: list:
-    dict:
+  output: seq:
+    rec:
       dir: './build/pkg'
       format: 'cjs'
       sourcemap: true
@@ -23,24 +23,24 @@ default = dict:
           else: null
       # preserveModules: true
 
-  plugins: list:
-    resolve dict:
+  plugins: seq:
+    resolve rec:
       preferBuiltins: false
     commonjs _
     # json _
-    fink dict:
+    fink rec:
       include: './src/**/*.fnk'
-      babel: dict:
+      babel: rec:
         sourceMaps: 'both'
-        presets: list:
-          list:
+        presets: seq:
+          seq:
             '@babel/preset-env'
-            dict:
+            rec:
               modules: false
               useBuiltIns: false
               shippedProposals: true
               # corejs: '3.0.0'
-              targets: dict:
+              targets: rec:
                 node: '12.14'
 
   external: [...builtins, 'vscode']

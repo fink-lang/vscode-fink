@@ -5,14 +5,14 @@
 mock
   # TODO: @fink/jest should allow .fnk ext
   '@fink/larix/parser.js'
-  fn: dict:
+  fn: rec:
     parse: mock_fn fn ...parse: {parse}
   {virtual: true}
 
 mock
   'vscode'
-  fn: dict:
-    workspace: dict:
+  fn: rec:
+    workspace: rec:
       onDidCloseTextDocument: mock_fn ()
   {virtual: true}
 
@@ -26,7 +26,7 @@ mock
 describe 'caching parser', fn:
 
   it 'parses only once', fn:
-    doc = dict:
+    doc = rec:
       getText: fn: 'test-code'
       uri: {toString: fn: 'test-uri:test.fnk'}
       version: 0
@@ -49,7 +49,7 @@ describe 'caching parser', fn:
 
 
   it 'parses when version changes', fn:
-    doc1 = dict:
+    doc1 = rec:
       getText: fn: 'test-code'
       uri: {toString: fn: 'test-uri:test.fnk'}
       version: 0
@@ -79,7 +79,7 @@ describe 'caching parser', fn:
 
 
   it 'removes doc from cache when closed', fn:
-    doc = dict:
+    doc = rec:
       getText: fn: 'test-code'
       uri: {toString: fn: 'test-uri:test.fnk'}
       version: 0

@@ -9,6 +9,7 @@ token_types = ['function', 'string', 'variable']
 token_modifiers = []
 sem_token_legend = new SemanticTokensLegend, token_types, token_modifiers
 
+
 get_callee = fn node:
   match node:
     {type: 'ident'}:
@@ -17,6 +18,7 @@ get_callee = fn node:
       get_callee node.right
     else:
       node
+
 
 
 add_call_tokens = fn expr, builder:
@@ -31,6 +33,7 @@ add_call_tokens = fn expr, builder:
       {loc: {start, end}} = callee
       builder.push start.line - 1, start.column, 1, 0
       builder.push end.line - 1, end.column - 1, 1, 0
+
 
 
 add_prop_tokens = fn prop, builder:
@@ -53,7 +56,7 @@ get_tokens = fn {errors, ...ast}:
         {type: 'call'}: add_call_tokens expr, builder
         {type: 'rec:kv'}: add_prop_tokens expr, builder
 
-  list:
+  seq:
     builder.build ()
     errors
 
@@ -62,6 +65,7 @@ provide_sem_tokens = fn async_parse: fn doc:
   parsed = await async_parse doc
   [tokens] = get_tokens parsed
   tokens
+
 
 
 add_sem_tokens_provider = fn {subscriptions}, async_parse:
