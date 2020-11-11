@@ -41,7 +41,7 @@ walk = fn expr, props={scope: {expr}}:
 
       {type: 'call'}:
         chain
-          walk expr.callee, {parent, decl: false, scope: node.scope}
+          walk_exprs [expr.callee], {parent, decl: false, scope: node.scope}
           walk_exprs expr.args, {parent, decl: false, scope: node.scope}
 
       {type: 'rec'}:
@@ -50,26 +50,26 @@ walk = fn expr, props={scope: {expr}}:
 
       {type: 'rec:kv', left: ? == expr.right}:
         chain
-          walk expr.left, {parent, decl: props.decl, scope: node.scope}
+          walk_exprs [expr.left], {parent, decl: props.decl, scope: node.scope}
 
       {type: 'rec:kv'}:
         chain
-          walk expr.left, {parent, decl: false, scope: node.scope}
-          walk expr.right, {parent, decl: props.decl, scope: node.scope}
+          walk_exprs [expr.left], {parent, decl: false, scope: node.scope}
+          walk_exprs [expr.right], {parent, decl: props.decl, scope: node.scope}
 
       {type: 'member'}:
         chain
-          walk expr.left, {parent, decl: false, scope: node.scope}
-          walk expr.right, {parent, decl: false, scope: node.scope}
+          walk_exprs [expr.left], {parent, decl: false, scope: node.scope}
+          walk_exprs [expr.right], {parent, decl: false, scope: node.scope}
 
       {type: 'assign'}:
         chain
-          walk expr.left, {parent, decl: true, scope: node.scope}
-          walk expr.right, {parent, decl: false, scope: node.scope}
+          walk_exprs [expr.left], {parent, decl: true, scope: node.scope}
+          walk_exprs [expr.right], {parent, decl: false, scope: node.scope}
 
       {type: 'string', tag: {}}:
         chain
-          walk expr.tag, {parent, decl: false, scope: node.scope}
+          walk_exprs [expr.tag], {parent, decl: false, scope: node.scope}
           walk_exprs expr.exprs, {parent, decl: false, scope: node.scope}
 
       {type: 'string'}:
@@ -86,12 +86,12 @@ walk = fn expr, props={scope: {expr}}:
 
       {left: {}, right: {}}:
         chain
-          walk expr.left, {parent, decl: false, scope: node.scope}
-          walk expr.right, {parent, decl: false, scope: node.scope}
+          walk_exprs [expr.left], {parent, decl: false, scope: node.scope}
+          walk_exprs [expr.right], {parent, decl: false, scope: node.scope}
 
       {right: {}}:
         chain
-          walk expr.right, {parent, decl: props.decl, scope: node.scope}
+          walk_exprs [expr.right], {parent, decl: props.decl, scope: node.scope}
 
       {op: 'try'}:
         chain
@@ -108,11 +108,11 @@ walk = fn expr, props={scope: {expr}}:
 
       {type: 'jsx:attr', value: {}}:
         chain
-          walk expr.value, {parent, decl: false, scope: node.scope}
+          walk_exprs [expr.value], {parent, decl: false, scope: node.scope}
 
       {type: 'jsx:expr'}:
         chain
-          walk expr.expr, {parent, decl: false, scope: node.scope}
+          walk_exprs [expr.expr], {parent, decl: false, scope: node.scope}
 
       else:
         chain []
@@ -266,7 +266,7 @@ ref_loc = fn expr:
     {type: 'jsx:elem'}:
       {name, loc: {start}} = expr
       column = start.column + 1
-      dict:
+      rec:
         start: {...start, column}
         end: {...start, column: column + length name}
     else:

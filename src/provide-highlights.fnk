@@ -64,7 +64,7 @@ provide_highlights = fn async_parse: fn doc, pos:
           get_ref_highlights ast, node
 
         {expr: {type: 'string:text'}}:
-          list:
+          seq:
             new
               DocumentHighlight,
               range parent.expr.loc

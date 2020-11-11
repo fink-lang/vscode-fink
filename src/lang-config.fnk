@@ -8,56 +8,56 @@ wordPattern = rx'
   '
 
 
-jsx_conf = dict:
+jsx_conf = rec:
   wordPattern,
-  onEnterRules: list:
-    dict:
+  onEnterRules: seq:
+    rec:
       beforeText: rx'^.*[^/]>$'
       afterText: rx'^$'
-      action: dict:
+      action: rec:
         indentAction: IndentAction.Indent
 
-    dict:
+    rec:
       beforeText: rx'^.*<.+$'
       afterText: rx'^.*$'
-      action: dict:
+      action: rec:
         indentAction: IndentAction.Indent
 
 
 
-fink_conf = dict:
+fink_conf = rec:
   wordPattern,
-  onEnterRules: list:
+  onEnterRules: seq:
     # match doc comment
-    dict:
+    rec:
       beforeText: rx'^\s*---\s*$'
-      action: dict:
+      action: rec:
         indentAction: IndentAction.None
 
     # match end of str on its own: '|
-    dict:
+    rec:
       beforeText: rx'^\s*[\'"]{1}\s*$'
       afterText: rx'^$',
-      action: dict:
+      action: rec:
         indentAction: IndentAction.Outdent
 
     # match first indentation after auto closing: '|'
-    dict:
+    rec:
       beforeText: rx'^.*[\'"]{1}\s*$'
       afterText: rx'^[\'"]$'
-      action: dict:
+      action: rec:
         indentAction: IndentAction.Indent
 
     # match first indentating existing: foo = '| spam...
-    dict:
+    rec:
       beforeText: rx'^.+[=,:(]\s*[\'"]{1}\s*$'
-      action: dict:
+      action: rec:
         indentAction: IndentAction.Indent
 
     # match operators and blocks: fold ...:|
-    dict:
+    rec:
       beforeText: rx'^.+[:=+<\-/*]{1}\s*$'
-      action: dict:
+      action: rec:
         indentAction: IndentAction.Indent
 
 

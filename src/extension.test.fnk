@@ -4,14 +4,14 @@
 
 mock
   'vscode'
-  fn: dict:
+  fn: rec:
     IndentAction: {IndentOutdent: 'test-indent-outdent'}
     SemanticTokensLegend: mock_fn ()
     SnippetString: mock_fn ()
-    MarkdownString: mock_fn fn: dict:
+    MarkdownString: mock_fn fn: rec:
       appendCodeblock: mock_fn ()
 
-    languages: dict:
+    languages: rec:
       setLanguageConfiguration: mock_fn ()
       registerDocumentSemanticTokensProvider: mock_fn ()
       registerDocumentHighlightProvider: mock_fn ()
@@ -20,7 +20,7 @@ mock
       registerDefinitionProvider: mock_fn ()
       createDiagnosticCollection: mock_fn ()
 
-    workspace: dict:
+    workspace: rec:
       findFiles: mock_fn fn: []
       onDidChangeTextDocument: mock_fn ()
       onDidOpenTextDocument: mock_fn ()
@@ -37,8 +37,8 @@ mock
 describe 'extension', fn:
 
   it 'activates', fn:
-    ctx = dict:
-      subscriptions: dict:
+    ctx = rec:
+      subscriptions: rec:
         push: mock_fn ()
 
     activate ctx

@@ -1,11 +1,11 @@
 {rx} = import './utils.fnk'
 
 
-lang = dict:
+lang = rec:
   name: 'Fink Regular Expressions'
   scopeName: 'source.regexp.fink'
   fileTypes: []
-  patterns: list:
+  patterns: seq:
     {include: '#templ_expr'}
     {include: '#anchor'}
     {include: '#backref'}
@@ -17,44 +17,44 @@ lang = dict:
     {include: '#character_class'}
     {include: '#comments'}
 
-  repository: dict:
-    comments: dict:
-        patterns: list:
-          dict:
+  repository: rec:
+    comments: rec:
+        patterns: seq:
+          rec:
             name: 'comment.line.hash.fink'
             match: rx'(?<=\s+)#.+$'
 
 
-    templ_expr: dict:
+    templ_expr: rec:
       name: 'constant.character.escape.quasi.element.fink'
       begin: rx'(\${)'
       end: rx'(})'
 
-      beginCaptures: dict:
+      beginCaptures: rec:
         '0': {name: 'punctuation.definition.template-expression.begin.fink'}
-      endCaptures: dict:
+      endCaptures: rec:
         '0': {name: 'punctuation.definition.template-expression.end.fink'}
 
 
-      patterns: list:
+      patterns: seq:
         {include: 'source.fink'}
 
 
-    character_class_definition: dict:
-      patterns: list:
-        dict:
+    character_class_definition: rec:
+      patterns: seq:
+        rec:
           name: 'constant.other.character-class.set.regexp'
           begin: rx'(\[)(\^)?'
           end: rx'(\])'
-          beginCaptures: dict:
+          beginCaptures: rec:
             '1': {name: 'punctuation.definition.character-class.regexp'}
             '2': {name: 'keyword.operator.negation.regexp'}
 
-          endCaptures: dict:
+          endCaptures: rec:
             '1': {name: 'punctuation.definition.character-class.regexp'}
 
-          patterns: list:
-            dict:
+          patterns: seq:
+            rec:
               name: 'constant.other.character-class.range.regexp'
               match: rx'
                 (
@@ -86,7 +86,7 @@ lang = dict:
                     |([^\]\s])
                   )
                 )'
-              captures: dict:
+              captures: rec:
                 '2': {name: 'constant.character.escape.backslash.regexp'}
                 '3': {name: 'constant.character.escape.backslash.regexp'}
                 '5': {name: 'constant.character.regexp'}
@@ -98,14 +98,14 @@ lang = dict:
             {include: '#character_class'}
 
 
-    group_assertion: dict:
-      patterns: list:
-        dict:
+    group_assertion: rec:
+      patterns: seq:
+        rec:
           begin: rx'(\()((\?=)|(\?!)|(\?<=)|(\?<!))'
           end: rx'(\))'
           name: 'meta.group.assertion.regexp'
 
-          beginCaptures: dict:
+          beginCaptures: rec:
             '1': {name: 'punctuation.definition.group.regexp'}
             '2': {name: 'punctuation.definition.group.assertion.regexp'}
             '3': {name: 'meta.assertion.look-ahead.regexp'}
@@ -113,48 +113,48 @@ lang = dict:
             '5': {name: 'meta.assertion.look-behind.regexp'}
             '6': {name: 'meta.assertion.negative-look-behind.regexp'}
 
-          endCaptures: dict:
+          endCaptures: rec:
             '1': {name: 'punctuation.definition.group.regexp'}
 
-          patterns: list:
+          patterns: seq:
             {include: '$self'}
 
 
-    anchor: dict:
-      patterns: list:
-        dict:
+    anchor: rec:
+      patterns: seq:
+        rec:
           name: 'keyword.control.anchor.regexp'
           match: rx'\\[bB]|\^|\$'
 
 
-    operator: dict:
-      patterns: list:
-        dict:
+    operator: rec:
+      patterns: seq:
+        rec:
           name: 'keyword.operator.or.regexp'
           match: rx'\|'
 
 
-    group_definition: dict:
-      patterns: list:
-        dict:
+    group_definition: rec:
+      patterns: seq:
+        rec:
           begin: rx'(\()((\?:)|(\?(<\w+>)))?'
           end: rx'(\))'
           name: 'meta.group.regexp'
-          endCaptures: dict:
+          endCaptures: rec:
             '1': {name: 'punctuation.definition.group.regexp'}
 
-          beginCaptures: dict:
+          beginCaptures: rec:
             '1': {name: 'punctuation.definition.group.regexp'}
             '3': {name: 'punctuation.definition.group.capture.regexp'}
             '5': {name: 'support.type.property-name'}
 
-          patterns: list:
+          patterns: seq:
             {include: '$self'}
 
 
-    quantifier: dict:
-      patterns: list:
-        dict:
+    quantifier: rec:
+      patterns: seq:
+        rec:
           name: 'keyword.operator.quantifier.regexp'
           match: rx'
             (\?|\*\??|\+\??)
@@ -162,34 +162,34 @@ lang = dict:
             \{(\d+,\d+|\d+,|\d+)\}'
 
 
-    backref: dict:
-      patterns: list:
-        dict:
+    backref: rec:
+      patterns: seq:
+        rec:
           name: 'keyword.other.back-reference.regexp'
           match: rx'\\[1-9][0-9]*'
 
 
-    character_class: dict:
-      patterns: list:
-        dict:
+    character_class: rec:
+      patterns: seq:
+        rec:
           name: 'constant.character.escape.backslash.regexp'
           match: rx'\\[wWsSdD]'
 
-        dict:
+        rec:
           name: 'constant.character.escape.backslash.regexp'
           match: rx'\\(
               \[|\]|\{|\}|\(|\)|\?|-|\+|\*|\||\$|\^|\.|\||\\|\'|"
             )'
-          captures: dict:
+          captures: rec:
             '1': {name: 'constant.character.set.regexp'}
 
-        dict:
+        rec:
           name: 'constant.character.escape.backslash.regexp'
           match: rx'\\k(<\w+?>)'
-          captures: dict:
+          captures: rec:
             '1': {name: 'support.type.property-name'}
 
-        dict:
+        rec:
           match: rx'
             (\\
               (
@@ -202,6 +202,6 @@ lang = dict:
                 |(.)
               )
             )'
-          captures: dict:
+          captures: rec:
             '1': {name: 'constant.character.escape.backslash.regexp'}
             '3': {name: 'invalid'}

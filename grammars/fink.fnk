@@ -1,12 +1,12 @@
 {rx} = import './utils.fnk'
 
 
-lang = dict:
+lang = rec:
   name: 'fink'
   scopeName: 'source.fink'
   fileTypes: ['fnk']
 
-  patterns: list:
+  patterns: seq:
     {include: 'source.jsx.fink'}
 
     {include: '#comments'}
@@ -27,46 +27,46 @@ lang = dict:
 
     {include: '#variable'}
 
-    dict:
+    rec:
       match: rx','
       name: 'meta.delimiter.comma.fink'
 
-  repository: dict:
+  repository: rec:
 
-    comments: dict:
-      patterns: list:
-        dict:
+    comments: rec:
+      patterns: seq:
+        rec:
           name: 'comment.line.hash.fink'
           match: rx'#.*$'
 
-        dict:
+        rec:
           name: 'comment.block.documentation.fink'
           begin: rx'(---)'
           end: rx'(---)$'
 
-          beginCaptures: dict:
+          beginCaptures: rec:
             '1': {name: 'punctuation.definition.comment.begin.fink'}
 
-          endCaptures: dict:
+          endCaptures: rec:
             '0': {name: 'punctuation.definition.comment.end.fink'}
 
-          patterns: list:
+          patterns: seq:
             {include: '#comment_content'}
 
 
-    comment_content: dict:
-      patterns: list:
-        dict:
+    comment_content: rec:
+      patterns: seq:
+        rec:
           name: 'meta.embedded.block.fink'
           begin: '(```)'
           end: '(```)'
-          patterns: list:
+          patterns: seq:
             {include: '$base'}
 
 
-    block_like: dict:
-      patterns: list:
-        dict:
+    block_like: rec:
+      patterns: seq:
+        rec:
           begin: rx'
             \b(
               fn|pipe|
@@ -79,67 +79,67 @@ lang = dict:
 
           contentName: 'meta.function.parameters'
 
-          beginCaptures: dict:
+          beginCaptures: rec:
             '1': {name: 'keyword.control.block.$1.fink'}
 
-          patterns: list:
+          patterns: seq:
             {include: '$base'}
 
 
-    operators: dict:
-      patterns: list:
-        dict:
+    operators: rec:
+      patterns: seq:
+        rec:
           match: rx'(?<!\.)\s*+\b(import)\b'
-          captures: dict:
+          captures: rec:
             '1': {name: 'keyword.control.module.$1.fink'}
 
-        dict:
+        rec:
           match: rx'(?<!\.)\s*+\b(await|throw)\b'
-          captures: dict:
+          captures: rec:
             '1': {name: 'keyword.control.flow.$1.fink'}
 
-        dict:
+        rec:
           match: rx'(\b(not|and|or|in)\b)'
           name: 'keyword.operator.logical.fink'
 
-        dict:
+        rec:
           match: rx'=(?!(=))'
           name: 'keyword.operator.assignment.fink'
 
-        dict:
+        rec:
           match: rx'<=|>=|<|>'
           name: 'keyword.operator.relational.fink'
 
-        dict:
+        rec:
           match: rx'==|!='
           name: 'keyword.operator.comparison.fink'
 
-        dict:
+        rec:
           match: rx'-|\+|%|\*|/|\^'
           name: 'keyword.operator.arithmetic.fink'
 
-        dict:
+        rec:
           match: rx'\?' # TODO should this be surrounded by \b
           name: 'keyword.control.partial.fink'
 
-        dict:
+        rec:
           match: rx'\|'
           name: 'keyword.control.pipe.fink'
 
-        dict:
+        rec:
           match: rx'\b_\b'
           name: 'keyword.control.empty.fink'
 
-        dict:
+        rec:
           match: rx'(?<!\.)(\.)(\w+?)\b(?![:(])'
-          captures: dict:
+          captures: rec:
             '1': {name: 'punctuation.accessor.fink'}
             '2': {name: 'meta.object-literal.key.fink'}
 
 
-    number: dict:
-      patterns: list:
-        dict:
+    number: rec:
+      patterns: seq:
+        rec:
           match: rx'
             \s*+
             (
@@ -162,172 +162,172 @@ lang = dict:
             )
             (n\b)?'
 
-          captures: dict:
+          captures: rec:
             '1': {name: 'constant.numeric.fink'}
             '5': {name: 'constant.numeric.bigint.fink'}
 
 
-    variable: dict:
-      patterns: list:
-        dict:
+    variable: rec:
+      patterns: seq:
+        rec:
           match: rx'\b(\w+?)\b'
-          captures: dict:
+          captures: rec:
             '1': {name: 'variable.other.constant.fink'}
 
 
-    array: dict:
+    array: rec:
       name: 'meta.array-literal.fink'
       begin: rx'\['
       end: rx'\]'
-      patterns: list:
+      patterns: seq:
         {include: '$base'}
 
 
-    obj_delimited: dict:
+    obj_delimited: rec:
       name: 'meta.object-literal.fink'
       begin: rx'\{'
       end: rx'\}'
 
-      patterns: list:
-        dict:
+      patterns: seq:
+        rec:
           name: 'meta.object.prop.shorthand'
           match: rx'(\w+)\s*(?=,|\}|$)'
-          captures: dict:
+          captures: rec:
             '1': {name: 'variable.other.constant.fink'}
 
-        dict:
+        rec:
           name: 'meta.object.prop'
           begin: rx'(\w+)\s*:'
           end: rx'(?=,|\}|$)'
-          beginCaptures: dict:
+          beginCaptures: rec:
             '_1': {name: 'support.type.property-name'}
             '1': {name: 'meta.object-literal.key.fink'}
 
-          patterns: list:
+          patterns: seq:
             {include: '$base'}
 
-        dict:
+        rec:
           name: 'meta.object.prop.with-default'
           begin: rx'(\w+)\s*='
           end: rx'(?=,|\}|$)'
-          beginCaptures: dict:
+          beginCaptures: rec:
             '1': {name: 'variable.other.constant.fink'}
 
-          patterns: list:
+          patterns: seq:
             {include: '$base'}
 
-        dict:
+        rec:
           name: 'meta.object.member'
           begin: rx'(?=\()'
           end: rx'(?=,|\}|$)'
-          patterns: list:
-            dict:
+          patterns: seq:
+            rec:
               name: 'meta.object.member.computed-key.fink'
               begin: rx'\('
               end: rx'\)\s*(?=:)'
-              patterns: list:
+              patterns: seq:
                 {include: '$base'}
 
-            dict:
+            rec:
               begin: rx':'
               end: rx'(?=,|\}|$)'
-              patterns: list:
+              patterns: seq:
                 {include: '$base'}
 
-        dict:
+        rec:
           name: 'meta.object.member'
           begin: rx'(\.\.\.)'
           end: rx'(?=,|\}|$)'
-          beginCaptures: dict:
+          beginCaptures: rec:
             '1': {name: 'keyword.operator.spread.fink'}
 
-          patterns: list:
+          patterns: seq:
             {include: '$base'}
 
         {include: '$base'}
 
 
-    object: dict:
-      patterns: list:
+    object: rec:
+      patterns: seq:
         {include: '#obj_delimited'}
 
 
-    string: dict:
-      patterns: list:
-        dict:
+    string: rec:
+      patterns: seq:
+        rec:
           name: 'string.quoted.template.fink'
           begin: rx'(\w*)([\'"])'
           end: rx'(\2)'
-          beginCaptures: dict:
+          beginCaptures: rec:
             '_1': {name: 'entity.name.function.tagged-string.fink'}
             '1': {name: 'entity.name.tag.string.fink'}
             '2': {name: 'punctuation.definition.string.begin.fink'}
 
-          endCaptures: dict:
+          endCaptures: rec:
             '1': {name: 'punctuation.definition.string.end.fink'}
 
-          patterns: list:
+          patterns: seq:
             {include: '#string_content'}
 
 
-    string_content: dict:
-      patterns: list:
-          dict:
+    string_content: rec:
+      patterns: seq:
+          rec:
             name: 'constant.character.escape.quasi.element.fink'
             begin: rx'\${'
             end: rx'}'
 
-            beginCaptures: dict:
+            beginCaptures: rec:
               '0': {name: 'punctuation.definition.template-expression.begin.fink'}
-            endCaptures: dict:
+            endCaptures: rec:
               '0': {name: 'punctuation.definition.template-expression.end.fink'}
 
-            patterns: list:
+            patterns: seq:
               {include: '$base'}
 
-          dict:
+          rec:
             name: 'constant.character.escape'
             match: rx'\\[\\\'"nrtbfv0]'
 
-          dict:
+          rec:
             name: 'constant.character.escape'
             match: rx'\\\$\{'
 
-          dict:
+          rec:
             name: 'constant.character.escape'
             match: rx'\\u(({[0-9a-fA-F]+\})|[0-9a-fA-F]{4})'
 
-          dict:
+          rec:
             name: 'constant.character.escape'
             match: rx'\\x[0-9a-fA-F]{2}'
 
-          dict:
+          rec:
             name: 'invalid'
             match: rx'\\.'
 
 
-    regex: dict:
-      patterns: list:
-          dict:
+    regex: rec:
+      patterns: seq:
+          rec:
             name: 'string.regexp.fink'
             begin: rx'(rx)([\'"])'
             end: rx'(\2)'
 
-            beginCaptures: dict:
+            beginCaptures: rec:
               '1': {name: 'constant.regexp.fink'}
               '_1': {name: 'keyword.operator.wordlike.fink'}
               '2': {name: 'punctuation.definition.regexp.begin.fink'}
 
-            endCaptures: dict:
+            endCaptures: rec:
               '1': {name: 'punctuation.definition.regexp.end.fink'}
 
-            patterns: list:
+            patterns: seq:
               {include: 'source.regexp.fink'}
 
 
-    language_constant: dict:
-      patterns: list:
-        dict:
+    language_constant: rec:
+      patterns: seq:
+        rec:
           match: rx'(?<!\.)\s*+\b(true|false)\b'
-          captures: dict:
+          captures: rec:
             '1': {name: 'constant.language.boolean.$1.fink'}

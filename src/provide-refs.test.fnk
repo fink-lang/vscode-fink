@@ -6,12 +6,12 @@
 
 mock
   'vscode'
-  fn: dict:
+  fn: rec:
     Position: mock_fn fn ...pos: {pos}
     Range: mock_fn fn ...range: {range}
     Location: mock_fn fn ...location: {location}
 
-    languages: dict:
+    languages: rec:
       registerReferenceProvider: mock_fn ()
 
   {virtual: true}
@@ -27,11 +27,11 @@ async_parse = fn doc:
     doc.getText ()
     '${doc.uri}'
 
-ctx = dict:
-  subscriptions: dict:
+ctx = rec:
+  subscriptions: rec:
     push: mock_fn ()
 
-document = dict:
+document = rec:
   getText: fn: '
     foo = 123
     bar = foo.bar + 456
@@ -61,28 +61,28 @@ describe 'reference provider', fn:
 
     expect
       await provider.provideReferences document, pos
-      to_equal list:
-        dict: 'location': list:
+      to_equal seq:
+        rec: 'location': seq:
           {test: 'test-uri:test.fnk'}
           {range: [{pos: [0, 0]}, {pos: [0, 3]}]}
 
-        dict: 'location': list:
+        rec: 'location': seq:
           {test: 'test-uri:test.fnk'}
           {range: [{pos: [1, 6]}, {pos: [1, 9]}]}
 
-        dict: 'location': list:
+        rec: 'location': seq:
           {test: 'test-uri:test.fnk'}
           {range: [{pos: [6, 2]}, {pos: [6, 5]}]}
 
-        dict: 'location': list:
+        rec: 'location': seq:
           {test: 'test-uri:test.fnk'}
           {range: [{pos: [8, 13]}, {pos: [8, 16]}]}
 
-        dict: 'location': list:
+        rec: 'location': seq:
           {test: 'test-uri:test.fnk'}
           {range: [{pos: [10, 9]}, {pos: [10, 12]}]}
 
-        dict: 'location': list:
+        rec: 'location': seq:
           {test: 'test-uri:test.fnk'}
           {range: [{pos: [11, 3]}, {pos: [11, 6]}]}
 
@@ -95,12 +95,12 @@ describe 'reference provider', fn:
 
     expect
       await provider.provideReferences document, pos
-      to_equal list:
-        dict: 'location': list:
+      to_equal seq:
+        rec: 'location': seq:
           {test: 'test-uri:test.fnk'}
           {range: [{pos: [8, 0]}, {pos: [8, 3]}]}
 
-        dict: 'location': list:
+        rec: 'location': seq:
           {test: 'test-uri:test.fnk'}
           {range: [{pos: [10, 1]}, {pos: [10, 4]}]}
 
@@ -113,11 +113,11 @@ describe 'reference provider', fn:
 
     expect
       await provider.provideReferences document, pos
-      to_equal list:
-        dict: 'location': list:
+      to_equal seq:
+        rec: 'location': seq:
           {test: 'test-uri:test.fnk'}
           {range: [{pos: [2, 10]}, {pos: [2, 13]}]}
 
-        dict: 'location': list:
+        rec: 'location': seq:
           {test: 'test-uri:test.fnk'}
           {range: [{pos: [3, 6]}, {pos: [3, 9]}]}

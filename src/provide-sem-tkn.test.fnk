@@ -4,23 +4,23 @@
 {parse} = import '@fink/larix/parser.fnk'
 
 
-mock_builder = dict:
+mock_builder = rec:
   push: mock_fn ()
   build: mock_fn fn: 'mock-build'
 
 
 mock
   'vscode'
-  fn: dict:
+  fn: rec:
 
     SemanticTokensLegend: mock_fn fn ...args: {mock_legend: args}
     SemanticTokensBuilder: mock_fn fn: mock_builder
 
-    languages: dict:
+    languages: rec:
       registerDocumentSemanticTokensProvider: mock_fn ()
 
 
-    workspace: dict:
+    workspace: rec:
       _onDidChangeTextDocument: mock_fn () # TOOD: needed?
 
   {virtual: true}
@@ -41,15 +41,15 @@ async_parse = fn doc:
 describe 'sem token provider', fn:
 
   it 'provides tokens', fn:
-    ctx = dict:
-      subscriptions: dict:
+    ctx = rec:
+      subscriptions: rec:
         push: mock_fn ()
 
     add_sem_tokens_provider ctx, async_parse
     {mock: {calls: [[, provider]]}} = languages.registerDocumentSemanticTokensProvider
 
 
-    tokens = await provider.provideDocumentSemanticTokens dict:
+    tokens = await provider.provideDocumentSemanticTokens rec:
       getText: fn: "
         foo bar.spam shrub
         bar = 'spam \${ham egg} ni'
@@ -71,7 +71,7 @@ describe 'sem token provider', fn:
 
     expect
       mock_builder.push.mock.calls
-      to_equal list:
+      to_equal seq:
         [0, 0, 3, 0]
         [0, 8, 4, 0]
         [1, 14, 3, 0]
@@ -85,15 +85,15 @@ describe 'sem token provider', fn:
 
 
   it 'handles errors', fn:
-    ctx = dict:
-      subscriptions: dict:
+    ctx = rec:
+      subscriptions: rec:
         push: mock_fn ()
 
     add_sem_tokens_provider ctx, async_parse
     {mock: {calls: [[, provider]]}} = languages.registerDocumentSemanticTokensProvider
 
 
-    tokens = await provider.provideDocumentSemanticTokens dict:
+    tokens = await provider.provideDocumentSemanticTokens rec:
       uri: {toString: fn: './test.fnk'}
       getText: fn: '
           foo bar
@@ -105,7 +105,7 @@ describe 'sem token provider', fn:
 
     expect
       mock_builder.push.mock.calls
-      to_equal list:
+      to_equal seq:
         [0, 0, 3, 0]
 
     expect

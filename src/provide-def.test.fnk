@@ -7,19 +7,19 @@
 
 mock
   'vscode'
-  fn: dict:
-    Uri: dict:
+  fn: rec:
+    Uri: rec:
       joinPath: fn ...join_path: {join_path}
 
     Position: mock_fn fn ...pos: {pos}
     Range: mock_fn fn ...range: {range}
     Location: mock_fn fn ...location: {location}
 
-    languages: dict:
+    languages: rec:
       registerDefinitionProvider: mock_fn ()
 
-    workspace: dict:
-      fs: dict:
+    workspace: rec:
+      fs: rec:
         stat: fn uri:
           match uri:
             {join_path: [..., '@fink/std-lib/str.fnk']}: {type: 0}
@@ -44,13 +44,13 @@ async_parse = fn doc:
 
 
 
-ctx = dict:
-  subscriptions: dict:
+ctx = rec:
+  subscriptions: rec:
     push: mock_fn ()
 
 
 
-document = dict:
+document = rec:
   getText: fn: "
     {is_str} = import '@fink/std-lib/str.fnk'
     {Spam, shrub} = import './foobar.fnk'
@@ -78,8 +78,8 @@ describe 'definition provider', fn:
 
     expect
       await provider.provideDefinition document, pos
-      to_equal list:
-        dict: location: list:
+      to_equal seq:
+        rec: location: seq:
           {test: 'test-uri:test.fnk'}
           {range: [{pos: [3, 0]}, {pos: [3, 3]}]}
 
@@ -92,8 +92,8 @@ describe 'definition provider', fn:
 
     expect
       await provider.provideDefinition document, pos
-      to_equal list:
-        dict: location: list:
+      to_equal seq:
+        rec: location: seq:
           {join_path: [{test: 'test-uri:test.fnk'}, '..', './foobar.fnk']}
           {range: [{pos: [0, 0]}, {pos: [0, 4]}]}
 
@@ -106,8 +106,8 @@ describe 'definition provider', fn:
 
     expect
       await provider.provideDefinition document, pos
-      to_equal list:
-        dict: location: list:
+      to_equal seq:
+        rec: location: seq:
           {test: 'test-uri:test.fnk'}
           {range: [{pos: [5, 0]}, {pos: [5, 3]}]}
 
@@ -131,8 +131,8 @@ describe 'definition provider', fn:
 
     expect
       await provider.provideDefinition document, pos
-      to_equal list:
-        dict: location: list:
+      to_equal seq:
+        rec: location: seq:
           {join_path: [{test: 'test-uri:test.fnk'}, '..', './foobar.fnk']}
           {range: [{pos: [1, 0]}, {pos: [1, 5]}]}
 
@@ -145,11 +145,11 @@ describe 'definition provider', fn:
 
     expect
       await provider.provideDefinition document, pos
-      to_equal list:
-        dict:
-          location: list:
-            dict:
-              join_path: list:
+      to_equal seq:
+        rec:
+          location: seq:
+            rec:
+              join_path: seq:
                 {test: 'test-uri:test.fnk'}
                 '..'
                 './foobar.fnk'
