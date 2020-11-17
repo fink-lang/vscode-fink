@@ -1,57 +1,54 @@
 {workspace, languages, Diagnostic, DiagnosticSeverity} = import 'vscode'
-{length, is_empty} = import '@fink/std-lib/iter.fnk'
+{is_empty, chain} = import '@fink/std-lib/iter.fnk'
 {lower_case, decode} = import '@fink/std-lib/str.fnk'
 {new} = import '@fink/js-interop/reflect.fnk'
 
 {range} = import './loc.fnk'
-{get_refs, get_decls, decls_by_scope, get_idents, ref_loc} = import './traverse.fnk'
+{ref_loc} = import './common.fnk'
+
+{walk} = import '@fink/larix/ast/traverse.fnk'
+{add_duplicate_bindings, get_refs, add_parents, add_binding_refs} = import '@fink/larix/ast/analyze.fnk'
+{is_exported} = import './common.fnk'
 
 
 
-get_unrefferenced = fn refs:
-  pipe refs:
-    filter {decl}:
-      match decl:
-        {parent: {parent: {expr: {type: 'module'}}}}: false
-        else: true
+as_issues = fn exprs:
+  [ ,ctx] = exprs | fold exp, , , ctx={bindings:[], refs:{}}:
+    [exp, , ctx]
 
-    filter {idents}:
-      match idents:
-        1 == length ?: true
-        else:
-          false
+  {refs: {unbound}, bindings, rebindings} = ctx
+
+  [] | chain
+    pipe unbound:
+      filter expr:
+        match expr:
+          {type: 'jsx:elem', name: lower_case expr.name}: false
+          else: true
+
+      map expr:
+        ['missing-binding', expr]
+
+    rebindings | map expr:
+      ['duplicate-binding', expr]
+
+    pipe bindings:
+      filter expr:
+        refs = get_refs expr, ctx
+        match refs:
+          is_empty ?: not is_exported expr, ctx
+          else: false
+      map expr:
+        ['unused-binding', expr]
 
 
 
-get_undefined = fn scopes, idents:
-  pipe idents:
-    filter {expr}:
-       match expr:
-         {type: 'jsx:elem', name: lower_case expr.name}: false
-         else: true
-
-    filter node:
-      decls = get_decls node, scopes
-      match decls:
-        is_empty ?: true
-        else: false
-
-
-
-get_errors = fn ast:
-  idents = get_idents ast
-  scopes = decls_by_scope idents
-  refs = get_refs idents, scopes
-
-  unrefed = pipe refs:
-    get_unrefferenced
-    map {decl}: ['unused', decl]
-
-  undef = pipe idents:
-    get_undefined scopes, ?
-    map node: ['undefined', node]
-
-  [...unrefed, ...undef]
+lint_ast = fn ast:
+  pipe ast:
+    walk [?]
+    add_parents
+    add_binding_refs
+    add_duplicate_bindings
+    as_issues
 
 
 
@@ -63,10 +60,9 @@ diagnostic = fn loc, msg, severity:
 
 process_doc = fn doc, dc, parse:
   {errors, ...ast} = await parse doc
-
   diags = seq:
-    ...pipe get_errors ast:
-      map [kind, {expr}]:
+    ...pipe lint_ast ast:
+      map [kind, expr]:
         loc = ref_loc expr
         diagnostic loc, kind, DiagnosticSeverity.Error
 

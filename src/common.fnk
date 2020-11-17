@@ -1,0 +1,46 @@
+{length} = import '@fink/std-lib/iter.fnk'
+
+{get_parent} = import '@fink/larix/ast/analyze.fnk'
+
+
+
+get_import = fn expr, ctx:
+  parent = get_parent expr, ctx
+
+  match parent:
+    false: false
+    {op: '=', right: {op: 'import'}}: parent.right
+    else: get_import parent, ctx
+
+
+
+is_imported = fn expr, ctx:
+  false != get_import expr, ctx
+
+
+
+is_exported = fn expr, ctx:
+  parent = get_parent expr, ctx
+
+  match parent:
+    {op: '=', left: expr}:
+      mod = get_parent parent, ctx
+      match mod:
+        {type: 'module'}: true
+        else: false
+    else:
+      false
+
+
+
+# TODO: move to ./loc.fnk
+ref_loc = fn expr:
+  match expr:
+    {type: 'jsx:elem'}:
+      {name, loc: {start}} = expr
+      column = start.column + 1
+      rec:
+        start: {...start, column}
+        end: {...start, column: column + length name}
+    else:
+      expr.loc

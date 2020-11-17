@@ -54,6 +54,9 @@ describe 'linter provider', fn:
       getText: fn: '
         foo bar
         spam = <div></div>
+        spam = fn ni:
+          nu = ni
+          ni
         '
       uri: {test: 'test-uri:test.fnk'}
       languageId: 'fink'
@@ -66,11 +69,22 @@ describe 'linter provider', fn:
         seq:
           rec: 'diagnostic': seq:
             {range: [{pos: [0, 0]}, {pos: [0, 3]}]}
-            'undefined'
+            'missing-binding'
             'test-diag-error'
+
           rec: 'diagnostic': seq:
             {range: [{pos: [0, 4]}, {pos: [0, 7]}]}
-            'undefined'
+            'missing-binding'
+            'test-diag-error'
+
+          rec: 'diagnostic': seq:
+            {range: [{pos: [2, 0]}, {pos: [2, 4]}]}
+            'duplicate-binding'
+            'test-diag-error'
+
+          rec: 'diagnostic': seq:
+            {range: [{pos: [3, 2]}, {pos: [3, 4]}]}
+            'unused-binding'
             'test-diag-error'
 
 
@@ -102,11 +116,11 @@ describe 'linter provider', fn:
         seq:
           rec: 'diagnostic': seq:
             {range: [{pos: [0, 0]}, {pos: [0, 3]}]}
-            'undefined'
+            'missing-binding'
             'test-diag-error'
           rec: 'diagnostic': seq:
             {range: [{pos: [0, 4]}, {pos: [0, 7]}]}
-            'undefined'
+            'missing-binding'
             'test-diag-error'
 
 
@@ -129,7 +143,7 @@ describe 'linter provider', fn:
         seq:
           rec: 'diagnostic': seq:
             {range: [{pos: [0, 9]}, {pos: [0, 12]}]}
-            'unused'
+            'unused-binding'
             'test-diag-error'
 
           rec: 'diagnostic': seq:

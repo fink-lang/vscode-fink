@@ -46,9 +46,11 @@ document = rec:
     <Foo ni={foo}>
       {foo}
     </Foo>
+    undef
     '
   uri: {test: 'test-uri:test.fnk'}
   languageId: 'fink'
+
 
 
 describe 'reference provider', fn:
@@ -121,3 +123,15 @@ describe 'reference provider', fn:
         rec: 'location': seq:
           {test: 'test-uri:test.fnk'}
           {range: [{pos: [3, 6]}, {pos: [3, 9]}]}
+
+
+  it 'provides no refs for unbound idents', fn:
+    add_refs_provider ctx, async_parse
+    {mock: {calls: [[, provider]]}} = languages.registerReferenceProvider
+
+    pos = {line: 13, character: 1}
+
+    expect
+      await provider.provideReferences document, pos
+      to_equal []
+
