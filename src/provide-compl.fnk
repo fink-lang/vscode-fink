@@ -2,8 +2,12 @@
 
 {new, set_props} = import '@fink/js-interop/reflect.fnk'
 
-{get_idents} = import './traverse.fnk'
+{walk} = import '@fink/larix/ast/traverse.fnk'
+{is_binding_ident, add_parents, add_binding_refs} = import '@fink/larix/ast/analyze.fnk'
 {to_larix_pos} = import './loc.fnk'
+
+{is_imported} = import './common.fnk'
+
 
 
 doc_md = fn header, code:
@@ -144,31 +148,39 @@ comp_item = fn key:
   item
 
 
+builtins = ['fn', 'fold', 'unfold', 'map', 'filter', 'while', 'until']
+
+
 completions_from_loc = fn ast, pos:
-  idents = get_idents ast
+  [compls] = pipe ast:
+    walk [?]
+    add_parents
+    add_binding_refs
+    filter [expr]: expr.loc.start.line <= pos.line
+    filter [expr], , ctx:
+      keep = is_binding_ident expr, ctx
+      [keep, , ctx]
 
-  pipe idents:
-    filter {decl}: decl
-    filter {expr}: expr.loc.start.line <= pos.line
-    filter {scope}:
-      match scope.expr.loc:
-        {start: {line: ? < pos.line}, end: {line: ? >= pos.line}}: true
-        else: false
-
-    map {expr, parent}:
+    map [expr, parent], , ctx:
       kind = match parent:
-        {parent: {parent: {expr: {type: 'assign', right: {op: 'import'}}}}}:
+        is_imported ?, ctx:
           CompletionItemKind.Reference
-        {expr: {type: 'assign', right: {op: ? in ['fn', 'fold', 'unfold', 'map', 'filter', 'while']}}}:
+        {type: 'assign', right: {op: ? in builtins}}:
           CompletionItemKind.Function
-        {expr: {type: 'assign', right: {type: 'string'}}}:
+        {type: 'assign', right: {type: 'string'}}:
           CompletionItemKind.Text
-        {expr: {type: 'assign', right: {type: 'rec'}}}:
+        {type: 'assign', right: {type: 'rec'}}:
           CompletionItemKind.Struct
         else:
           CompletionItemKind.Constant
 
-      new CompletionItem, expr.value, kind
+      compl = new CompletionItem, expr.value, kind
+      [compl, , ctx]
+
+    fold compl, out=[], , ctx={}:
+      [[...out, compl], , ctx]
+  compls
+
 
 
 completion_provider = fn async_parse: fn doc, pos:

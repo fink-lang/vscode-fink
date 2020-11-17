@@ -34,6 +34,12 @@ Array [
   },
   Object {
     "completion": Array [
+      "ni",
+      "test-const",
+    ],
+  },
+  Object {
+    "completion": Array [
       "match",
       "test-func",
     ],

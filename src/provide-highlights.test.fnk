@@ -49,7 +49,6 @@ document = rec:
   uri: {test: 'test-uri:test.fnk'}
   languageId: 'fink'
 
-
 describe 'highlights provider', fn:
 
   it 'provides highlight locations of ident', fn:
@@ -108,17 +107,6 @@ describe 'highlights provider', fn:
         rec: 'highlight': seq:
           {range: [{pos: [6, 7]}, {pos: [6, 10]}]}
           'test-read'
-
-
-  it 'provides highlight locations of jsx attr', fn:
-    add_highlights_provider ctx, async_parse
-    {mock: {calls: [[, provider]]}} = languages.registerDocumentHighlightProvider
-
-    pos = {line: 6, character: 12}
-
-    expect
-      await provider.provideDocumentHighlights document, pos
-      to_equal []
 
 
   it 'provides highlight location for str', fn:

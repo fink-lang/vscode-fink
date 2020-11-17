@@ -2,7 +2,9 @@
 {length} = import '@fink/std-lib/iter.fnk'
 {new} = import '@fink/js-interop/reflect.fnk'
 
-{walk} = import './traverse.fnk'
+{walk} = import '@fink/larix/ast/traverse.fnk'
+{add_parents} = import '@fink/larix/ast/analyze.fnk'
+
 
 
 token_types = ['function', 'string', 'variable']
@@ -47,17 +49,21 @@ add_prop_tokens = fn prop, builder:
       builder.push start.line - 1, start.column, key_len, 2, 0
 
 
+
 get_tokens = fn {errors, ...ast}:
   builder = new SemanticTokensBuilder, sem_token_legend
 
-  pipe walk ast:
-    fold {expr}:
+  pipe ast:
+    walk [?]
+    add_parents
+    fold [expr], , , ctx={}:
       match expr:
         {type: 'call'}: add_call_tokens expr, builder
         {type: 'rec:kv'}: add_prop_tokens expr, builder
+      [builder, , ctx]
 
   seq:
-    builder.build ()
+    builder.build _
     errors
 
 
