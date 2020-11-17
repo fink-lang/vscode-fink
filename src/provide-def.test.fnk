@@ -179,7 +179,10 @@ describe 'definition provider', fn:
 
     expect
       await provider.provideDefinition document, pos
-      to_equal []
+      to_equal seq:
+        rec: location: seq:
+          {test: 'test-uri:test.fnk'}
+          {range: [{pos: [0, 1]}, {pos: [0, 7]}]}
 
 
 

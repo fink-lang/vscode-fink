@@ -61,9 +61,12 @@ imported_decl = fn async_parse, doc, expr, ctx:
   {left: {value: exported_name}} = get_parent expr, ctx
 
   uri = await resolve doc, imp_spec
-  ast = await async_parse fake_doc uri
+  --- istanbul ignore next ---
+  [, exprs=[]] = try:
+    {exprs} = await async_parse fake_doc uri
+    exprs
 
-  [loc] = pipe ast.exprs:
+  [loc=false] = pipe exprs:
     filter expr:
       match expr:
         {left: {type: 'ident', value: exported_name}, op: '='}:
@@ -72,7 +75,10 @@ imported_decl = fn async_parse, doc, expr, ctx:
           false
     map {left}:
       doc_range {uri}, ref_loc left
-  loc
+
+  match loc:
+    false: doc_range doc, ref_loc expr
+    else: loc
 
 
 
@@ -125,9 +131,7 @@ as_doc_locs = fn doc, async_parse:
       else:
         doc_range doc, ref_loc expr
 
-    ... match loc:
-      {}: [[loc], , ctx]
-      else: [[], , ctx]
+    [loc, , ctx]
 
 
 
