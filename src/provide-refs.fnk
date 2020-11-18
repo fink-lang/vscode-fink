@@ -22,6 +22,7 @@ is_at_loc = fn expr, loc:
       false
 
 
+
 keep_refs_at = fn pos:
   filter [expr]:
     match expr:
@@ -31,11 +32,13 @@ keep_refs_at = fn pos:
       else: false
 
 
+
 as_bindings = map [expr], , ctx:
   binding = find_binding expr, ctx
   ...match binding:
     false: [[], , ctx]
     else: [[binding], , ctx]
+
 
 
 as_refs = fn items:
