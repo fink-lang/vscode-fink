@@ -5,7 +5,7 @@
 
 
 mock_builder = rec:
-  push: mock_fn ()
+  push: mock_fn _
   build: mock_fn fn: 'mock-build'
 
 
@@ -17,11 +17,11 @@ mock
     SemanticTokensBuilder: mock_fn fn: mock_builder
 
     languages: rec:
-      registerDocumentSemanticTokensProvider: mock_fn ()
+      registerDocumentSemanticTokensProvider: mock_fn _
 
 
     workspace: rec:
-      _onDidChangeTextDocument: mock_fn () # TOOD: needed?
+      _onDidChangeTextDocument: mock_fn _ # TOOD: needed?
 
   {virtual: true}
 
@@ -34,7 +34,7 @@ mock
 
 async_parse = fn doc:
   await parse
-    doc.getText ()
+    doc.getText _
     '${doc.uri}'
 
 
@@ -43,7 +43,7 @@ describe 'sem token provider', fn:
   it 'provides tokens', fn:
     ctx = rec:
       subscriptions: rec:
-        push: mock_fn ()
+        push: mock_fn _
 
     add_sem_tokens_provider ctx, async_parse
     {mock: {calls: [[, provider]]}} = languages.registerDocumentSemanticTokensProvider
@@ -71,7 +71,7 @@ describe 'sem token provider', fn:
 
     expect
       mock_builder.push.mock.calls
-      to_equal seq:
+      to_equal list:
         [0, 0, 3, 0]
         [0, 8, 4, 0]
         [1, 14, 3, 0]
@@ -87,7 +87,7 @@ describe 'sem token provider', fn:
   it 'handles errors', fn:
     ctx = rec:
       subscriptions: rec:
-        push: mock_fn ()
+        push: mock_fn _
 
     add_sem_tokens_provider ctx, async_parse
     {mock: {calls: [[, provider]]}} = languages.registerDocumentSemanticTokensProvider
@@ -105,7 +105,7 @@ describe 'sem token provider', fn:
 
     expect
       mock_builder.push.mock.calls
-      to_equal seq:
+      to_equal list:
         [0, 0, 3, 0]
 
     expect

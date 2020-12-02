@@ -10,7 +10,7 @@ wordPattern = rx'
 
 jsx_conf = rec:
   wordPattern,
-  onEnterRules: seq:
+  onEnterRules: list:
     rec:
       beforeText: rx'^.*[^/]>$'
       afterText: rx'^$'
@@ -27,7 +27,7 @@ jsx_conf = rec:
 
 fink_conf = rec:
   wordPattern,
-  onEnterRules: seq:
+  onEnterRules: list:
     # match doc comment
     rec:
       beforeText: rx'^\s*---\s*$'

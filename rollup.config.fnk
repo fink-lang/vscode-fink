@@ -11,7 +11,7 @@ builtins = import 'builtin-modules'
 default = rec:
   input: './src/extension.fnk'
 
-  output: seq:
+  output: list:
     rec:
       dir: './build/pkg'
       format: 'cjs'
@@ -23,7 +23,7 @@ default = rec:
           else: null
       # preserveModules: true
 
-  plugins: seq:
+  plugins: list:
     resolve rec:
       preferBuiltins: false
     commonjs _
@@ -32,8 +32,8 @@ default = rec:
       include: './src/**/*.fnk'
       babel: rec:
         sourceMaps: 'both'
-        presets: seq:
-          seq:
+        presets: list:
+          list:
             '@babel/preset-env'
             rec:
               modules: false

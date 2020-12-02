@@ -3,16 +3,16 @@
 {decode} = import '@fink/std-lib/str.fnk'
 {new, set_props} = import '@fink/js-interop/reflect.fnk'
 
-{to_larix_pos, doc_range, range} = import './loc.fnk'
-
 {walk} = import '@fink/larix/ast/traverse.fnk'
 {get_parent, find_binding, add_parents, add_binding_refs} = import '@fink/larix/ast/analyze.fnk'
-{ref_loc, is_imported, get_import} = import './common.fnk'
+
+{to_larix_pos, doc_range, range, is_at_loc} = import './loc.fnk'
+{is_imported, get_import} = import './common.fnk'
 
 
 
 resolve = fn doc, path:
-  uris = seq:
+  uris = list:
     Uri.joinPath doc.uri, '..', '${path}'
     Uri.joinPath doc.uri, '..', '${path}.fnk'
     Uri.joinPath doc.uri, '..', '${path}/index.fnk'
@@ -74,32 +74,18 @@ imported_decl = fn async_parse, doc, expr, ctx:
         else:
           false
     map {left}:
-      doc_range {uri}, ref_loc left
+      doc_range {uri}, left.loc
 
   match loc:
-    false: doc_range doc, ref_loc expr
+    false: doc_range doc, expr.loc
     else: loc
 
-
-
-is_at_loc = fn expr, loc:
-  {line, column} = loc
-  match ref_loc expr:
-    {
-      start: {line: ? <= line, column: ? <= column},
-      end: {line: ? >= line, column: ? >= column}
-    }:
-      true
-    else:
-      false
 
 
 keep_refs_at = fn pos:
   filter [expr]:
     match expr:
       {type: 'ident'}: is_at_loc expr, pos
-      {type: 'jsx:elem'}: is_at_loc expr, pos
-      {type: 'jsx:attr'}: is_at_loc expr, pos
       {op: 'import'}: is_at_loc expr, pos
       else: false
 
@@ -129,7 +115,7 @@ as_doc_locs = fn doc, async_parse:
         await imported_decl async_parse, doc, expr, ctx
 
       else:
-        doc_range doc, ref_loc expr
+        doc_range doc, expr.loc
 
     [loc, , ctx]
 

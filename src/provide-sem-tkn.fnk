@@ -12,6 +12,7 @@ token_modifiers = []
 sem_token_legend = new SemanticTokensLegend, token_types, token_modifiers
 
 
+
 get_callee = fn node:
   match node:
     {type: 'ident'}:
@@ -62,7 +63,7 @@ get_tokens = fn {errors, ...ast}:
         {type: 'rec:kv'}: add_prop_tokens expr, builder
       [builder, , ctx]
 
-  seq:
+  list:
     builder.build _
     errors
 

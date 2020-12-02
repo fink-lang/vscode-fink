@@ -4,10 +4,9 @@
 {new} = import '@fink/js-interop/reflect.fnk'
 
 {range} = import './loc.fnk'
-{ref_loc} = import './common.fnk'
 
 {walk} = import '@fink/larix/ast/traverse.fnk'
-{add_duplicate_bindings, get_refs, add_parents, add_binding_refs} = import '@fink/larix/ast/analyze.fnk'
+{get_parent, add_duplicate_bindings, get_refs, add_parents, add_binding_refs} = import '@fink/larix/ast/analyze.fnk'
 {is_exported} = import './common.fnk'
 
 
@@ -21,8 +20,8 @@ as_issues = fn exprs:
   [] | chain
     pipe unbound:
       filter expr:
-        match expr:
-          {type: 'jsx:elem', name: lower_case expr.name}: false
+        match get_parent expr, ctx:
+          {type: 'jsx:elem'}: expr.value != lower_case expr.value
           else: true
 
       map expr:
@@ -60,10 +59,10 @@ diagnostic = fn loc, msg, severity:
 
 process_doc = fn doc, dc, parse:
   {errors, ...ast} = await parse doc
-  diags = seq:
+  diags = list:
     ...pipe lint_ast ast:
       map [kind, expr]:
-        loc = ref_loc expr
+        {loc} = expr
         diagnostic loc, kind, DiagnosticSeverity.Error
 
     ...pipe errors:

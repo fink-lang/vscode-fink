@@ -6,25 +6,25 @@ mock
   'vscode'
   fn: rec:
     IndentAction: {IndentOutdent: 'test-indent-outdent'}
-    SemanticTokensLegend: mock_fn ()
-    SnippetString: mock_fn ()
+    SemanticTokensLegend: mock_fn _
+    SnippetString: mock_fn _
     MarkdownString: mock_fn fn: rec:
-      appendCodeblock: mock_fn ()
+      appendCodeblock: mock_fn _
 
     languages: rec:
-      setLanguageConfiguration: mock_fn ()
-      registerDocumentSemanticTokensProvider: mock_fn ()
-      registerDocumentHighlightProvider: mock_fn ()
-      registerCompletionItemProvider: mock_fn ()
-      registerReferenceProvider: mock_fn ()
-      registerDefinitionProvider: mock_fn ()
-      createDiagnosticCollection: mock_fn ()
+      setLanguageConfiguration: mock_fn _
+      registerDocumentSemanticTokensProvider: mock_fn _
+      registerDocumentHighlightProvider: mock_fn _
+      registerCompletionItemProvider: mock_fn _
+      registerReferenceProvider: mock_fn _
+      registerDefinitionProvider: mock_fn _
+      createDiagnosticCollection: mock_fn _
 
     workspace: rec:
       findFiles: mock_fn fn: []
-      onDidChangeTextDocument: mock_fn ()
-      onDidOpenTextDocument: mock_fn ()
-      onDidCloseTextDocument: mock_fn ()
+      onDidChangeTextDocument: mock_fn _
+      onDidOpenTextDocument: mock_fn _
+      onDidCloseTextDocument: mock_fn _
 
   {virtual: true}
 
@@ -34,12 +34,13 @@ mock
 {activate} = import './extension.fnk'
 {Object} = import '@fink/js-interop/globals.fnk'
 
+
 describe 'extension', fn:
 
   it 'activates', fn:
     ctx = rec:
       subscriptions: rec:
-        push: mock_fn ()
+        push: mock_fn _
 
     activate ctx
 

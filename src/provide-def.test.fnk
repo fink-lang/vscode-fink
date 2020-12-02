@@ -16,7 +16,7 @@ mock
     Location: mock_fn fn ...location: {location}
 
     languages: rec:
-      registerDefinitionProvider: mock_fn ()
+      registerDefinitionProvider: mock_fn _
 
     workspace: rec:
       fs: rec:
@@ -46,7 +46,7 @@ async_parse = fn doc:
 
 ctx = rec:
   subscriptions: rec:
-    push: mock_fn ()
+    push: mock_fn _
 
 
 
@@ -78,8 +78,8 @@ describe 'definition provider', fn:
 
     expect
       await provider.provideDefinition document, pos
-      to_equal seq:
-        rec: location: seq:
+      to_equal list:
+        rec: location: list:
           {test: 'test-uri:test.fnk'}
           {range: [{pos: [3, 0]}, {pos: [3, 3]}]}
 
@@ -92,8 +92,8 @@ describe 'definition provider', fn:
 
     expect
       await provider.provideDefinition document, pos
-      to_equal seq:
-        rec: location: seq:
+      to_equal list:
+        rec: location: list:
           {join_path: [{test: 'test-uri:test.fnk'}, '..', './foobar.fnk']}
           {range: [{pos: [0, 0]}, {pos: [0, 4]}]}
 
@@ -106,8 +106,8 @@ describe 'definition provider', fn:
 
     expect
       await provider.provideDefinition document, pos
-      to_equal seq:
-        rec: location: seq:
+      to_equal list:
+        rec: location: list:
           {test: 'test-uri:test.fnk'}
           {range: [{pos: [5, 0]}, {pos: [5, 3]}]}
 
@@ -131,8 +131,8 @@ describe 'definition provider', fn:
 
     expect
       await provider.provideDefinition document, pos
-      to_equal seq:
-        rec: location: seq:
+      to_equal list:
+        rec: location: list:
           {join_path: [{test: 'test-uri:test.fnk'}, '..', './foobar.fnk']}
           {range: [{pos: [1, 0]}, {pos: [1, 5]}]}
 
@@ -145,11 +145,11 @@ describe 'definition provider', fn:
 
     expect
       await provider.provideDefinition document, pos
-      to_equal seq:
+      to_equal list:
         rec:
-          location: seq:
+          location: list:
             rec:
-              join_path: seq:
+              join_path: list:
                 {test: 'test-uri:test.fnk'}
                 '..'
                 './foobar.fnk'
@@ -160,7 +160,7 @@ describe 'definition provider', fn:
 
 
 
- it 'provides no definition', fn:
+  it 'provides no definition', fn:
     add_definition_provider ctx, async_parse
     {mock: {calls: [[, provider]]}} = languages.registerDefinitionProvider
 
@@ -179,8 +179,8 @@ describe 'definition provider', fn:
 
     expect
       await provider.provideDefinition document, pos
-      to_equal seq:
-        rec: location: seq:
+      to_equal list:
+        rec: location: list:
           {test: 'test-uri:test.fnk'}
           {range: [{pos: [0, 1]}, {pos: [0, 7]}]}
 

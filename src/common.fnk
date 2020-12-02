@@ -1,5 +1,3 @@
-{length} = import '@fink/std-lib/iter.fnk'
-
 {get_parent} = import '@fink/larix/ast/analyze.fnk'
 
 
@@ -30,17 +28,3 @@ is_exported = fn expr, ctx:
         else: false
     else:
       false
-
-
-
-# TODO: move to ./loc.fnk
-ref_loc = fn expr:
-  match expr:
-    {type: 'jsx:elem'}:
-      {name, loc: {start}} = expr
-      column = start.column + 1
-      rec:
-        start: {...start, column}
-        end: {...start, column: column + length name}
-    else:
-      expr.loc
