@@ -187,7 +187,7 @@ completion_provider = fn async_parse: fn doc, pos:
   ast = await async_parse doc
   completions = completions_from_loc ast, to_larix_pos pos
 
-  seq:
+  list:
     ...completions
     comp_item 'match'
     comp_item 'fold'

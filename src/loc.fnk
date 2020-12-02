@@ -20,3 +20,16 @@ range = fn {start, end}:
 
 doc_range = fn doc, loc:
   new Location, doc.uri, range loc
+
+
+
+is_at_loc = fn expr, loc:
+  {line, column} = loc
+  match expr.loc:
+    {
+      start: {line: ? <= line, column: ? <= column},
+      end: {line: ? >= line, column: ? >= column}
+    }:
+      true
+    else:
+      false

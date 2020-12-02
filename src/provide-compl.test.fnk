@@ -20,7 +20,7 @@ mock
         markdown.push args
 
     languages: rec:
-      registerCompletionItemProvider: mock_fn ()
+      registerCompletionItemProvider: mock_fn _
 
   {virtual: true}
 
@@ -33,13 +33,13 @@ mock
 
 async_parse = fn doc:
   await parse
-    doc.getText ()
+    doc.getText _
     '${doc.uri}'
 
 
 ctx = rec:
   subscriptions: rec:
-    push: mock_fn ()
+    push: mock_fn _
 
 
 document = rec:

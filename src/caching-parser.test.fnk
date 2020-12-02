@@ -13,7 +13,7 @@ mock
   'vscode'
   fn: rec:
     workspace: rec:
-      onDidCloseTextDocument: mock_fn ()
+      onDidCloseTextDocument: mock_fn _
   {virtual: true}
 
 
@@ -31,7 +31,7 @@ describe 'caching parser', fn:
       uri: {toString: fn: 'test-uri:test.fnk'}
       version: 0
 
-    async_parse = caching_parser ()
+    async_parse = caching_parser _
 
     result1 = async_parse doc
     result2 = async_parse doc
@@ -56,7 +56,7 @@ describe 'caching parser', fn:
 
     doc2 = {...doc1, version: 2}
 
-    async_parse = caching_parser ()
+    async_parse = caching_parser _
 
     result1 = async_parse doc1
     result2 = async_parse doc2
@@ -84,7 +84,7 @@ describe 'caching parser', fn:
       uri: {toString: fn: 'test-uri:test.fnk'}
       version: 0
 
-    async_parse = caching_parser ()
+    async_parse = caching_parser _
     {mock: {calls: [[close_handler]]}} = workspace.onDidCloseTextDocument
 
     result1 = async_parse doc

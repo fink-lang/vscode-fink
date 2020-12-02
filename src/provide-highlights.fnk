@@ -1,34 +1,20 @@
 {languages, DocumentHighlight, DocumentHighlightKind} = import 'vscode'
 {new} = import '@fink/js-interop/reflect.fnk'
 
-{to_larix_pos, range} = import './loc.fnk'
+{to_larix_pos, range, is_at_loc} = import './loc.fnk'
 
 {walk} = import '@fink/larix/ast/traverse.fnk'
 {find_binding, add_parents, add_binding_refs, get_expr_id, is_binding_ident} = import '@fink/larix/ast/analyze.fnk'
-{ref_loc} = import './common.fnk'
 
-
-
-is_at_loc = fn expr, loc:
-  {line, column} = loc
-  match ref_loc expr:
-    {
-      start: {line: ? <= line, column: ? <= column},
-      end: {line: ? >= line, column: ? >= column}
-    }:
-      true
-    else:
-      false
 
 
 keep_refs_at = fn pos:
   filter [expr]:
     match expr:
       {type: 'ident'}: is_at_loc expr, pos
-      {type: 'jsx:elem'}: is_at_loc expr, pos
-      {type: 'jsx:attr'}: is_at_loc expr, pos
       {type: 'string'}: is_at_loc expr, pos
       else: false
+
 
 
 as_bindings = map [expr], , ctx:
@@ -48,7 +34,6 @@ as_highlights = fn items:
     map binding:
       ... match binding:
         {type: 'string'}:
-
           [binding]
         else:
           {refs: {(get_expr_id binding): refs}} = ctx
@@ -62,7 +47,7 @@ as_highlights = fn items:
 
       new
         DocumentHighlight
-        range ref_loc expr
+        range expr.loc
         kind
 
 
