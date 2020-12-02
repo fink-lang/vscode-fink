@@ -6,22 +6,22 @@ lang = rec:
   'scopeName': 'source.jsx.fink'
   'fileTypes': []
 
-  patterns: seq:
+  patterns: list:
     {include: '#jsx'}
 
   'repository': rec:
     'jsx': rec:
-      patterns: seq:
+      patterns: list:
         rec:
           begin: rx'(?=<[$_\p{L}]|<\s*>)'
           end: rx'(?=.)'
           applyEndPatternLast: 1
-          patterns: seq:
+          patterns: list:
             {include: '#jsx-tag-element-name'}
 
 
     'jsx-tag-element-name': rec:
-      patterns: seq:
+      patterns: list:
         rec:
           comment: 'JSX Fragment'
           name: 'meta.tag.jsx'
@@ -34,7 +34,7 @@ lang = rec:
           endCaptures: rec:
             '1': {name: 'punctuation.definition.tag.jsx'}
 
-          patterns: seq:
+          patterns: list:
             {include: '#jsx-tag-termination'}
 
 
@@ -87,13 +87,13 @@ lang = rec:
             '4': {name: 'punctuation.definition.tag.jsx'}
             '5': {name: 'invalid.illegal.termination.jsx'}
 
-          patterns: seq:
+          patterns: list:
             {include: '#jsx-tag-termination'}
             {include: '#jsx-tag-attributes'}
 
 
     'jsx-tag-termination': rec:
-      patterns: seq:
+      patterns: list:
         rec:
           comment: 'uses non consuming search for </ in </tag>'
           contentName: 'meta.embedded.jsx.fink'
@@ -107,14 +107,14 @@ lang = rec:
             '0': {name: 'punctuation.definition.tag.jsx'}
             '1': {name: 'JSXEndTagStart'}
 
-          patterns: seq:
+          patterns: list:
             {include: '#jsx-evaluated-code'}
             {include: '#jsx-entities'}
             {include: '#jsx-tag-element-name'}
 
 
     'jsx-tag-attributes': rec:
-      patterns: seq:
+      patterns: list:
         {include: '#jsx-attribute-name'}
         {include: '#jsx-assignment'}
         {include: '#jsx-evaluated-code'}
@@ -123,18 +123,18 @@ lang = rec:
 
 
     'jsx-fink-spread-attr': rec:
-      patterns: seq:
+      patterns: list:
         rec:
           comment: 'spread attribute'
           begin: rx'(?<!\.)\.\.\.'
           end: rx'(?=---|#|\s|>|/>)'
           name: 'keyword.operator.spread.jsx'
-          patterns: seq:
+          patterns: list:
             {include: 'source.fink'}
 
 
     'jsx-attribute-name': rec:
-      patterns: seq:
+      patterns: list:
         rec:
           comment: 'look for attribute name'
           match: rx'
@@ -153,20 +153,20 @@ lang = rec:
 
 
     'jsx-assignment': rec:
-      patterns: seq:
+      patterns: list:
         rec:
           comment: 'look for attribute assignment'
           name: 'keyword.operator.assignment.jsx'
           # match: rx'=(?=\s*(?:\'|"|{|/\*|<|//|\n))'
           begin: rx'=\s*'
           end: rx'(?=---|#|\s|>|/>)'
-          patterns: seq:
+          patterns: list:
             {include: '#jsx-evaluated-code'}
             {include: 'source.fink'}
 
 
     'jsx-evaluated-code': rec:
-      patterns: seq:
+      patterns: list:
         rec:
           name: 'meta.embedded.expression.fink'
           contentName: 'source.fink'
@@ -178,12 +178,12 @@ lang = rec:
           endCaptures: rec:
             '0': {name: 'punctuation.section.embedded.end.jsx'}
 
-          patterns: seq:
+          patterns: list:
             {include: 'source.fink'}
 
 
     'jsx-entities': rec:
-      patterns: seq:
+      patterns: list:
         rec:
           comment: 'Embeded HTML entities &blah'
           match: rx'(&)([a-zA-Z0-9]+|#[0-9]+|#x[0-9a-fA-F]+)(;)'

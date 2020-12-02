@@ -6,7 +6,7 @@ lang = rec:
   scopeName: 'source.fink'
   fileTypes: ['fnk']
 
-  patterns: seq:
+  patterns: list:
     {include: 'source.jsx.fink'}
 
     {include: '#comments'}
@@ -34,7 +34,7 @@ lang = rec:
   repository: rec:
 
     comments: rec:
-      patterns: seq:
+      patterns: list:
         rec:
           name: 'comment.line.hash.fink'
           match: rx'#.*$'
@@ -42,7 +42,7 @@ lang = rec:
         rec:
           name: 'comment.block.documentation.fink'
           begin: rx'(---)'
-          end: rx'(---)$'
+          end: rx'(---)'
 
           beginCaptures: rec:
             '1': {name: 'punctuation.definition.comment.begin.fink'}
@@ -50,22 +50,22 @@ lang = rec:
           endCaptures: rec:
             '0': {name: 'punctuation.definition.comment.end.fink'}
 
-          patterns: seq:
+          patterns: list:
             {include: '#comment_content'}
 
 
     comment_content: rec:
-      patterns: seq:
+      patterns: list:
         rec:
           name: 'meta.embedded.block.fink'
           begin: '(```)'
           end: '(```)'
-          patterns: seq:
+          patterns: list:
             {include: '$base'}
 
 
     block_like: rec:
-      patterns: seq:
+      patterns: list:
         rec:
           begin: rx'
             \b(
@@ -73,7 +73,7 @@ lang = rec:
               match|fold|unfold|map|filter|while|until|
               else|
               try|
-              list|seq|dict|rec
+              list|rec
             )\b'
           end: '(:)'
 
@@ -82,12 +82,12 @@ lang = rec:
           beginCaptures: rec:
             '1': {name: 'keyword.control.block.$1.fink'}
 
-          patterns: seq:
+          patterns: list:
             {include: '$base'}
 
 
     operators: rec:
-      patterns: seq:
+      patterns: list:
         rec:
           match: rx'(?<!\.)\s*+\b(import)\b'
           captures: rec:
@@ -138,39 +138,16 @@ lang = rec:
 
 
     number: rec:
-      patterns: seq:
+      patterns: list:
         rec:
-          match: rx'
-            \s*+
-            (
-              (?:\B[-+])?
-              (?:
-                \b0[bB][_0-1]*
-                |
-                \b0[oO][_0-7]*
-                |
-                \b0[xX][_0-9a-fA-F]*
-                |
-                (
-                  \B\.[_0-9]+
-                  |
-                  \b[_0-9]+
-                  (\.[_0-9]*)?
-                )
-                ([eE][-+]?[_0-9]+)?
-              )
-            )
-            (n\b)?'
-
-          captures: rec:
-            '1': {name: 'constant.numeric.fink'}
-            '5': {name: 'constant.numeric.bigint.fink'}
+          match: rx'[0-9][\._a-fA-Fxoben+0-9-]*'
+          name: 'constant.numeric.fink'
 
 
     variable: rec:
-      patterns: seq:
+      patterns: list:
         rec:
-          match: rx'\b(\w+?)\b'
+          match: rx'\b([_$\p{L}][_$\p{L}\p{N}]*)\b'
           captures: rec:
             '1': {name: 'variable.other.constant.fink'}
 
@@ -179,7 +156,7 @@ lang = rec:
       name: 'meta.array-literal.fink'
       begin: rx'\['
       end: rx'\]'
-      patterns: seq:
+      patterns: list:
         {include: '$base'}
 
 
@@ -188,7 +165,7 @@ lang = rec:
       begin: rx'\{'
       end: rx'\}'
 
-      patterns: seq:
+      patterns: list:
         rec:
           name: 'meta.object.prop.shorthand'
           match: rx'(\w+)\s*(?=,|\}|$)'
@@ -203,7 +180,7 @@ lang = rec:
             '_1': {name: 'support.type.property-name'}
             '1': {name: 'meta.object-literal.key.fink'}
 
-          patterns: seq:
+          patterns: list:
             {include: '$base'}
 
         rec:
@@ -213,25 +190,25 @@ lang = rec:
           beginCaptures: rec:
             '1': {name: 'variable.other.constant.fink'}
 
-          patterns: seq:
+          patterns: list:
             {include: '$base'}
 
         rec:
           name: 'meta.object.member'
           begin: rx'(?=\()'
           end: rx'(?=,|\}|$)'
-          patterns: seq:
+          patterns: list:
             rec:
               name: 'meta.object.member.computed-key.fink'
               begin: rx'\('
               end: rx'\)\s*(?=:)'
-              patterns: seq:
+              patterns: list:
                 {include: '$base'}
 
             rec:
               begin: rx':'
               end: rx'(?=,|\}|$)'
-              patterns: seq:
+              patterns: list:
                 {include: '$base'}
 
         rec:
@@ -241,19 +218,19 @@ lang = rec:
           beginCaptures: rec:
             '1': {name: 'keyword.operator.spread.fink'}
 
-          patterns: seq:
+          patterns: list:
             {include: '$base'}
 
         {include: '$base'}
 
 
     object: rec:
-      patterns: seq:
+      patterns: list:
         {include: '#obj_delimited'}
 
 
     string: rec:
-      patterns: seq:
+      patterns: list:
         rec:
           name: 'string.quoted.template.fink'
           begin: rx'(\w*)([\'"])'
@@ -266,12 +243,12 @@ lang = rec:
           endCaptures: rec:
             '1': {name: 'punctuation.definition.string.end.fink'}
 
-          patterns: seq:
+          patterns: list:
             {include: '#string_content'}
 
 
     string_content: rec:
-      patterns: seq:
+      patterns: list:
           rec:
             name: 'constant.character.escape.quasi.element.fink'
             begin: rx'\${'
@@ -282,7 +259,7 @@ lang = rec:
             endCaptures: rec:
               '0': {name: 'punctuation.definition.template-expression.end.fink'}
 
-            patterns: seq:
+            patterns: list:
               {include: '$base'}
 
           rec:
@@ -307,7 +284,7 @@ lang = rec:
 
 
     regex: rec:
-      patterns: seq:
+      patterns: list:
           rec:
             name: 'string.regexp.fink'
             begin: rx'(rx)([\'"])'
@@ -321,12 +298,12 @@ lang = rec:
             endCaptures: rec:
               '1': {name: 'punctuation.definition.regexp.end.fink'}
 
-            patterns: seq:
+            patterns: list:
               {include: 'source.regexp.fink'}
 
 
     language_constant: rec:
-      patterns: seq:
+      patterns: list:
         rec:
           match: rx'(?<!\.)\s*+\b(true|false)\b'
           captures: rec:

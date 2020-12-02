@@ -5,7 +5,7 @@ lang = rec:
   name: 'Fink Regular Expressions'
   scopeName: 'source.regexp.fink'
   fileTypes: []
-  patterns: seq:
+  patterns: list:
     {include: '#templ_expr'}
     {include: '#anchor'}
     {include: '#backref'}
@@ -19,7 +19,7 @@ lang = rec:
 
   repository: rec:
     comments: rec:
-        patterns: seq:
+        patterns: list:
           rec:
             name: 'comment.line.hash.fink'
             match: rx'(?<=\s+)#.+$'
@@ -36,12 +36,12 @@ lang = rec:
         '0': {name: 'punctuation.definition.template-expression.end.fink'}
 
 
-      patterns: seq:
+      patterns: list:
         {include: 'source.fink'}
 
 
     character_class_definition: rec:
-      patterns: seq:
+      patterns: list:
         rec:
           name: 'constant.other.character-class.set.regexp'
           begin: rx'(\[)(\^)?'
@@ -53,7 +53,7 @@ lang = rec:
           endCaptures: rec:
             '1': {name: 'punctuation.definition.character-class.regexp'}
 
-          patterns: seq:
+          patterns: list:
             rec:
               name: 'constant.other.character-class.range.regexp'
               match: rx'
@@ -99,7 +99,7 @@ lang = rec:
 
 
     group_assertion: rec:
-      patterns: seq:
+      patterns: list:
         rec:
           begin: rx'(\()((\?=)|(\?!)|(\?<=)|(\?<!))'
           end: rx'(\))'
@@ -116,26 +116,26 @@ lang = rec:
           endCaptures: rec:
             '1': {name: 'punctuation.definition.group.regexp'}
 
-          patterns: seq:
+          patterns: list:
             {include: '$self'}
 
 
     anchor: rec:
-      patterns: seq:
+      patterns: list:
         rec:
           name: 'keyword.control.anchor.regexp'
           match: rx'\\[bB]|\^|\$'
 
 
     operator: rec:
-      patterns: seq:
+      patterns: list:
         rec:
           name: 'keyword.operator.or.regexp'
           match: rx'\|'
 
 
     group_definition: rec:
-      patterns: seq:
+      patterns: list:
         rec:
           begin: rx'(\()((\?:)|(\?(<\w+>)))?'
           end: rx'(\))'
@@ -148,12 +148,12 @@ lang = rec:
             '3': {name: 'punctuation.definition.group.capture.regexp'}
             '5': {name: 'support.type.property-name'}
 
-          patterns: seq:
+          patterns: list:
             {include: '$self'}
 
 
     quantifier: rec:
-      patterns: seq:
+      patterns: list:
         rec:
           name: 'keyword.operator.quantifier.regexp'
           match: rx'
@@ -163,14 +163,14 @@ lang = rec:
 
 
     backref: rec:
-      patterns: seq:
+      patterns: list:
         rec:
           name: 'keyword.other.back-reference.regexp'
           match: rx'\\[1-9][0-9]*'
 
 
     character_class: rec:
-      patterns: seq:
+      patterns: list:
         rec:
           name: 'constant.character.escape.backslash.regexp'
           match: rx'\\[wWsSdD]'
