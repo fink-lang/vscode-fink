@@ -101,7 +101,7 @@
     "@semantic-release/exec": "^5.0.0",
     "commitizen": "^4.2.1",
     "cz-conventional-changelog": "^3.3.0",
-    "jest-cli": "^26.6.0",
+    "jest-cli": "^27.0.0",
     "nodemon": "^2.0.6",
     "npx-run": "^2.1.2",
     "rollup": "^2.32.0",
