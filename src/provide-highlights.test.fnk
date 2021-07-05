@@ -60,11 +60,11 @@ describe 'highlights provider', fn:
     expect
       await provider.provideDocumentHighlights document, pos
       to_equal list:
-        rec: 'highlight': list:
+        rec: highlight: list:
           {range: [{pos: [0, 0]}, {pos: [0, 3]}]}
           'test-write'
 
-        rec: 'highlight': list:
+        rec: highlight: list:
           {range: [{pos: [1, 6]}, {pos: [1, 9]}]}
           'test-read'
 
@@ -78,11 +78,11 @@ describe 'highlights provider', fn:
     expect
       await provider.provideDocumentHighlights document, pos
       to_equal list:
-        rec: 'highlight': list:
+        rec: highlight: list:
           {range: [{pos: [5, 0]}, {pos: [5, 5]}]}
           'test-write'
 
-        rec: 'highlight': list:
+        rec: highlight: list:
           {range: [{pos: [6, 1]}, {pos: [6, 6]}]}
           'test-read'
 
@@ -96,15 +96,15 @@ describe 'highlights provider', fn:
     expect
       await provider.provideDocumentHighlights document, pos
       to_equal list:
-        rec: 'highlight': list:
+        rec: highlight: list:
           {range: [{pos: [1, 0]}, {pos: [1, 3]}]}
           'test-write'
 
-        rec: 'highlight': list:
+        rec: highlight: list:
           {range: [{pos: [3, 11]}, {pos: [3, 14]}]}
           'test-read'
 
-        rec: 'highlight': list:
+        rec: highlight: list:
           {range: [{pos: [6, 7]}, {pos: [6, 10]}]}
           'test-read'
 
@@ -118,7 +118,7 @@ describe 'highlights provider', fn:
     expect
       await provider.provideDocumentHighlights document, pos
       to_equal list:
-        rec: 'highlight': list:
+        rec: highlight: list:
           {range: [{pos: [0, 6]}, {pos: [0, 11]}]}
           'test-text'
 

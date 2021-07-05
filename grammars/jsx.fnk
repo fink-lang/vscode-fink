@@ -3,14 +3,14 @@
 
 lang = rec:
   name: 'JSX'
-  'scopeName': 'source.jsx.fink'
-  'fileTypes': []
+  scopeName: 'source.jsx.fink'
+  fileTypes: []
 
   patterns: list:
     {include: '#jsx'}
 
-  'repository': rec:
-    'jsx': rec:
+  repository: rec:
+    jsx: rec:
       patterns: list:
         rec:
           begin: rx'(?=<[$_\p{L}]|<\s*>)'
@@ -20,7 +20,7 @@ lang = rec:
             {include: '#jsx-tag-element-name'}
 
 
-    'jsx-tag-element-name': rec:
+    jsx-tag-element-name: rec:
       patterns: list:
         rec:
           comment: 'JSX Fragment'
@@ -92,7 +92,7 @@ lang = rec:
             {include: '#jsx-tag-attributes'}
 
 
-    'jsx-tag-termination': rec:
+    jsx-tag-termination: rec:
       patterns: list:
         rec:
           comment: 'uses non consuming search for </ in </tag>'
@@ -113,7 +113,7 @@ lang = rec:
             {include: '#jsx-tag-element-name'}
 
 
-    'jsx-tag-attributes': rec:
+    jsx-tag-attributes: rec:
       patterns: list:
         {include: '#jsx-attribute-name'}
         {include: '#jsx-assignment'}
@@ -122,7 +122,7 @@ lang = rec:
         {include: '#jsx-fink-spread-attr'}
 
 
-    'jsx-fink-spread-attr': rec:
+    jsx-fink-spread-attr: rec:
       patterns: list:
         rec:
           comment: 'spread attribute'
@@ -133,7 +133,7 @@ lang = rec:
             {include: 'source.fink'}
 
 
-    'jsx-attribute-name': rec:
+    jsx-attribute-name: rec:
       patterns: list:
         rec:
           comment: 'look for attribute name'
@@ -152,7 +152,7 @@ lang = rec:
             '0': {name: 'entity.other.attribute-name.jsx'}
 
 
-    'jsx-assignment': rec:
+    jsx-assignment: rec:
       patterns: list:
         rec:
           comment: 'look for attribute assignment'
@@ -165,7 +165,7 @@ lang = rec:
             {include: 'source.fink'}
 
 
-    'jsx-evaluated-code': rec:
+    jsx-evaluated-code: rec:
       patterns: list:
         rec:
           name: 'meta.embedded.expression.fink'
@@ -182,7 +182,7 @@ lang = rec:
             {include: 'source.fink'}
 
 
-    'jsx-entities': rec:
+    jsx-entities: rec:
       patterns: list:
         rec:
           comment: 'Embeded HTML entities &blah'

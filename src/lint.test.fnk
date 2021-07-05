@@ -67,22 +67,22 @@ describe 'linter provider', fn:
       mock_diags.set
       was_called_with document.uri,
         list:
-          rec: 'diagnostic': list:
+          rec: diagnostic: list:
             {range: [{pos: [0, 0]}, {pos: [0, 3]}]}
             'missing-binding'
             'test-diag-error'
 
-          rec: 'diagnostic': list:
+          rec: diagnostic: list:
             {range: [{pos: [0, 4]}, {pos: [0, 7]}]}
             'missing-binding'
             'test-diag-error'
 
-          rec: 'diagnostic': list:
+          rec: diagnostic: list:
             {range: [{pos: [2, 0]}, {pos: [2, 4]}]}
             'duplicate-binding'
             'test-diag-error'
 
-          rec: 'diagnostic': list:
+          rec: diagnostic: list:
             {range: [{pos: [3, 2]}, {pos: [3, 4]}]}
             'unused-binding'
             'test-diag-error'
@@ -114,11 +114,11 @@ describe 'linter provider', fn:
       mock_diags.set
       was_called_with mock_uri,
         list:
-          rec: 'diagnostic': list:
+          rec: diagnostic: list:
             {range: [{pos: [0, 0]}, {pos: [0, 3]}]}
             'missing-binding'
             'test-diag-error'
-          rec: 'diagnostic': list:
+          rec: diagnostic: list:
             {range: [{pos: [0, 4]}, {pos: [0, 7]}]}
             'missing-binding'
             'test-diag-error'
@@ -141,12 +141,12 @@ describe 'linter provider', fn:
       mock_diags.set
       was_called_with document.uri,
         list:
-          rec: 'diagnostic': list:
+          rec: diagnostic: list:
             {range: [{pos: [0, 9]}, {pos: [0, 12]}]}
             'unused-binding'
             'test-diag-error'
 
-          rec: 'diagnostic': list:
+          rec: diagnostic: list:
             {range: [{pos: [1, 8]}, {pos: [1, 8]}]}
             "test-uri:test.fnk:2:8
              1| foo = fn bar, spam:
