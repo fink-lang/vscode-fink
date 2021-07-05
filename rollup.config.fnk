@@ -41,7 +41,7 @@ default = rec:
               shippedProposals: true
               # corejs: '3.0.0'
               targets: rec:
-                node: '12.14'
+                node: '14.16'
 
   external: [...builtins, 'vscode']
 

@@ -131,7 +131,7 @@ lang = rec:
           name: 'keyword.control.empty.fink'
 
         rec:
-          match: rx'(?<!\.)(\.)(\w+?)\b(?![:(])'
+          match: rx'(?<!\.)(\.)([_$\p{L}][-_$\p{L}\p{N}]*)\b(?![:(])'
           captures: rec:
             '1': {name: 'punctuation.accessor.fink'}
             '2': {name: 'meta.object-literal.key.fink'}
@@ -147,7 +147,7 @@ lang = rec:
     variable: rec:
       patterns: list:
         rec:
-          match: rx'\b([_$\p{L}][_$\p{L}\p{N}]*)\b'
+          match: rx'\b([_$\p{L}][-_$\p{L}\p{N}]*)\b'
           captures: rec:
             '1': {name: 'variable.other.constant.fink'}
 
@@ -168,13 +168,13 @@ lang = rec:
       patterns: list:
         rec:
           name: 'meta.object.prop.shorthand'
-          match: rx'(\w+)\s*(?=,|\}|$)'
+          match: rx'([_$\p{L}][-_$\p{L}\p{N}]*)\s*(?=,|\}|$)'
           captures: rec:
             '1': {name: 'variable.other.constant.fink'}
 
         rec:
           name: 'meta.object.prop'
-          begin: rx'(\w+)\s*:'
+          begin: rx'([_$\p{L}][-_$\p{L}\p{N}]*)\s*:'
           end: rx'(?=,|\}|$)'
           beginCaptures: rec:
             '_1': {name: 'support.type.property-name'}
@@ -185,7 +185,7 @@ lang = rec:
 
         rec:
           name: 'meta.object.prop.with-default'
-          begin: rx'(\w+)\s*='
+          begin: rx'([_$\p{L}][-_$\p{L}\p{N}]*)\s*='
           end: rx'(?=,|\}|$)'
           beginCaptures: rec:
             '1': {name: 'variable.other.constant.fink'}
