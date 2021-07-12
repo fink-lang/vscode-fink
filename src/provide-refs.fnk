@@ -1,4 +1,5 @@
 {languages} = import 'vscode'
+{fold_ac, map, filter, flatten} = import '@fink/std-lib//iter.fnk'
 
 
 {to_larix_pos, doc_range, is_at_loc} = import './loc.fnk'
@@ -11,35 +12,36 @@
 
 
 keep_refs_at = fn pos:
-  filter [expr]:
+  filter fn [expr]:
     match expr:
       {type: 'ident'}: is_at_loc expr, pos
       else: false
 
 
 
-as_bindings = map [expr], , ctx:
-  binding = find_binding expr, ctx
-  ...match binding:
-    false: [[], , ctx]
-    else: [[binding], , ctx]
+as_bindings = fn exprs:
+  pipe exprs:
+    map fn [expr], , ctx:
+      find_binding expr, ctx
+    # TODO filter ? != false
+    filter fn expr: expr != false
 
 
 
 as_refs = fn items:
   [bindings, ctx] = pipe items:
-    fold binding, out=[], , ctx={}:
+    fold_ac [], {}, fn binding, out, , ctx:
       [[...out, binding], , ctx]
 
-  bindings | map binding:
-    refs = ctx.refs.(get_expr_id binding)
-    ... [binding, ...refs]
-
+  pipe bindings:
+    map fn binding:
+      refs = ctx.refs.(get_expr_id binding)
+      [binding, ...refs]
+    flatten
 
 
 as_doc_locs = fn doc:
-  map expr: doc_range doc, expr.loc
-
+  map fn expr: doc_range doc, expr.loc
 
 
 

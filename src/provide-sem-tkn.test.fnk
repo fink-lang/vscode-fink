@@ -12,7 +12,6 @@ mock_builder = rec:
 mock
   'vscode'
   fn: rec:
-
     SemanticTokensLegend: mock_fn fn ...args: {mock_legend: args}
     SemanticTokensBuilder: mock_fn fn: mock_builder
 

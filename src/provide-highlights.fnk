@@ -1,5 +1,6 @@
 {languages, DocumentHighlight, DocumentHighlightKind} = import 'vscode'
 {new} = import '@fink/js-interop/reflect.fnk'
+{fold_ac, map, filter, flatten} = import '@fink/std-lib//iter.fnk'
 
 {to_larix_pos, range, is_at_loc} = import './loc.fnk'
 
@@ -7,9 +8,9 @@
 {find_binding, add_parents, add_binding_refs, get_expr_id, is_binding_ident} = import '@fink/larix/ast/analyze.fnk'
 
 
-
+# TODO same as in provide-refs.fnk
 keep_refs_at = fn pos:
-  filter [expr]:
+  filter fn [expr]:
     match expr:
       {type: 'ident'}: is_at_loc expr, pos
       {type: 'string'}: is_at_loc expr, pos
@@ -17,29 +18,32 @@ keep_refs_at = fn pos:
 
 
 
-as_bindings = map [expr], , ctx:
+as_bindings = map fn [expr], , ctx:
   binding = find_binding expr, ctx
-  ...match binding:
-    false: [[expr], , ctx]
-    else: [[binding], , ctx]
+  match binding:
+    false: expr
+    else: binding
+
 
 
 
 as_highlights = fn items:
   [bindings, ctx] = pipe items:
-    fold binding, out=[], , ctx={}:
+    fold_ac [], {}, fn binding, out, , ctx:
       [[...out, binding], , ctx]
 
   pipe bindings:
-    map binding:
-      ... match binding:
+    map fn binding:
+      match binding:
         {type: 'string'}:
           [binding]
         else:
           {refs: {(get_expr_id binding): refs}} = ctx
           [binding, ...refs]
 
-    map expr:
+    flatten
+
+    map fn expr:
       kind = match expr:
         {type: 'string'}: DocumentHighlightKind.Text
         is_binding_ident ?, ctx: DocumentHighlightKind.Write

@@ -1,5 +1,5 @@
 {languages, SemanticTokensLegend, SemanticTokensBuilder} = import 'vscode'
-{length} = import '@fink/std-lib/iter.fnk'
+{fold_ac, length} = import '@fink/std-lib/iter.fnk'
 {new} = import '@fink/js-interop/reflect.fnk'
 
 {walk} = import '@fink/larix/ast/traverse.fnk'
@@ -59,11 +59,11 @@ get_tokens = fn {errors, ...ast}:
   pipe ast:
     walk [?]
     add_parents
-    fold [expr], , , ctx={}:
+    fold_ac builder, {}, fn [expr], builder:
       match expr:
         {type: 'call'}: add_call_tokens expr, builder
         {type: 'rec:kv'}: add_prop_tokens expr, builder
-      [builder, , ctx]
+      [builder]
 
   list:
     builder.build _

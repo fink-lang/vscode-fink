@@ -1,5 +1,5 @@
 {workspace, languages, Diagnostic, DiagnosticSeverity} = import 'vscode'
-{is_empty, chain} = import '@fink/std-lib/iter.fnk'
+{fold_ac, map, filter, is_empty, chain} = import '@fink/std-lib/iter.fnk'
 {lower_case, decode} = import '@fink/std-lib/str.fnk'
 {new} = import '@fink/js-interop/reflect.fnk'
 
@@ -12,31 +12,32 @@
 
 
 as_issues = fn exprs:
-  [ ,ctx] = exprs | fold exp, , , ctx={bindings:[], refs:{}}:
-    [exp, , ctx]
+  [ , ctx] = exprs | fold_ac false, {bindings:[], refs:{}}, fn exp, , , ctx: [exp, , ctx]
 
   {refs: {unbound}, bindings, rebindings} = ctx
 
   [] | chain
     pipe unbound:
-      filter expr:
+      filter fn expr:
         match get_parent expr, ctx:
           {type: 'jsx:elem'}: expr.value != lower_case expr.value
           else: true
-
-      map expr:
+      # TODO: map ['missing-binding', ?]
+      map fn expr:
         ['missing-binding', expr]
 
-    rebindings | map expr:
+    # TODO map ['duplicate-binding', ?]
+    rebindings | map fn expr:
       ['duplicate-binding', expr]
 
     pipe bindings:
-      filter expr:
+      filter fn expr:
         refs = get_refs expr, ctx
         match refs:
           is_empty ?: not is_exported expr, ctx
           else: false
-      map expr:
+      # TODO map ['unused-binding', ?]
+      map fn expr:
         ['unused-binding', expr]
 
 
@@ -61,12 +62,12 @@ process_doc = fn doc, dc, parse:
   {errors, ...ast} = await parse doc
   diags = list:
     ...pipe lint_ast ast:
-      map [kind, expr]:
+      map fn [kind, expr]:
         {loc} = expr
         diagnostic loc, kind, DiagnosticSeverity.Error
 
     ...pipe errors:
-      map {error, token: {loc}}:
+      map fn {error, token: {loc}}:
         diagnostic loc, error, DiagnosticSeverity.Error
 
   dc.set doc.uri, diags
@@ -94,7 +95,7 @@ lint_workspace = fn diags, async_parse:
   files = await workspace.findFiles '**/*.fnk', '**/node_modules/**'
 
   pipe files:
-    map uri:
+    map fn uri:
       doc = fake_doc uri
       process_doc doc, diags, async_parse
     [...?]
