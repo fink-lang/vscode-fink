@@ -1,7 +1,10 @@
 {languages, Uri, Location, workspace} = import 'vscode'
 
-{decode} = import '@fink/std-lib/str.fnk'
 {new, set_props} = import '@fink/js-interop/reflect.fnk'
+
+{decode} = import '@fink/std-lib/str.fnk'
+{map, with_ctx, filter} = import '@fink/std-lib/iter.fnk'
+{parallel} = import '@fink/std-lib/async.fnk'
 
 {walk} = import '@fink/larix/ast/traverse.fnk'
 {get_parent, find_binding, add_parents, add_binding_refs} = import '@fink/larix/ast/analyze.fnk'
@@ -12,20 +15,7 @@
 
 
 resolve = fn doc, path:
-  uris = list:
-    Uri.joinPath doc.uri, '..', '${path}'
-    Uri.joinPath doc.uri, '..', '${path}.fnk'
-    Uri.joinPath doc.uri, '..', '${path}/index.fnk'
-
-  [await uri] = pipe uris:
-    filter await uri:
-      [, stat] = try:
-        await workspace.fs.stat uri
-
-      match stat:
-        {type: 1}: true
-        else: false
-  uri
+  Uri.joinPath doc.uri, '..', '${path}'
 
 
 
@@ -67,13 +57,13 @@ imported_decl = fn async_parse, doc, expr, ctx:
     exprs
 
   [loc=false] = pipe exprs:
-    filter expr:
+    filter fn expr:
       match expr:
         {left: {type: 'ident', value: exported_name}, op: '='}:
           true
         else:
           false
-    map {left}:
+    map fn {left}:
       doc_range {uri}, left.loc
 
   match loc:
@@ -81,43 +71,38 @@ imported_decl = fn async_parse, doc, expr, ctx:
     else: loc
 
 
-
+# TODO same as in provide-refs.fnk
 keep_refs_at = fn pos:
-  filter [expr]:
+  filter fn [expr]:
     match expr:
       {type: 'ident'}: is_at_loc expr, pos
       {op: 'import'}: is_at_loc expr, pos
       else: false
 
 
-
-as_bindings = map [expr], , ctx:
-  ... match expr:
-    {op: 'import'}:
-      [[expr], , ctx]
-    else:
-      binding = find_binding expr, ctx
-      match binding:
-        false:
-          [[], , ctx]
-        else:
-          [[binding], , ctx]
+# TODO same as in provide-refs.fnk?
+as_bindings = fn items:
+  pipe items:
+    map fn [expr], , ctx:
+      match expr:
+        {op: 'import'}: expr
+        else: find_binding expr, ctx
+    # TODO filter fn ? != false
+    filter fn expr: expr != false
 
 
 
 as_doc_locs = fn doc, async_parse:
-  map await expr, , ctx:
-    loc = match expr:
+  map fn expr, , ctx:
+    match expr:
       {op: 'import'}:
-        await import_link doc, expr
+        import_link doc, expr
 
       is_imported ?, ctx:
-        await imported_decl async_parse, doc, expr, ctx
+        imported_decl async_parse, doc, expr, ctx
 
       else:
         doc_range doc, expr.loc
-
-    [loc, , ctx]
 
 
 
@@ -125,19 +110,15 @@ def_provider = fn async_parse: fn doc, vspos:
   ast = await async_parse doc
   pos = to_larix_pos vspos
 
-  [locs] = await pipe ast:
+  pipe ast:
     walk [?]
+    with_ctx {}
     add_parents
     add_binding_refs
     keep_refs_at pos
     as_bindings
     as_doc_locs doc, async_parse
-
-    # TODO: use std-lib async parallel or sequential
-    fold await link, out=[], , ctx={}:
-      [[...out, link], , ctx]
-
-  locs
+    parallel
 
 
 

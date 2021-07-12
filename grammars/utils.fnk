@@ -1,5 +1,6 @@
 {raw} = import '@fink/std-lib/str.fnk'
 {rx: real_rx, replace_all} = import '@fink/std-lib/regex.fnk'
+{map} = import '@fink/std-lib/iter.js'
 
 
 # TODO: is this not already done in std-lib
@@ -9,7 +10,7 @@ rx = fn strings, ...exprs:
   esc = real_rx'(^|[^\\])((\\{2})*)\\(?=[\#\'"])'
 
   [...parts] = pipe strings.raw:
-    map part:
+    map fn part:
       pipe part:
         replace_all ?, ingorables, ''
         replace_all ?, esc, '$1$3'

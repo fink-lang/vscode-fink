@@ -1,6 +1,7 @@
 {MarkdownString, CompletionItem, CompletionItemKind, SnippetString, languages} = import 'vscode'
 
 {new, set_props} = import '@fink/js-interop/reflect.fnk'
+{fold_ac, map, filter} = import '@fink/std-lib/iter.fnk'
 
 {walk} = import '@fink/larix/ast/traverse.fnk'
 {is_binding_ident, add_parents, add_binding_refs} = import '@fink/larix/ast/analyze.fnk'
@@ -156,12 +157,10 @@ completions_from_loc = fn ast, pos:
     walk [?]
     add_parents
     add_binding_refs
-    filter [expr]: expr.loc.start.line <= pos.line
-    filter [expr], , ctx:
-      keep = is_binding_ident expr, ctx
-      [keep, , ctx]
+    filter fn [expr]: expr.loc.start.line <= pos.line
+    filter fn [expr], ,ctx: is_binding_ident expr, ctx
 
-    map [expr, parent], , ctx:
+    map fn [expr, parent], , ctx:
       kind = match parent:
         is_imported ?, ctx:
           CompletionItemKind.Reference
@@ -174,11 +173,11 @@ completions_from_loc = fn ast, pos:
         else:
           CompletionItemKind.Constant
 
-      compl = new CompletionItem, expr.value, kind
-      [compl, , ctx]
+      new CompletionItem, expr.value, kind
 
-    fold compl, out=[], , ctx={}:
+    fold_ac [], {}, fn compl, out, , ctx:
       [[...out, compl], , ctx]
+
   compls
 
 
