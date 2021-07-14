@@ -67,14 +67,7 @@ lang = rec:
     block_like: rec:
       patterns: list:
         rec:
-          begin: rx'
-            \b(
-              fn|pipe|
-              match|fold|unfold|map|filter|while|until|
-              else|
-              try|
-              list|rec
-            )\b'
+          begin: rx'\b(fn|pipe|else|try|list|rec)\b'
           end: '(:)'
 
           contentName: 'meta.function.parameters'
