@@ -33,93 +33,15 @@ api = rec:
       "
     snippet: snippet 'match $1:\n  $2: $3\n  else: $4\n$0'
 
-  map: rec:
-    doc: doc_md
-      'Return a function `fn iterable:` that maps each `item` of `iterable`.'
-      '
-        pipe [1, 2, 3]:
-          map item:
-            item * 2
-
-        # == [2, 4, 6]
-      '
-    snippet: snippet 'map $1:\n  $2\n$0'
-
-  fold: rec:
-    doc: doc_md
-      'Return a function `fn iterable:` that reduces all items of `iterable`
-       to a single value.'
-      '
-        pipe [1, 2, 3]:
-          fold item, prev=0:
-            item + prev
-
-        # == 6
-      '
-    snippet: snippet 'fold $1, $2:\n  $3\n$0'
-
-  unfold: rec:
-    doc: doc_md
-      'Return a function `fn curr:` that generates items from the `curr`
-       value.'
-      '
-        count = unfold curr:
-          curr + 1
-
-        [a, b, c] = count 0
-
-        # [1, 2, 3]
-      '
-    snippet: snippet 'unfold $1:\n  ($2, $3)\n$0'
-
-  filter: rec:
-    doc: doc_md
-      'Return a function `fn iterable:` that only yields `item` of `iterable`
-       for which the block returns `true`.'
-      '
-        pipe [1, 2, 3, 4]:
-          filter item:
-            item % 2
-
-        # == [2, 4]
-      '
-    snippet: snippet 'filter $1:\n  $2\n$0'
-
-  while: rec:
-    doc: doc_md
-      'Return a function `fn iterable:` that yields each `item` of `iterable`
-       while the block returns true'
-      '
-        pipe [1, 2, 3, 4]:
-          while item:
-            item < 3
-
-        # == [1, 2]
-      '
-    snippet: snippet 'while $1:\n  $2\n$0'
-
-  until: rec:
-    doc: doc_md
-      'Return a function `fn iterable:` that yields each `item` of `iterable`
-       until the block returns true'
-      '
-        pipe [1, 2, 3, 4]:
-          until item:
-            item == 3
-
-        # == [1, 2, 3]
-      '
-    snippet: snippet 'until $1:\n  $2\n$0'
-
   pipe: rec:
     doc: doc_md
       'Call each expression in the block with the result of the previous call,
        starting with the pipe arg for the first call.'
       '
         [result] = pipe [1, 2, 3, 4, 5, 6]:
-          map item:
+          map fn item:
             item * 2
-          filter item:
+          filter fn item:
             item > 4
 
         # == 5
@@ -149,7 +71,7 @@ comp_item = fn key:
   item
 
 
-builtins = ['fn', 'fold', 'unfold', 'map', 'filter', 'while', 'until']
+builtins = ['fn']
 
 
 completions_from_loc = fn ast, pos:
@@ -189,12 +111,6 @@ completion_provider = fn async_parse: fn doc, pos:
   list:
     ...completions
     comp_item 'match'
-    comp_item 'fold'
-    comp_item 'unfold'
-    comp_item 'map'
-    comp_item 'filter'
-    comp_item 'while'
-    comp_item 'until'
     comp_item 'pipe'
     comp_item 'import'
 
