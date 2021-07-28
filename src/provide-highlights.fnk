@@ -61,8 +61,8 @@ provide_highlights = fn async_parse: fn doc, vspos:
 
   pos = to_larix_pos vspos
 
-  [...highlights] = pipe ast:
-    walk [?]
+  [...highlights] = pipe [ast]:
+    walk
     add_parents
     add_binding_refs
     keep_refs_at pos

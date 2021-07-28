@@ -75,8 +75,8 @@ builtins = ['fn']
 
 
 completions_from_loc = fn ast, pos:
-  [compls] = pipe ast:
-    walk [?]
+  [compls] = pipe [ast]:
+    walk
     add_parents
     add_binding_refs
     filter fn [expr]: expr.loc.start.line <= pos.line

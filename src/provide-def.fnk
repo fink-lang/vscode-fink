@@ -110,8 +110,8 @@ def_provider = fn async_parse: fn doc, vspos:
   ast = await async_parse doc
   pos = to_larix_pos vspos
 
-  pipe ast:
-    walk [?]
+  pipe [ast]:
+    walk
     with_ctx {}
     add_parents
     add_binding_refs

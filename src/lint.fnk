@@ -43,8 +43,8 @@ as_issues = fn exprs:
 
 
 lint_ast = fn ast:
-  pipe ast:
-    walk [?]
+  pipe [ast]:
+    walk
     add_parents
     add_binding_refs
     add_duplicate_bindings

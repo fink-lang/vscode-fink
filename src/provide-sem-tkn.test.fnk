@@ -1,9 +1,6 @@
 {describe, it, expect, mock, mock_fn} = import '@fink/jest/test.fnk'
 {to_equal, was_called_with} = import '@fink/jest/test.fnk'
 
-{parse} = import '@fink/larix/parser.fnk'
-
-
 mock_builder = rec:
   push: mock_fn _
   build: mock_fn fn: 'mock-build'
@@ -12,7 +9,12 @@ mock_builder = rec:
 mock
   'vscode'
   fn: rec:
+    Range: mock_fn fn ...range: {range}
+
+    Position: mock_fn fn ...pos: {pos}
+
     SemanticTokensLegend: mock_fn fn ...args: {mock_legend: args}
+
     SemanticTokensBuilder: mock_fn fn: mock_builder
 
     languages: rec:
@@ -25,6 +27,8 @@ mock
   {virtual: true}
 
 
+{parse} = import '@fink/larix/parser.fnk'
+
 
 {languages, SemanticTokensBuilder} = import 'vscode'
 
@@ -35,6 +39,7 @@ async_parse = fn doc:
   await parse
     doc.getText _
     '${doc.uri}'
+
 
 
 describe 'sem token provider', fn:
@@ -61,23 +66,29 @@ describe 'sem token provider', fn:
             {items=123} = match item:
               [..., ni]: {na: []}
 
-            ...items
-        "
+            items
+
+        {nini, ni: nanu} = {nunu, (foo): bar}
+      "
 
     expect
       SemanticTokensBuilder
-      was_called_with {mock_legend: [['function', 'string', 'variable'], []]}
+      was_called_with {mock_legend: [['function', 'string', 'variable', 'property'], ['readonly']]}
 
     expect
       mock_builder.push.mock.calls
       to_equal list:
-        [0, 0, 3, 0]
-        [0, 8, 4, 0]
-        [1, 14, 3, 0]
-        [2, 9, 1, 0]
-        [2, 13, 1, 0]
-        [7, 2, 3, 0]
-        [9, 18, 2, 2, 0]
+        [{range: [{pos: [0, 0]}, {pos: [0, 3]}]}, 'function']
+        [{range: [{pos: [0, 8]}, {pos: [ 0, 12]}]}, 'function']
+        [{range: [{pos: [1, 14]}, {pos: [ 1, 17]}]}, 'function']
+        [{range: [{pos: [2, 9]}, {pos: [ 2, 10]}]}, 'function']
+        [{range: [{pos: [2, 13]}, {pos: [ 2, 14]}]}, 'function']
+        [{range: [{pos: [7, 2]}, {pos: [ 7, 5]}]}, 'function']
+        [{range: [{pos: [8, 5]}, {pos: [ 8, 10]}]}, 'property']
+        [{range: [{pos: [9, 18]}, {pos: [ 9, 20]}]}, 'property']
+        [{range: [{pos: [13, 1]}, {pos: [ 13, 5]}]}, 'variable', ['readonly']]
+        [{range: [{pos: [13, 7]}, {pos: [ 13, 9]}]}, 'property']
+        [{range: [{pos: [13, 20]}, {pos: [ 13, 24]}]}, 'variable', ['readonly']]
 
     expect
       tokens
@@ -101,12 +112,12 @@ describe 'sem token provider', fn:
 
     expect
       SemanticTokensBuilder
-      was_called_with {mock_legend: [['function', 'string', 'variable'], []]}
+      was_called_with {mock_legend: [['function', 'string', 'variable', 'property'], ['readonly']]}
 
     expect
       mock_builder.push.mock.calls
       to_equal list:
-        [0, 0, 3, 0]
+        [{range: [{pos: [0, 0]}, {pos: [0, 3]}]}, 'function']
 
     expect
       tokens
