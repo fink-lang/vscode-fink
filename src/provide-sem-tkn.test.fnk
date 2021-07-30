@@ -63,10 +63,11 @@ describe 'sem token provider', fn:
 
         pipe foo:
           map fn item:
-            {items=123} = match item:
-              [..., ni]: {na: []}
-
+            {items=[123]} = match item:
+              [..., ni]: [{na: []}, 123]
             items
+
+          flatten
 
         {nini, ni: nanu} = {nunu, (foo): bar}
       "
@@ -79,16 +80,17 @@ describe 'sem token provider', fn:
       mock_builder.push.mock.calls
       to_equal list:
         [{range: [{pos: [0, 0]}, {pos: [0, 3]}]}, 'function']
-        [{range: [{pos: [0, 8]}, {pos: [ 0, 12]}]}, 'function']
-        [{range: [{pos: [1, 14]}, {pos: [ 1, 17]}]}, 'function']
-        [{range: [{pos: [2, 9]}, {pos: [ 2, 10]}]}, 'function']
-        [{range: [{pos: [2, 13]}, {pos: [ 2, 14]}]}, 'function']
-        [{range: [{pos: [7, 2]}, {pos: [ 7, 5]}]}, 'function']
-        [{range: [{pos: [8, 5]}, {pos: [ 8, 10]}]}, 'property']
-        [{range: [{pos: [9, 18]}, {pos: [ 9, 20]}]}, 'property']
-        [{range: [{pos: [13, 1]}, {pos: [ 13, 5]}]}, 'variable', ['readonly']]
-        [{range: [{pos: [13, 7]}, {pos: [ 13, 9]}]}, 'property']
-        [{range: [{pos: [13, 20]}, {pos: [ 13, 24]}]}, 'variable', ['readonly']]
+        [{range: [{pos: [0, 8]}, {pos: [0, 12]}]}, 'function']
+        [{range: [{pos: [1, 14]}, {pos: [1, 17]}]}, 'function']
+        [{range: [{pos: [2, 9]}, {pos: [2, 10]}]}, 'function']
+        [{range: [{pos: [2, 13]}, {pos: [2, 14]}]}, 'function']
+        [{range: [{pos: [12, 2]}, {pos: [12, 9]}]}, 'function']
+        [{range: [{pos: [7, 2]}, {pos: [7, 5]}]}, 'function']
+        [{range: [{pos: [8, 5]}, {pos: [8, 10]}]}, 'property']
+        [{range: [{pos: [9, 19]}, {pos: [9, 21]}]}, 'property']
+        [{range: [{pos: [14, 1]}, {pos: [14, 5]}]}, 'variable', ['readonly']]
+        [{range: [{pos: [14, 7]}, {pos: [14, 9]}]}, 'property']
+        [{range: [{pos: [14, 20]}, {pos: [14, 24]}]}, 'variable', ['readonly']]
 
     expect
       tokens

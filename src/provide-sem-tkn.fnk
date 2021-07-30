@@ -1,5 +1,5 @@
 {languages, SemanticTokensLegend, SemanticTokensBuilder} = import 'vscode'
-{fold_ac} = import '@fink/std-lib/iter.fnk'
+{fold, fold_ac} = import '@fink/std-lib/iter.fnk'
 {new} = import '@fink/js-interop/reflect.fnk'
 
 {walk} = import '@fink/larix/ast/traverse.fnk'
@@ -44,17 +44,25 @@ add_call_tokens = fn expr, builder:
 
 add_prop_tokens = fn prop, builder:
   match prop:
-    {left: {type: 'ident'}, right: false}:
+    {left.type: 'ident', right: false}:
       loc = range prop.left.loc
       builder.push loc, 'variable', ['readonly']
 
-    --- stanbul ignore else ---
-    {left: {type: 'ident'}}:
+    {left.type: 'ident'}:
       loc = range prop.left.loc
       builder.push loc, 'property'
 
     else:
       false
+
+
+
+add_pipe_tokens = fn {exprs}, builder:
+  pipe exprs:
+    fold fn expr: match expr:
+      {type: 'ident'}:
+        loc = range expr.loc
+        builder.push loc, 'function'
 
 
 
@@ -67,11 +75,13 @@ get_tokens = fn {errors, ...ast}:
       match expr:
         {type: 'call'}: add_call_tokens expr, builder
         {type: 'rec:kv'}: add_prop_tokens expr, builder
+        {op: 'pipe'}: add_pipe_tokens expr, builder
       [builder]
 
   list:
     builder.build _
     errors
+
 
 
 provide_sem_tokens = fn async_parse: fn doc:
