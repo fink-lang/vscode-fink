@@ -1,22 +1,22 @@
 {languages, SemanticTokensLegend, SemanticTokensBuilder} = import 'vscode'
-{fold_ac, length} = import '@fink/std-lib/iter.fnk'
+{fold, fold_ac} = import '@fink/std-lib/iter.fnk'
 {new} = import '@fink/js-interop/reflect.fnk'
 
 {walk} = import '@fink/larix/ast/traverse.fnk'
 {add_parents} = import '@fink/larix/ast/analyze.fnk'
 
+{range} = import './loc.fnk'
 
 
-token_types = ['function', 'string', 'variable']
-token_modifiers = []
+
+token_types = ['function', 'string', 'variable', 'property']
+token_modifiers = ['readonly']
 sem_token_legend = new SemanticTokensLegend, token_types, token_modifiers
 
 
 
 get_callee = fn node:
   match node:
-    {type: 'ident'}:
-      node
     {type: 'member'}:
       get_callee node.right
     else:
@@ -28,46 +28,60 @@ add_call_tokens = fn expr, builder:
   callee = get_callee expr.callee
   match callee:
     {type: 'ident'}:
-      {value, loc: {start}} = callee
-      ident_len = length value
-      builder.push start.line - 1, start.column, ident_len, 0
+      loc = range callee.loc
+      builder.push loc, 'function'
 
     --- istanbul ignore else ---
     {type: 'group'}:
       {loc: {start, end}} = callee
-      builder.push start.line - 1, start.column, 1, 0
-      builder.push end.line - 1, end.column - 1, 1, 0
+      l1 = range {start, end: {...start, column: start.column + 1}}
+      l2 = range {start: {...end, column: end.column - 1}, end}
+
+      builder.push l1, 'function'
+      builder.push l2, 'function'
 
 
 
 add_prop_tokens = fn prop, builder:
   match prop:
-    {left: {type: 'ident'}, right: {type: 'assign'}}:
+    {left.type: 'ident', right: false}:
+      loc = range prop.left.loc
+      builder.push loc, 'variable', ['readonly']
+
+    {left.type: 'ident'}:
+      loc = range prop.left.loc
+      builder.push loc, 'property'
+
+    else:
       false
 
-    --- istanbul ignore else ---
-    {left: {type: 'ident'}, right: ? != prop.left}:
-      {value, loc: {start}} = prop.left
-      key_len = length value
-      builder.push start.line - 1, start.column, key_len, 2, 0
+
+
+add_pipe_tokens = fn {exprs}, builder:
+  pipe exprs:
+    fold fn expr: match expr:
+      {type: 'ident'}:
+        loc = range expr.loc
+        builder.push loc, 'function'
 
 
 
 get_tokens = fn {errors, ...ast}:
   builder = new SemanticTokensBuilder, sem_token_legend
-
-  pipe ast:
-    walk [?]
+  pipe [ast]:
+    walk
     add_parents
     fold_ac builder, {}, fn [expr], builder:
       match expr:
         {type: 'call'}: add_call_tokens expr, builder
         {type: 'rec:kv'}: add_prop_tokens expr, builder
+        {op: 'pipe'}: add_pipe_tokens expr, builder
       [builder]
 
   list:
     builder.build _
     errors
+
 
 
 provide_sem_tokens = fn async_parse: fn doc:
