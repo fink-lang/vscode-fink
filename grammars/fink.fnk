@@ -67,7 +67,7 @@ lang = rec:
     block_like: rec:
       patterns: list:
         rec:
-          begin: rx'\b(fn|pipe|match|else|try|list|rec)\b'
+          begin: rx'\b(fn|pipe|match|else|list|rec)\b'
           end: '(:)'
 
           contentName: 'meta.function.parameters'
@@ -87,7 +87,7 @@ lang = rec:
             '1': {name: 'keyword.control.module.$1.fink'}
 
         rec:
-          match: rx'(?<!\.)\s*+\b(await|throw)\b'
+          match: rx'(?<!\.)\s*+\b(await)\b'
           captures: rec:
             '1': {name: 'keyword.control.flow.$1.fink'}
 

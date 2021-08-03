@@ -52,9 +52,13 @@ imported_decl = fn async_parse, doc, expr, ctx:
 
   uri = await resolve doc, imp_spec
   --- istanbul ignore next ---
-  [, exprs=[]] = try:
-    {exprs} = await async_parse fake_doc uri
-    exprs
+  exprs = await pipe uri:
+    fake_doc
+    async_parse
+    ?.then
+      fn {exprs}: exprs
+      fn: []
+
 
   [loc=false] = pipe exprs:
     filter fn expr:

@@ -38,7 +38,7 @@ document = rec:
     spam = fn foo:
       log foo, bar
 
-    try:
+    fn:
       foo + 1
 
     Foo = fn: <>{foo}</>
