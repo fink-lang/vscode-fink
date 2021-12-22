@@ -16,11 +16,11 @@ default = rec:
       dir: './build/pkg'
       format: 'cjs'
       sourcemap: true
-      manualChunks: fn id:
-        match id:
-          ?.includes 'node_modules/@fink': 'fink'
-          ?.includes 'node_modules': 'vendor'
-          else: null
+      # manualChunks: fn id:
+      #   match id:
+      #     ?.includes 'node_modules/@fink': 'fink'
+      #     ?.includes 'node_modules': 'vendor'
+      #     else: null
       # preserveModules: true
 
   plugins: list:
