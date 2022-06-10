@@ -105,7 +105,7 @@
     "nodemon": "^2.0.6",
     "npx-run": "^2.1.2",
     "rollup": "^2.32.0",
-    "semantic-release": "^18.0.0",
+    "semantic-release": "^19.0.3",
     "semantic-release-vsce": "^3.0.1"
   },
   "config": {
