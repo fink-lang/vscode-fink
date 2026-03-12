@@ -1,5 +1,56 @@
 {rx} = import './utils.fnk'
 
+# use in fink grammar as `embedded_str 'sql'`
+embedded_str = fn lang:
+  rec:
+    name: 'string.tagged.${lang}.fink'
+    begin: rx"\b(${lang})(')"
+    end: rx'(\2)'
+    contentName: 'meta.embedded.block.markdown.${lang}.fink',
+    beginCaptures: rec:
+      '1': {name: 'entity.name.tag.string.fink'}
+      '2': {name: 'punctuation.definition.string.begin.fink'}
+    endCaptures: rec:
+      '1': {name: 'punctuation.definition.string.end.fink'}
+    patterns: list:
+      { include: '#string_content' }
+      { include: 'source.${lang}' }
+
+
+embedded_str_block = fn lang:
+  rec:
+    name: 'string.tagged.block.${lang}.fink'
+    begin: rx'^(\s*)(.*)(${lang})(")(:)\s*$'
+    while: '(^|\G)(\\1  |$)'
+    contentName: 'string.unquoted.fink'
+    # contentName: 'meta.embedded.block.markdown'
+    beginCaptures: rec:
+      '2': {patterns: [{include: '$base'}]}
+      '3': {name: 'entity.name.tag.string.fink'}
+      '4': {name: 'string.unquoted.fink'}
+      '5': {name: 'punctuation.definition.block.fink'}
+    patterns: list:
+      {include: '#string_content'}
+      { include: 'source.${lang}' }
+
+scope_to_example_ = fn scope:
+  rec:
+    match: rx'\b(${scope.replaceAll '.', '\\.'})\b'
+    captures: rec:
+      '1': {name: '${scope}.fink'}
+
+
+scope_to_example = fn scope:
+  rec:
+    name: 'meta.scope-example.${scope}.fink'
+    begin: rx'^(\s*)(.*)(${scope.replaceAll '.', '\\.'})(:|$)'
+    while: '(^|\G)(\\1  |$)'
+    contentName: '${scope}.fink'
+    beginCaptures: rec:
+      '3': {name: '${scope}.fink'}
+    patterns: list:
+      { include: 'source.fink' }
+
 
 lang = rec:
   name: 'fink'
@@ -8,209 +59,562 @@ lang = rec:
 
   patterns: list:
     {include: 'source.jsx.fink'}
-
     {include: '#comments'}
-
-    {include: '#block_like'}
-
+    {include: '#template_block'}
+    {include: '#fink_block'}
+    {include: '#keywords'}
     {include: '#language_constant'}
-
-    {include: '#operators'}
-
+    {include: '#builtin_types'}
+    {include: '#wildcard'}
+    {include: '#operators_logical'}
+    {include: '#block_opener'}
+    {include: '#function_call'}
+    {include: '#operators_symbolic'}
     {include: '#number'}
-
     {include: '#regex'}
     {include: '#string'}
-
     {include: '#array'}
     {include: '#object'}
-
+    {include: '#postfix_tag'}
     {include: '#variable'}
-
     rec:
       match: rx','
       name: 'meta.delimiter.comma.fink'
+    rec:
+      match: rx';'
+      name: 'keyword.control.semi.fink'
 
   repository: rec:
 
+    # --- comments ---
+
     comments: rec:
       patterns: list:
+         # keywords
+        scope_to_example 'keyword.control'
+        scope_to_example 'keyword.operator'
+        scope_to_example 'keyword.other'
+
+        # storage
+        scope_to_example 'storage.type'
+        scope_to_example 'storage.modifier'
+
+        # constants
+        scope_to_example 'constant.language'
+        scope_to_example 'constant.numeric'
+        scope_to_example 'constant.character.escape'
+
+        # strings
+        scope_to_example 'string.quoted'
+        scope_to_example 'string.regexp'
+        scope_to_example 'string.unquoted'
+
+        # comments
+        scope_to_example 'comment.line'
+        scope_to_example 'comment.block'
+
+        # variables
+        scope_to_example 'variable.other.constant'
+        scope_to_example 'variable.other.property'
+        scope_to_example 'variable.parameter'
+        scope_to_example 'variable.language'
+
+        # entities
+        scope_to_example 'entity.name.function'
+        scope_to_example 'entity.name.type'
+        scope_to_example 'entity.name.tag'
+        scope_to_example 'entity.other.attribute-name'
+
+        # support
+        scope_to_example 'support.function'
+        scope_to_example 'support.class'
+        scope_to_example 'support.type'
+        scope_to_example 'support.constant'
+        scope_to_example 'support.variable'
+
+        # punctuation
+        scope_to_example 'punctuation.definition'
+        scope_to_example 'punctuation.accessor'
+        scope_to_example 'punctuation.separator'
+        scope_to_example 'punctuation.terminator'
+
+        # invalid
+        scope_to_example 'invalid.illegal'
+        scope_to_example 'invalid.deprecated'
+
+        # markup
+        scope_to_example 'markup.bold'
+        scope_to_example 'markup.italic'
+        scope_to_example 'markup.heading'
+        scope_to_example 'markup.raw.inline'
+        scope_to_example 'markup.raw.block'
+        scope_to_example 'markup.list'
+        scope_to_example 'markup.quote'
+        scope_to_example 'markup.output'
+
+        # meta / embedded
+        scope_to_example 'meta.function.call'
+        scope_to_example 'meta.embedded.block.markdown'
+        scope_to_example 'meta.embedded'
+
+        scope_to_example 'string.template'
+        scope_to_example 'entity.name.namespace'
+        scope_to_example 'entity.name.label'
+        scope_to_example 'meta.preprocessor'
+        scope_to_example 'token.info-token'
+        scope_to_example 'token.warn-token'
+        scope_to_example 'token.error-token'
+        scope_to_example 'token.debug-token'
+
         rec:
           name: 'comment.line.hash.fink'
-          match: rx'#.*$'
+          begin: rx'#'
+          end: rx'$'
+          beginCaptures: rec:
+            '0': {name: 'punctuation.definition.comment.fink'}
+          patterns: list:
+            {include: '#comment_sl_content'}
 
         rec:
-          name: 'comment.block.documentation.fink'
-          begin: rx'(---)'
-          end: rx'(---)'
-
+          # inline comment: --- ... --- (opening --- must not be at line start)
+          name: 'comment.block.fink'
+          begin: rx'(?<!^)(---)'
+          end: rx'(---)|$'
           beginCaptures: rec:
             '1': {name: 'punctuation.definition.comment.begin.fink'}
-
           endCaptures: rec:
-            '0': {name: 'punctuation.definition.comment.end.fink'}
-
+            '1': {name: 'punctuation.definition.comment.end.fink'}
           patterns: list:
-            {include: '#comment_content'}
+            {include: '#comment_sl_content'}
+
+        rec:
+          # --- starts/ends a block comment; closing --- must match opening indentation
+          name: 'comment.block.fink'
+          begin: rx'^(\s*)(---)'
+          end: rx'^(\1(---))|(---)'
+          beginCaptures: rec:
+            '2': {name: 'punctuation.definition.comment.begin.fink'}
+          endCaptures: rec:
+            '2': {name: 'punctuation.definition.comment.end.fink'}
+            '3': {name: 'invalid.illegal.comment.fink'}
+          patterns: list:
+            {include: '#comment_ml_content'}
 
 
-    comment_content: rec:
+    comment_sl_content: rec:
       patterns: list:
         rec:
+          # inline code in single-line comments: `expr`
+          begin: rx'`'
+          end: rx'`'
+          contentName: 'meta.embedded.block.fink'
+          patterns: list:
+            {include: 'source.fink'}
+
+
+    comment_ml_content: rec:
+      patterns: list:
+        rec:
+          # fink code blocks inside block comments
           name: 'meta.embedded.block.fink'
           begin: '(```)'
           end: '(```)'
           patterns: list:
-            {include: '$base'}
+            {include: 'source.fink'}
 
 
-    block_like: rec:
+    template_block: rec:
+      patterns: list:
+        embedded_str_block 'fink'
+        rec:
+          name: 'meta.template-block.fink'
+          begin: rx'^(\s*)(.*)(")(:)\s*$'
+          while: '(^|\G)(\\1  |$)'
+          contentName: 'string.unquoted.fink'
+          beginCaptures: rec:
+            '2': rec:
+              patterns: list:
+                {include: '$base'}
+            '3': {name: 'string.unquoted.fink'}
+            '4': {name: 'punctuation.definition.block.fink'}
+          patterns: list:
+            {include: '#string_content'}
+
+    fink_block: rec:
       patterns: list:
         rec:
-          begin: rx'\b(fn|pipe|match|else|list|rec)\b'
-          end: '(:)'
-
-          contentName: 'meta.function.parameters'
-
+          name: 'meta.fink-block.fink'
+          begin: rx'^(\s*)(.*)(fink:)\s*$'
+          while: '(^|\\G)\\1  '
+          contentName: 'meta.fink-block.content.fink'
           beginCaptures: rec:
-            '1': {name: 'keyword.control.block.$1.fink'}
-
+            '2': rec:
+              patterns: list:
+                {include: '$base'}
+            '3': {name: 'keyword.control.fink'}
           patterns: list:
             {include: '$base'}
 
+    # --- control-flow keywords ---
 
-    operators: rec:
+    keywords: rec:
       patterns: list:
         rec:
-          match: rx'(?<!\.)\s*+\b(import)\b'
+          match: rx'(?<!\.)\b(import)\b'
           captures: rec:
-            '1': {name: 'keyword.control.module.$1.fink'}
+            '1': {name: 'keyword.control.import.fink'}
 
         rec:
-          match: rx'(?<!\.)\s*+\b(await)\b'
+          match: rx'(?<!\.)\b(await)\b'
           captures: rec:
-            '1': {name: 'keyword.control.flow.$1.fink'}
+            '1': {name: 'keyword.control.await.fink'}
 
         rec:
-          match: rx'(\b(not|and|or|in)\b)'
+          match: rx'(?<!\.)\b(yield)\b'
+          captures: rec:
+            '1': {name: 'keyword.control.yield.fink'}
+
+        rec:
+          match: rx'(?<!\.)\b(try)\b'
+          captures: rec:
+            '1': {name: 'keyword.control.try.fink'}
+
+    # --- language constants ---
+
+    language_constant: rec:
+      patterns: list:
+        rec:
+          match: rx'(?<!\.)\b(true|false)\b'
+          captures: rec:
+            '1': {name: 'constant.language.boolean.$1.fink'}
+
+
+    # --- builtin core types ---
+
+    builtin_types: rec:
+      patterns: list:
+        rec:
+          match: rx'(?<!\.)\b(u8|u16|u32|u64|i8|i16|i64|f16|f32|f64|num|int|uint|float|dec|str)\b'
+          captures: rec:
+            '1': {name: 'support.type.fink'}
+
+
+    # --- wildcards: _ matches everything without binding ---
+
+    wildcard: rec:
+      patterns: list:
+        rec:
+          # standalone _ not part of an identifier
+          match: rx'(?<![_$·\p{L}\p{N}])_(?![_$·\p{L}\p{N}])'
+          name: 'keyword.control.wildcard.fink'
+
+
+    # --- word operators: not in before not and in ---
+
+    operators_logical: rec:
+      patterns: list:
+        rec:
+          match: rx'\b(not\s+in)\b'
           name: 'keyword.operator.logical.fink'
 
         rec:
-          match: rx'=(?!(=))'
-          name: 'keyword.operator.assignment.fink'
+          match: rx'\b(not|and|or|xor|in)\b'
+          name: 'keyword.operator.logical.fink'
 
+
+    # --- symbolic operators: longest match first ---
+
+    operators_symbolic: rec:
+      patterns: list:
+
+        # right-hand binding
         rec:
-          match: rx'<=|>=|<|>'
-          name: 'keyword.operator.relational.fink'
+          match: rx'\|='
+          name: 'keyword.control.binding.fink'
 
+        # equality
         rec:
           match: rx'==|!='
           name: 'keyword.operator.comparison.fink'
 
+        # relational — >< (disjoint) before > and <
         rec:
-          match: rx'-|\+|%|\*|/|\^'
+          match: rx'<=|>=|><|<|>'
+          name: 'keyword.operator.relational.fink'
+
+        # arithmetic — multi-char before single-char
+        # /% before / and %; %% before %; ** before *; // before /
+        rec:
+          match: rx'/%|\*\*|%%|//'
           name: 'keyword.operator.arithmetic.fink'
 
+        # bit rotate/shift — longest first
         rec:
-          match: rx'\?' # TODO should this be surrounded by \b
+          match: rx'>>>|<<<|>>|<<'
+          name: 'keyword.operator.bitwise.fink'
+
+        # bitwise single-char
+        rec:
+          match: rx'[~&^]'
+          name: 'keyword.operator.bitwise.fink'
+
+        # range — ... before .. so inclusive is matched first; both before member dot
+        rec:
+          match: rx'\.\.\.'
+          name: 'keyword.operator.range.inclusive.fink'
+
+        rec:
+          match: rx'\.\.'
+          name: 'keyword.operator.range.exclusive.fink'
+
+        # arithmetic single-char
+        rec:
+          match: rx'[-+%*/]'
+          name: 'keyword.operator.arithmetic.fink'
+
+        # assignment — not followed by = (to avoid == being partially matched)
+        rec:
+          match: rx'=(?!=)'
+          name: 'keyword.operator.assignment.fink'
+
+
+        # partial application slot
+        rec:
+          match: rx'\?'
           name: 'keyword.control.partial.fink'
 
+        # member access: .name but not .. or ...
         rec:
-          match: rx'\|'
-          name: 'keyword.control.pipe.fink'
-
-        rec:
-          match: rx'\b_\b'
-          name: 'keyword.control.empty.fink'
-
-        rec:
-          match: rx'(?<!\.)(\.)([_$\p{L}][-_$\p{L}\p{N}]*)\b(?![:(])'
+          match: rx'(?<!\.)\.(?!\.)([_$·\p{L}][-_$·\p{L}\p{N}]*)\b(?![:(])'
           captures: rec:
-            '1': {name: 'punctuation.accessor.fink'}
-            '2': {name: 'meta.object-literal.key.fink'}
+            '0': {name: 'punctuation.accessor.fink'}
+            '1': {name: 'variable.other.property.fink'}
 
+    # --- block opener ---
+    # fn and match are the only named block keywords.
+    # The pattern highlights the keyword, captures the args up to the colon,
+    # and highlights the colon as a punctuation token.
+    # All other call-style blocks (foo ...:) fall through to #variable + operators.
+
+    block_opener: rec:
+      patterns: list:
+        rec:
+          begin: rx'\b(fn|match)\b'
+          end: rx'(:)'
+          contentName: 'meta.block.parameters.fink'
+          beginCaptures: rec:
+            '1': {name: 'keyword.control.block.$1.fink'}
+          endCaptures: rec:
+            '1': {name: 'punctuation.definition.block.fink'}
+          patterns: list:
+            {include: '$base'}
+
+
+    # --- numbers ---
+    # Patterns ordered: based literals before decimal int (longest match first)
 
     number: rec:
       patterns: list:
+
+        # hex: (0)(x)_?digits(tag)?
         rec:
-          match: rx'[0-9][\._a-fA-Fxoben+0-9-]*'
-          name: 'constant.numeric.fink'
+          match: rx'(0)(x)_?[0-9a-fA-F][0-9a-fA-F_]*([_$·\p{L}][-_$·\p{L}\p{N}]*)?'
+          name: 'constant.numeric.hex.fink'
+          captures: rec:
+            '1': {name: 'constant.numeric.hex.fink'}
+            '2': {name: 'constant.character.escape.fink'}
+            '3': {name: 'entity.name.tag.numeric.fink'}
+
+        # octal: (0)(o)_?digits(tag)?
+        rec:
+          match: rx'(0)(o)_?[0-7][0-7_]*([_$·\p{L}][-_$·\p{L}\p{N}]*)?'
+          name: 'constant.numeric.octal.fink'
+          captures: rec:
+            '1': {name: 'constant.numeric.octal.fink'}
+            '2': {name: 'constant.character.escape.fink'}
+            '3': {name: 'entity.name.tag.numeric.fink'}
+
+        # binary: (0)(b)_?digits(tag)?
+        rec:
+          match: rx'(0)(b)_?[01][01_]*([_$·\p{L}][-_$·\p{L}\p{N}]*)?'
+          name: 'constant.numeric.binary.fink'
+          captures: rec:
+            '1': {name: 'constant.numeric.binary.fink'}
+            '2': {name: 'constant.character.escape.fink'}
+            '3': {name: 'entity.name.tag.numeric.fink'}
+
+        # decimal float with d suffix: 1.0d  1.0d-100  (d required, not optional)
+        rec:
+          match: rx'[0-9][0-9_]*\.[0-9][0-9_]*((d)[+\-]?[0-9][0-9_]*|(d))([_$·\p{L}][-_$·\p{L}\p{N}]*)?'
+          name: 'constant.numeric.decimal.fink'
+          captures: rec:
+            '2': {name: 'constant.character.escape.fink'}
+            '3': {name: 'constant.character.escape.fink'}
+            '4': {name: 'entity.name.tag.numeric.fink'}
+
+        # float with optional e exponent: 1.0  1.0e100_000(tag)?
+        rec:
+          match: rx'[0-9][0-9_]*\.[0-9][0-9_]*((e)[+\-]?[0-9][0-9_]*)?([_$·\p{L}][-_$·\p{L}\p{N}]*)?'
+          name: 'constant.numeric.float.fink'
+          captures: rec:
+            '2': {name: 'constant.character.escape.fink'}
+            '3': {name: 'entity.name.tag.numeric.fink'}
+
+        # integer: 1_234_567(tag)?
+        rec:
+          match: rx'[0-9][0-9_]*([_$·\p{L}][-_$·\p{L}\p{N}]*)?'
+          name: 'constant.numeric.integer.fink'
+          captures: rec:
+            '1': {name: 'entity.name.tag.numeric.fink'}
 
 
-    variable: rec:
+    # --- regex literals: rx'...' ---
+
+    regex: rec:
       patterns: list:
         rec:
-          match: rx'\b([_$\p{L}][-_$\p{L}\p{N}]*)\b'
-          captures: rec:
-            '1': {name: 'variable.other.constant.fink'}
+          name: 'string.regexp.fink'
+          begin: rx'(rx)(\')'
+          end: rx'(\2)'
+          beginCaptures: rec:
+            '1': {name: 'keyword.other.regex-prefix.fink'}
+            '2': {name: 'punctuation.definition.regexp.begin.fink'}
+          endCaptures: rec:
+            '1': {name: 'punctuation.definition.regexp.end.fink'}
+          patterns: list:
+            {include: 'source.regexp.fink'}
 
+
+    # --- strings: optional-tag '...'---
+    # Tag prefix uses full ident pattern (not \w) so digits-only prefixes are rejected.
+    # regex must be matched before string so rx'...' is not consumed here.
+
+    string: rec:
+      patterns: list:
+        embedded_str 'css'
+        embedded_str 'sql'
+        embedded_str 'fink'
+        rec:
+          name: 'string.quoted.fink'
+          begin: rx"([_$·\p{L}][-_$·\p{L}\p{N}]*)?(\')"
+          end: rx'(\2)'
+          beginCaptures: rec:
+            '1': {name: 'entity.name.tag.string.fink'}
+            '2': {name: 'punctuation.definition.string.begin.fink'}
+          endCaptures: rec:
+            '1': {name: 'punctuation.definition.string.end.fink'}
+          patterns: list:
+            {include: '#string_content'}
+
+
+    string_content: rec:
+      patterns: list:
+        rec:
+          name: 'meta.interpolation.fink'
+          begin: rx'\${'
+          end: rx'}'
+          beginCaptures: rec:
+            '0': {name: 'punctuation.section.embedded.begin.fink'}
+          endCaptures: rec:
+            '0': {name: 'punctuation.section.embedded.end.fink'}
+          patterns: list:
+            {include: '$base'}
+
+        rec:
+          name: 'constant.character.escape.fink'
+          match: rx'\\[\\\'nrtbfv0]'
+
+        rec:
+          name: 'constant.character.escape.fink'
+          match: rx'\\\$\{'
+
+        rec:
+          # Unicode: \u{10_ff_ff} or \u10_ff_ff (underscores allowed as separators)
+          name: 'constant.character.escape.fink'
+          match: rx'\\u(\{[0-9a-fA-F][0-9a-fA-F_]*\}|[0-9a-fA-F][0-9a-fA-F_]*)'
+
+        rec:
+          name: 'constant.character.escape.fink'
+          match: rx'\\x[0-9a-fA-F]{2}'
+
+        rec:
+          # binary: \b01
+          name: 'constant.character.escape.fink'
+          match: rx'\\b[01]+'
+
+        rec:
+          name: 'invalid.illegal.escape.fink'
+          match: rx'\\.'
+
+
+    # --- sequences: [ ... ] ---
 
     array: rec:
-      name: 'meta.array-literal.fink'
+      name: 'meta.sequence.fink'
       begin: rx'\['
       end: rx'\]'
       patterns: list:
         {include: '$base'}
 
 
+    # --- records: { ... } ---
+
     obj_delimited: rec:
-      name: 'meta.object-literal.fink'
+      name: 'meta.record.fink'
       begin: rx'\{'
       end: rx'\}'
-
       patterns: list:
+        # shorthand: {foo, bar}
         rec:
-          name: 'meta.object.prop.shorthand'
-          match: rx'([_$\p{L}][-_$\p{L}\p{N}]*)\s*(?=,|\}|$)'
+          name: 'meta.record.prop.shorthand.fink'
+          match: rx'([_$·\p{L}][-_$·\p{L}\p{N}]*)\s*(?=,|\}|$)'
           captures: rec:
             '1': {name: 'variable.other.constant.fink'}
 
+        # key: value  — key highlighted as property
         rec:
-          name: 'meta.object.prop'
-          begin: rx'([_$\p{L}][-_$\p{L}\p{N}]*)\s*:'
+          name: 'meta.record.prop.fink'
+          begin: rx'([_$·\p{L}][-_$·\p{L}\p{N}]*)\s*(?=:)'
           end: rx'(?=,|\}|$)'
           beginCaptures: rec:
-            '_1': {name: 'support.type.property-name'}
-            '1': {name: 'meta.object-literal.key.fink'}
-
+            '1': {name: 'variable.other.property.fink'}
           patterns: list:
             {include: '$base'}
 
+        # key= default
         rec:
-          name: 'meta.object.prop.with-default'
-          begin: rx'([_$\p{L}][-_$\p{L}\p{N}]*)\s*='
+          name: 'meta.record.prop.default.fink'
+          begin: rx'([_$·\p{L}][-_$·\p{L}\p{N}]*)\s*(?==)'
           end: rx'(?=,|\}|$)'
           beginCaptures: rec:
             '1': {name: 'variable.other.constant.fink'}
-
           patterns: list:
             {include: '$base'}
 
+        # computed key: (expr): value
         rec:
-          name: 'meta.object.member'
+          name: 'meta.record.computed-key.fink'
           begin: rx'(?=\()'
           end: rx'(?=,|\}|$)'
           patterns: list:
             rec:
-              name: 'meta.object.member.computed-key.fink'
               begin: rx'\('
               end: rx'\)\s*(?=:)'
               patterns: list:
                 {include: '$base'}
-
             rec:
               begin: rx':'
               end: rx'(?=,|\}|$)'
               patterns: list:
                 {include: '$base'}
 
+        # spread: {..rest} or {..}
         rec:
-          name: 'meta.object.member'
-          begin: rx'(\.\.\.)'
+          name: 'meta.record.spread.fink'
+          begin: rx'\.\.'
           end: rx'(?=,|\}|$)'
           beginCaptures: rec:
-            '1': {name: 'keyword.operator.spread.fink'}
-
+            '0': {name: 'keyword.operator.spread.fink'}
           patterns: list:
             {include: '$base'}
 
@@ -222,82 +626,50 @@ lang = rec:
         {include: '#obj_delimited'}
 
 
-    string: rec:
+    # --- catch-all: any remaining identifier ---
+
+    # --- postfix tag after closing paren/bracket: (foo)min  [1, 2]px ---
+
+    postfix_tag: rec:
       patterns: list:
         rec:
-          name: 'string.quoted.template.fink'
-          begin: rx'(\w*)([\'"])'
-          end: rx'(\2)'
-          beginCaptures: rec:
-            '_1': {name: 'entity.name.function.tagged-string.fink'}
-            '1': {name: 'entity.name.tag.string.fink'}
-            '2': {name: 'punctuation.definition.string.begin.fink'}
-
-          endCaptures: rec:
-            '1': {name: 'punctuation.definition.string.end.fink'}
-
-          patterns: list:
-            {include: '#string_content'}
-
-
-    string_content: rec:
-      patterns: list:
-          rec:
-            name: 'constant.character.escape.quasi.element.fink'
-            begin: rx'\${'
-            end: rx'}'
-
-            beginCaptures: rec:
-              '0': {name: 'punctuation.definition.template-expression.begin.fink'}
-            endCaptures: rec:
-              '0': {name: 'punctuation.definition.template-expression.end.fink'}
-
-            patterns: list:
-              {include: '$base'}
-
-          rec:
-            name: 'constant.character.escape'
-            match: rx'\\[\\\'"nrtbfv0]'
-
-          rec:
-            name: 'constant.character.escape'
-            match: rx'\\\$\{'
-
-          rec:
-            name: 'constant.character.escape'
-            match: rx'\\u(({[0-9a-fA-F]+\})|[0-9a-fA-F]{4})'
-
-          rec:
-            name: 'constant.character.escape'
-            match: rx'\\x[0-9a-fA-F]{2}'
-
-          rec:
-            name: 'invalid'
-            match: rx'\\.'
-
-
-    regex: rec:
-      patterns: list:
-          rec:
-            name: 'string.regexp.fink'
-            begin: rx'(rx)([\'"])'
-            end: rx'(\2)'
-
-            beginCaptures: rec:
-              '1': {name: 'constant.regexp.fink'}
-              '_1': {name: 'keyword.operator.wordlike.fink'}
-              '2': {name: 'punctuation.definition.regexp.begin.fink'}
-
-            endCaptures: rec:
-              '1': {name: 'punctuation.definition.regexp.end.fink'}
-
-            patterns: list:
-              {include: 'source.regexp.fink'}
-
-
-    language_constant: rec:
-      patterns: list:
-        rec:
-          match: rx'(?<!\.)\s*+\b(true|false)\b'
+          match: rx'(?<=\)|\])([_$·\p{L}][-_$·\p{L}\p{N}]*)(?![_$·\p{L}\p{N}])'
           captures: rec:
-            '1': {name: 'constant.language.boolean.$1.fink'}
+            '1': {name: 'entity.name.tag.postfix.fink'}
+
+
+    # --- function calls ---
+    # Two heuristics:
+    # 1. after pipe: | foo  — the ident after | is always a function
+    # 2. ident followed by space + value-start — likely a call
+    # Both will have some false positives but cover the common cases.
+
+    function_call: rec:
+      patterns: list:
+
+        # after pipe: (|)(optional space)(fn-name)
+        rec:
+          match: rx'(\|(?!=))\s*([_$·\p{L}][-_$·\p{L}\p{N}]*)(?![_$·\p{L}\p{N}])'
+          captures: rec:
+            '1': {name: 'keyword.control.pipe.fink'}
+            '2': {name: 'entity.name.function.fink'}
+
+        # ident followed by space + value-start (number, string, ident, paren, array, record)
+        # exclude block keywords fn/match which are handled by block_opener
+        rec:
+          match: rx'(?!\b(?:fn|match|import|await|yield|try|not|and|or|xor|in)\b)([_$·\p{L}][-_$·\p{L}\p{N}]*)(?=\s+[_$·\p{L}0-9\'\(\[\{])'
+          captures: rec:
+            '1': {name: 'entity.name.function.fink'}
+
+        # bare pipe (no ident follows — e.g. end of line, or before operator); not |=
+        rec:
+          match: rx'\|(?!=)'
+          name: 'keyword.control.pipe.fink'
+
+
+    variable: rec:
+      patterns: list:
+        rec:
+          match: rx'(?<![_$·\p{L}])([_$·\p{L}][-_$·\p{L}\p{N}]*)(?![_$·\p{L}\p{N}])'
+          captures: rec:
+            '1': {name: 'variable.other.constant.fink'}

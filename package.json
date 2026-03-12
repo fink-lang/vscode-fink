@@ -36,11 +36,11 @@
           ".fnk"
         ],
         "firstLine": "^#!.*\\bfink",
-        "configuration": "./languages/fink.language-configuration.json"
+        "configuration": "./build/pkg/languages/fink.language-configuration.json"
       },
       {
         "id": "fink-jsx",
-        "configuration": "./languages/jsx.language-configuration.json"
+        "configuration": "./build/pkg/languages/jsx.language-configuration.json"
       }
     ],
     "grammars": [
@@ -60,53 +60,60 @@
       {
         "scopeName": "source.jsx.fink",
         "path": "./build/pkg/grammars/jsx.tmLanguage.json"
+      },
+      {
+        "scopeName": "markdown.fink.codeblock",
+        "path": "./build/pkg/grammars/fink-md.tmLanguage.json",
+        "injectTo": [
+          "text.html.markdown",
+          "source.fink"
+        ],
+        "embeddedLanguages": {
+          "meta.embedded.block.fink": "fink"
+        }
       }
     ],
     "breakpoints": [
       {
         "language": "fink"
       }
+    ],
+    "semanticTokenScopes": [
+      {
+        "language": "fink",
+        "scopes": {
+          "block-name": ["entity.name.namespace.fink"],
+          "tag-left": ["entity.name.tag.left.fink"],
+          "tag-right": ["entity.name.tag.right.fink"]
+        }
+      }
     ]
   },
   "scripts": {
-    "default": "run clean test build",
-    "cd": "run clean test build release",
     "clean": "rimraf ./build",
-    "build": "run build:*",
-    "build:dir": "mkdir -p ./build/pkg/grammars",
-    "build:rollup-config": "fnk --module-type esm --module-ext .mjs --src ./rollup.config.fnk --out-dir ./build/rollup/",
-    "build:bundle": "rollup -c ./build/rollup/rollup.config.mjs",
-    "build:files": "cp ./package.json ./README.md ./LICENSE ./build/pkg/",
+    "build": "npm run build:dir && npm run build:wasm && npm run build:ext && npm run build:grammars && npm run build:files && npm run build:languages",
+    "build:dir": "mkdir -p ./build/pkg/grammars ./build/pkg/wasm",
+    "build:wasm": "wasm-pack build --target web --out-dir build/pkg/wasm",
+    "build:ext": "esbuild src/extension.ts --bundle --outfile=build/pkg/extension.js --external:vscode --format=cjs --platform=node --sourcemap",
     "build:grammars": "node -r @fink/require-hook ./scripts/build-grammars.fnk",
+    "build:files": "cp ./package.json ./README.md ./LICENSE ./build/pkg/",
     "build:languages": "cp -r ./languages ./build/pkg/",
-    "test": "run jest",
-    "jest": "jest --verbose --runInBand --no-cache ",
-    "watch": "nodemon --watch ./src -e fnk  --exec \"npx run build\"",
+    "dist:local": "cp -r build/pkg/* ~/.vscode/extensions/fink.vscode-fink-6.2.0/build/pkg/",
     "release": "semantic-release"
   },
   "devDependencies": {
-    "@babel/preset-env": "^7.12.1",
     "@fink/cli": "^8.3.0",
-    "@fink/jest": "^7.3.1",
     "@fink/js-interop": "^3.1.1",
     "@fink/larix": "^20.0.0",
     "@fink/loxia": "^23.0.2",
     "@fink/require-hook": "^6.2.0",
-    "@fink/rollup": "^1.3.0",
     "@fink/std-lib": "^8.5.0",
-    "@rollup/plugin-commonjs": "^21.0.1",
-    "@rollup/plugin-json": "^4.1.0",
-    "@rollup/plugin-node-resolve": "^13.0.0",
-    "@semantic-release/exec": "^6.0.3",
-    "@vscode/test-web": "^0.0.15",
-    "commitizen": "^4.2.1",
-    "cz-conventional-changelog": "^3.3.0",
-    "jest-cli": "^27.0.0",
-    "nodemon": "^2.0.6",
-    "npx-run": "^2.1.2",
-    "rollup": "^2.32.0",
-    "semantic-release": "^18.0.0",
-    "semantic-release-vsce": "^3.0.1"
+    "@semantic-release/exec": "^7.0.0",
+    "@types/vscode": "^1.50.0",
+    "esbuild": "^0.25.0",
+    "semantic-release": "^25.0.0",
+    "semantic-release-vsce": "^6.0.0",
+    "typescript": "^5.4.0"
   },
   "config": {
     "commitizen": {

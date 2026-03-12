@@ -5,6 +5,7 @@
 {lang: fink} = import '../grammars/fink.fnk'
 {lang: regex} = import '../grammars/regex.fnk'
 {lang: jsx} = import '../grammars/jsx.fnk'
+{lang: md} = import '../grammars/fink-md.fnk'
 
 
 build = fn lang, filename:
@@ -18,4 +19,6 @@ build fink, './build/pkg/grammars/fink.tmLanguage.json'
 build regex, './build/pkg/grammars/regex.tmLanguage.json'
 
 build jsx, './build/pkg/grammars/jsx.tmLanguage.json'
+
+build md, './build/pkg/grammars/fink-md.tmLanguage.json'
 
