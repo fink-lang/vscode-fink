@@ -208,7 +208,7 @@ lang = {
         {
           name: 'constant.character.escape.backslash.regexp'
           match: rx'\\(
-              \[|\]|\{|\}|\(|\)|\?|-|\+|\*|\||\$|\^|\.|\||\\|\'|"
+              \[|\]|\{|\}|\(|\)|\?|-|\+|\*|\||\$|\^|\.|\||\\|\'
             )'
           captures: {
             '1': {name: 'constant.character.set.regexp'}

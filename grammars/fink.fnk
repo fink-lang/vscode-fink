@@ -6,7 +6,7 @@ seq = fn ...l: l
 embedded_str = fn lang:
   {
     name: 'string.tagged.${lang}.fink'
-    begin: rx"\b(${lang})(')"
+    begin: rx'\b(${lang})(\')'
     end: rx'(\2)'
     contentName: 'meta.embedded.block.markdown.${lang}.fink',
     beginCaptures: {
@@ -578,7 +578,7 @@ lang = {
         embedded_str 'fink'
         {
           name: 'string.quoted.fink'
-          begin: rx"([_$·\p{L}][-_$·\p{L}\p{N}]*)?(\')"
+          begin: rx'([_$·\p{L}][-_$·\p{L}\p{N}]*)?(\')'
           end: rx'(\2)'
           beginCaptures: {
             '1': {name: 'entity.name.tag.string.fink'}
