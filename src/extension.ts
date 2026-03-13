@@ -9,6 +9,7 @@ const legend = new vscode.SemanticTokensLegend(tokenTypes, tokenModifiers);
 let get_semantic_tokens: (src: string) => Uint32Array;
 let get_diagnostics: (src: string) => string;
 let get_definition: (src: string, line: number, col: number) => Uint32Array;
+let get_references: (src: string, line: number, col: number) => Uint32Array;
 let debug = false;
 
 async function loadWasm(context: vscode.ExtensionContext): Promise<void> {
@@ -30,6 +31,7 @@ async function loadWasm(context: vscode.ExtensionContext): Promise<void> {
   get_semantic_tokens = wasmModule.get_semantic_tokens;
   get_diagnostics = wasmModule.get_diagnostics;
   get_definition = wasmModule.get_definition;
+  get_references = wasmModule.get_references;
 }
 
 interface DiagnosticEntry {
@@ -83,6 +85,73 @@ const definitionProvider: vscode.DefinitionProvider = {
   }
 };
 
+// Reference provider: calls get_references(src, line, col) which returns
+// [line, col, end_line, end_col, ...] (4 u32s per location) or empty.
+const referenceProvider: vscode.ReferenceProvider = {
+  provideReferences(
+    document: vscode.TextDocument,
+    position: vscode.Position
+  ): vscode.Location[] | undefined {
+    if (!get_references) return undefined;
+
+    const src = document.getText();
+    if (debug) console.time('fink:references');
+    const data = get_references(src, position.line, position.character);
+    if (debug) console.timeEnd('fink:references');
+
+    if (data.length === 0) return undefined;
+
+    const locations: vscode.Location[] = [];
+    for (let i = 0; i < data.length; i += 4) {
+      const range = new vscode.Range(data[i], data[i + 1], data[i + 2], data[i + 3]);
+      locations.push(new vscode.Location(document.uri, range));
+    }
+    return locations;
+  }
+};
+
+// Rename provider: reuses get_references to find all locations, then replaces each.
+const renameProvider: vscode.RenameProvider = {
+  prepareRename(
+    document: vscode.TextDocument,
+    position: vscode.Position
+  ): vscode.Range | undefined {
+    if (!get_references) return undefined;
+
+    const src = document.getText();
+    const data = get_references(src, position.line, position.character);
+    if (data.length === 0) return undefined;
+
+    // Find the reference range that contains the cursor position
+    for (let i = 0; i < data.length; i += 4) {
+      const range = new vscode.Range(data[i], data[i + 1], data[i + 2], data[i + 3]);
+      if (range.contains(position)) {
+        return range;
+      }
+    }
+    return undefined;
+  },
+
+  provideRenameEdits(
+    document: vscode.TextDocument,
+    position: vscode.Position,
+    newName: string
+  ): vscode.WorkspaceEdit | undefined {
+    if (!get_references) return undefined;
+
+    const src = document.getText();
+    const data = get_references(src, position.line, position.character);
+    if (data.length === 0) return undefined;
+
+    const edit = new vscode.WorkspaceEdit();
+    for (let i = 0; i < data.length; i += 4) {
+      const range = new vscode.Range(data[i], data[i + 1], data[i + 2], data[i + 3]);
+      edit.replace(document.uri, range, newName);
+    }
+    return edit;
+  }
+};
+
 const provider: vscode.DocumentSemanticTokensProvider = {
   provideDocumentSemanticTokens(document: vscode.TextDocument): vscode.SemanticTokens {
     const src = document.getText();
@@ -105,6 +174,14 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
   context.subscriptions.push(
     vscode.languages.registerDefinitionProvider('fink', definitionProvider)
+  );
+
+  context.subscriptions.push(
+    vscode.languages.registerReferenceProvider('fink', referenceProvider)
+  );
+
+  context.subscriptions.push(
+    vscode.languages.registerRenameProvider('fink', renameProvider)
   );
 
   context.subscriptions.push(diagnosticCollection);

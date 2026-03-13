@@ -17,7 +17,7 @@ checksum = "9330f8b2ff13f34540b44e946ef35111825727b38d33286ef986142615121801"
 [[package]]
 name = "fink"
 version = "0.1.0"
-source = "git+ssh://git@github.com/fink-lang/fink.git?branch=name-resolution#7daf5d528c3bf8c04938f7123142faa8e56a979b"
+source = "git+ssh://git@github.com/fink-lang/fink.git?branch=name-resolution#7dcc69cfa8a57e0820b1659e363e7b77ae7c8c4b"
 
 [[package]]
 name = "fink-wasm"

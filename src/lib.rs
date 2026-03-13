@@ -5,7 +5,7 @@ use fink::lexer::{self, TokenKind};
 use fink::parser;
 use fink::passes::cps::ir::CpsId;
 use fink::passes::cps::transform::lower_expr;
-use fink::passes::name_res;
+use fink::passes::name_res::{self, Resolution};
 
 // Token type indices (must match TypeScript legend)
 const TOKEN_FUNCTION: u32 = 0;
@@ -295,55 +295,77 @@ pub fn get_diagnostics(src: &str) -> String {
     format!("[{}]", entries.join(","))
 }
 
-/// Look up the definition site for the identifier at (line, col).
-/// Lines are 0-based (VSCode convention), converted to 1-based for the parser.
-/// Returns [def_line, def_col, def_end_line, def_end_col] or empty if no definition found.
-#[wasm_bindgen]
-pub fn get_definition(src: &str, line: u32, col: u32) -> Vec<u32> {
-    let result = match parser::parse(src) {
-        Ok(result) => result,
-        Err(_) => return vec![],
-    };
-
-    // Convert 0-based VSCode line to 1-based parser line
-    let target_line = line + 1;
-    let target_col = col;
-
-    // Find the AST node at the cursor position
-    let ast_index = ast::build_index(&result);
-    let ast_count = ast_index.len();
-    let mut target_ast_id = None;
-    for i in 0..ast_count {
-        let id = ast::AstId(i as u32);
-        let Some(node) = *ast_index.get(id) else { continue };
-        if !matches!(&node.kind, NodeKind::Ident(_)) { continue }
-        let loc = &node.loc;
-        if loc.start.line == target_line && loc.start.col <= target_col && target_col < loc.end.col {
-            target_ast_id = Some(id);
-            break;
-        }
+/// Extract the bind CpsId from a Resolution variant.
+fn resolution_bind_id(res: &Option<Resolution>) -> Option<CpsId> {
+    match res {
+        Some(Resolution::Local(id))
+        | Some(Resolution::Captured { bind: id, .. })
+        | Some(Resolution::Recursive(id)) => Some(*id),
+        _ => None,
     }
-    let Some(target_ast_id) = target_ast_id else { return vec![] };
+}
 
-    let cps = lower_expr(&result.root);
-    let node_count = cps.origin.len();
+/// Parse, find Ident at cursor, lower to CPS, run name resolution, and find
+/// the binding CpsId. Emits bindings directly into the caller's scope so that
+/// borrows from the parse result live long enough.
+/// If the cursor is on a reference, resolves it. If on a binding site, uses it directly.
+macro_rules! resolve_bind_at {
+    ($src:expr, $line:expr, $col:expr => $ast_index:ident, $cps:ident, $resolved:ident, $bind_cps_id:ident) => {
+        let result = match parser::parse($src) {
+            Ok(r) => r,
+            Err(_) => return vec![],
+        };
+        let target_line = $line + 1;
 
-    // Find the CPS node originating from our AST node
-    let mut target_cps_id = None;
-    for i in 0..node_count {
-        let cps_id = CpsId(i as u32);
-        if let Some(ast_id) = *cps.origin.get(cps_id) {
-            if ast_id == target_ast_id {
-                target_cps_id = Some(cps_id);
+        let $ast_index = ast::build_index(&result);
+        let ast_count = $ast_index.len();
+        let mut target_ast_id = None;
+        for i in 0..ast_count {
+            let id = ast::AstId(i as u32);
+            let Some(node) = *$ast_index.get(id) else { continue };
+            if !matches!(&node.kind, NodeKind::Ident(_)) { continue }
+            let loc = &node.loc;
+            if loc.start.line == target_line && loc.start.col <= $col && $col < loc.end.col {
+                target_ast_id = Some(id);
                 break;
             }
         }
-    }
-    let Some(target_cps_id) = target_cps_id else { return vec![] };
+        let Some(target_ast_id) = target_ast_id else { return vec![] };
 
-    // Resolve name and trace back to source location
-    let resolved = name_res::resolve(&cps.root, &cps.origin, &ast_index, node_count);
-    let Some(bind_cps_id) = *resolved.resolves_to.get(target_cps_id) else { return vec![] };
+        let $cps = lower_expr(&result.root);
+        let node_count = $cps.origin.len();
+
+        let mut target_cps_id = None;
+        for i in 0..node_count {
+            let cps_id = CpsId(i as u32);
+            if let Some(ast_id) = *$cps.origin.get(cps_id) {
+                if ast_id == target_ast_id {
+                    target_cps_id = Some(cps_id);
+                    break;
+                }
+            }
+        }
+        let Some(target_cps_id) = target_cps_id else { return vec![] };
+
+        let $resolved = name_res::resolve(&$cps.root, &$cps.origin, &$ast_index, node_count);
+
+        // Find the binding CpsId: try as reference first, then as binding site
+        let $bind_cps_id = if let Some(id) = resolution_bind_id($resolved.resolution.get(target_cps_id)) {
+            id
+        } else if $resolved.bind_scope.get(target_cps_id).is_some() {
+            target_cps_id
+        } else {
+            return vec![];
+        };
+    };
+}
+
+/// Look up the definition site for the identifier at (line, col).
+/// Returns [def_line, def_col, def_end_line, def_end_col] or empty if no definition found.
+#[wasm_bindgen]
+pub fn get_definition(src: &str, line: u32, col: u32) -> Vec<u32> {
+    resolve_bind_at!(src, line, col => ast_index, cps, _resolved, bind_cps_id);
+
     let Some(bind_ast_id) = *cps.origin.get(bind_cps_id) else { return vec![] };
     let Some(bind_node) = *ast_index.get(bind_ast_id) else { return vec![] };
 
@@ -352,6 +374,47 @@ pub fn get_definition(src: &str, line: u32, col: u32) -> Vec<u32> {
         b.start.line.saturating_sub(1), b.start.col,
         b.end.line.saturating_sub(1), b.end.col,
     ]
+}
+
+/// Find all references to the identifier at (line, col), including the binding site.
+/// Returns [line, col, end_line, end_col, ...] (4 u32s per location) or empty.
+#[wasm_bindgen]
+pub fn get_references(src: &str, line: u32, col: u32) -> Vec<u32> {
+    resolve_bind_at!(src, line, col => ast_index, cps, resolved, bind_cps_id);
+
+    let mut locs = Vec::new();
+    let node_count = cps.origin.len();
+
+    // Include the binding site itself
+    if let Some(ast_id) = *cps.origin.get(bind_cps_id) {
+        if let Some(node) = *ast_index.get(ast_id) {
+            let b = &node.loc;
+            locs.push(b.start.line.saturating_sub(1));
+            locs.push(b.start.col);
+            locs.push(b.end.line.saturating_sub(1));
+            locs.push(b.end.col);
+        }
+    }
+
+    // Find all references that resolve to this binding
+    for i in 0..node_count {
+        let cps_id = CpsId(i as u32);
+        if let Some(id) = resolution_bind_id(resolved.resolution.get(cps_id)) {
+            if id == bind_cps_id {
+                if let Some(ast_id) = *cps.origin.get(cps_id) {
+                    if let Some(node) = *ast_index.get(ast_id) {
+                        let b = &node.loc;
+                        locs.push(b.start.line.saturating_sub(1));
+                        locs.push(b.start.col);
+                        locs.push(b.end.line.saturating_sub(1));
+                        locs.push(b.end.col);
+                    }
+                }
+            }
+        }
+    }
+
+    locs
 }
 
 #[wasm_bindgen]
