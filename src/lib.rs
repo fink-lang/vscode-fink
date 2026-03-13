@@ -1,6 +1,7 @@
 use wasm_bindgen::prelude::*;
 
 use fink::ast::{Node, NodeKind};
+use fink::lexer::{self, TokenKind};
 use fink::parser;
 
 // Token type indices (must match TypeScript legend)
@@ -247,6 +248,43 @@ fn delta_encode(mut tokens: Vec<RawToken>) -> Vec<u32> {
     }
 
     result
+}
+
+/// Run the lexer and parser, collect all errors as diagnostics.
+/// Returns a JSON array: [{"line":0,"col":0,"endLine":0,"endCol":1,"message":"...","source":"lexer"|"parser"}, ...]
+/// Lines are 0-based to match VSCode conventions.
+#[wasm_bindgen]
+pub fn get_diagnostics(src: &str) -> String {
+    let mut entries: Vec<String> = Vec::new();
+
+    // Lexer errors
+    let lexer = lexer::tokenize(src);
+    for tok in lexer {
+        if tok.kind == TokenKind::Err {
+            let line = tok.loc.start.line.saturating_sub(1);
+            let col = tok.loc.start.col;
+            let end_line = tok.loc.end.line.saturating_sub(1);
+            let end_col = tok.loc.end.col;
+            let msg = tok.src.replace('\\', "\\\\").replace('"', "\\\"");
+            entries.push(format!(
+                r#"{{"line":{line},"col":{col},"endLine":{end_line},"endCol":{end_col},"message":"{msg}","source":"lexer"}}"#
+            ));
+        }
+    }
+
+    // Parser error
+    if let Err(e) = parser::parse(src) {
+        let line = e.loc.start.line.saturating_sub(1);
+        let col = e.loc.start.col;
+        let end_line = e.loc.end.line.saturating_sub(1);
+        let end_col = e.loc.end.col;
+        let msg = e.message.replace('\\', "\\\\").replace('"', "\\\"");
+        entries.push(format!(
+            r#"{{"line":{line},"col":{col},"endLine":{end_line},"endCol":{end_col},"message":"{msg}","source":"parser"}}"#
+        ));
+    }
+
+    format!("[{}]", entries.join(","))
 }
 
 #[wasm_bindgen]

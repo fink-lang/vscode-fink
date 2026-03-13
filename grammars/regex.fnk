@@ -1,11 +1,13 @@
 {rx} = import './utils.fnk'
 
+seq = fn ...l: l
 
-lang = rec:
+
+lang = {
   name: 'Fink Regular Expressions'
   scopeName: 'source.regexp.fink'
   fileTypes: []
-  patterns: list:
+  patterns: seq
     {include: '#templ_expr'}
     {include: '#anchor'}
     {include: '#backref'}
@@ -17,44 +19,51 @@ lang = rec:
     {include: '#character_class'}
     {include: '#comments'}
 
-  repository: rec:
-    comments: rec:
-        patterns: list:
-          rec:
-            name: 'comment.line.hash.fink'
-            match: rx'(?<=\s+)#.+$'
+  repository: {
+    comments: {
+      patterns: seq
+        {
+          name: 'comment.line.hash.fink'
+          match: rx'(?<=\s+)#.+$'
+        }
+    }
 
 
-    templ_expr: rec:
+    templ_expr: {
       name: 'constant.character.escape.quasi.element.fink'
       begin: rx'(\${)'
       end: rx'(})'
 
-      beginCaptures: rec:
+      beginCaptures: {
         '0': {name: 'punctuation.definition.template-expression.begin.fink'}
-      endCaptures: rec:
+      }
+      endCaptures: {
         '0': {name: 'punctuation.definition.template-expression.end.fink'}
+      }
 
 
-      patterns: list:
+      patterns: seq
         {include: 'source.fink'}
+    }
 
 
-    character_class_definition: rec:
-      patterns: list:
-        rec:
+    character_class_definition: {
+      patterns: seq
+        {
           name: 'constant.other.character-class.set.regexp'
           begin: rx'(\[)(\^)?'
           end: rx'(\])'
-          beginCaptures: rec:
+          beginCaptures: {
             '1': {name: 'punctuation.definition.character-class.regexp'}
             '2': {name: 'keyword.operator.negation.regexp'}
+          }
 
-          endCaptures: rec:
+          endCaptures: {
             '1': {name: 'punctuation.definition.character-class.regexp'}
+          }
 
-          patterns: list:
-            rec:
+          patterns: seq
+            {
               name: 'constant.other.character-class.range.regexp'
               match: rx'
                 (
@@ -86,7 +95,7 @@ lang = rec:
                     |([^\]\s])
                   )
                 )'
-              captures: rec:
+              captures: {
                 '2': {name: 'constant.character.escape.backslash.regexp'}
                 '3': {name: 'constant.character.escape.backslash.regexp'}
                 '5': {name: 'constant.character.regexp'}
@@ -94,102 +103,127 @@ lang = rec:
                 '8': {name: 'constant.character.escape.backslash.regexp'}
                 '9': {name: 'constant.character.escape.backslash.regexp'}
                 '11': {name: 'constant.character.regexp'}
+              }
+            }
 
             {include: '#character_class'}
+        }
+    }
 
 
-    group_assertion: rec:
-      patterns: list:
-        rec:
+    group_assertion: {
+      patterns: seq
+        {
           begin: rx'(\()((\?=)|(\?!)|(\?<=)|(\?<!))'
           end: rx'(\))'
           name: 'meta.group.assertion.regexp'
 
-          beginCaptures: rec:
+          beginCaptures: {
             '1': {name: 'punctuation.definition.group.regexp'}
             '2': {name: 'punctuation.definition.group.assertion.regexp'}
             '3': {name: 'meta.assertion.look-ahead.regexp'}
             '4': {name: 'meta.assertion.negative-look-ahead.regexp'}
             '5': {name: 'meta.assertion.look-behind.regexp'}
             '6': {name: 'meta.assertion.negative-look-behind.regexp'}
+          }
 
-          endCaptures: rec:
+          endCaptures: {
             '1': {name: 'punctuation.definition.group.regexp'}
+          }
 
-          patterns: list:
+          patterns: seq
             {include: '$self'}
+        }
+    }
 
 
-    anchor: rec:
-      patterns: list:
-        rec:
+    anchor: {
+      patterns: seq
+        {
           name: 'keyword.control.anchor.regexp'
           match: rx'\\[bB]|\^|\$'
+        }
+    }
 
 
-    operator: rec:
-      patterns: list:
-        rec:
+    operator: {
+      patterns: seq
+        {
           name: 'keyword.operator.or.regexp'
           match: rx'\|'
+        }
+    }
 
 
-    group_definition: rec:
-      patterns: list:
-        rec:
+    group_definition: {
+      patterns: seq
+        {
           begin: rx'(\()((\?:)|(\?(<\w+>)))?'
           end: rx'(\))'
           name: 'meta.group.regexp'
-          endCaptures: rec:
+          endCaptures: {
             '1': {name: 'punctuation.definition.group.regexp'}
+          }
 
-          beginCaptures: rec:
+          beginCaptures: {
             '1': {name: 'punctuation.definition.group.regexp'}
             '3': {name: 'punctuation.definition.group.capture.regexp'}
             '5': {name: 'support.type.property-name'}
+          }
 
-          patterns: list:
+          patterns: seq
             {include: '$self'}
+        }
+    }
 
 
-    quantifier: rec:
-      patterns: list:
-        rec:
+    quantifier: {
+      patterns: seq
+        {
           name: 'keyword.operator.quantifier.regexp'
           match: rx'
             (\?|\*\??|\+\??)
             |
             \{(\d+,\d+|\d+,|\d+)\}'
+        }
+    }
 
 
-    backref: rec:
-      patterns: list:
-        rec:
+    backref: {
+      patterns: seq
+        {
           name: 'keyword.other.back-reference.regexp'
           match: rx'\\[1-9][0-9]*'
+        }
+    }
 
 
-    character_class: rec:
-      patterns: list:
-        rec:
+    character_class: {
+      patterns: seq
+        {
           name: 'constant.character.escape.backslash.regexp'
           match: rx'\\[wWsSdD]'
+        }
 
-        rec:
+        {
           name: 'constant.character.escape.backslash.regexp'
           match: rx'\\(
               \[|\]|\{|\}|\(|\)|\?|-|\+|\*|\||\$|\^|\.|\||\\|\'|"
             )'
-          captures: rec:
+          captures: {
             '1': {name: 'constant.character.set.regexp'}
+          }
+        }
 
-        rec:
+        {
           name: 'constant.character.escape.backslash.regexp'
           match: rx'\\k(<\w+?>)'
-          captures: rec:
+          captures: {
             '1': {name: 'support.type.property-name'}
+          }
+        }
 
-        rec:
+        {
           match: rx'
             (\\
               (
@@ -202,6 +236,11 @@ lang = rec:
                 |(.)
               )
             )'
-          captures: rec:
+          captures: {
             '1': {name: 'constant.character.escape.backslash.regexp'}
             '3': {name: 'invalid'}
+          }
+        }
+    }
+  }
+}
