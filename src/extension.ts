@@ -8,6 +8,7 @@ const legend = new vscode.SemanticTokensLegend(tokenTypes, tokenModifiers);
 // WASM module — initialized in activate()
 let get_semantic_tokens: (src: string) => Uint32Array;
 let get_diagnostics: (src: string) => string;
+let get_definition: (src: string, line: number, col: number) => Uint32Array;
 let debug = false;
 
 async function loadWasm(context: vscode.ExtensionContext): Promise<void> {
@@ -28,6 +29,7 @@ async function loadWasm(context: vscode.ExtensionContext): Promise<void> {
   await wasmModule.default(wasmBytes.buffer);
   get_semantic_tokens = wasmModule.get_semantic_tokens;
   get_diagnostics = wasmModule.get_diagnostics;
+  get_definition = wasmModule.get_definition;
 }
 
 interface DiagnosticEntry {
@@ -58,6 +60,29 @@ function updateDiagnostics(document: vscode.TextDocument): void {
   diagnosticCollection.set(document.uri, diagnostics);
 }
 
+// Definition provider: calls get_definition(src, line, col) which returns
+// [def_line, def_col, def_end_line, def_end_col] or empty if no definition found.
+const definitionProvider: vscode.DefinitionProvider = {
+  provideDefinition(
+    document: vscode.TextDocument,
+    position: vscode.Position
+  ): vscode.Definition | undefined {
+    if (!get_definition) return undefined;
+
+    const src = document.getText();
+    if (debug) console.time('fink:definition');
+    const data = get_definition(src, position.line, position.character);
+    if (debug) console.timeEnd('fink:definition');
+
+    if (data.length === 4) {
+      const defRange = new vscode.Range(data[0], data[1], data[2], data[3]);
+      return new vscode.Location(document.uri, defRange);
+    }
+
+    return undefined;
+  }
+};
+
 const provider: vscode.DocumentSemanticTokensProvider = {
   provideDocumentSemanticTokens(document: vscode.TextDocument): vscode.SemanticTokens {
     const src = document.getText();
@@ -76,6 +101,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.languages.registerDocumentSemanticTokensProvider(
       'fink', provider, legend
     )
+  );
+
+  context.subscriptions.push(
+    vscode.languages.registerDefinitionProvider('fink', definitionProvider)
   );
 
   context.subscriptions.push(diagnosticCollection);

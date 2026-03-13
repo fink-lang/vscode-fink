@@ -1,8 +1,11 @@
 use wasm_bindgen::prelude::*;
 
-use fink::ast::{Node, NodeKind};
+use fink::ast::{self, Node, NodeKind};
 use fink::lexer::{self, TokenKind};
 use fink::parser;
+use fink::passes::cps::ir::CpsId;
+use fink::passes::cps::transform::lower_expr;
+use fink::passes::name_res;
 
 // Token type indices (must match TypeScript legend)
 const TOKEN_FUNCTION: u32 = 0;
@@ -257,8 +260,13 @@ fn delta_encode(mut tokens: Vec<RawToken>) -> Vec<u32> {
 pub fn get_diagnostics(src: &str) -> String {
     let mut entries: Vec<String> = Vec::new();
 
-    // Lexer errors
-    let lexer = lexer::tokenize(src);
+    // Lexer errors — must register operators to avoid false Err tokens
+    let lexer = lexer::tokenize_with_seps(src, &[
+        b"+", b"-", b"*", b"/", b"//", b"**", b"%", b"%%", b"/%",
+        b"==", b"!=", b"<", b"<=", b">", b">=", b"><",
+        b"&", b"^", b"~", b">>", b"<<", b">>>", b"<<<",
+        b".", b"|", b"|=", b"=", b"..", b"...",
+    ]);
     for tok in lexer {
         if tok.kind == TokenKind::Err {
             let line = tok.loc.start.line.saturating_sub(1);
@@ -285,6 +293,65 @@ pub fn get_diagnostics(src: &str) -> String {
     }
 
     format!("[{}]", entries.join(","))
+}
+
+/// Look up the definition site for the identifier at (line, col).
+/// Lines are 0-based (VSCode convention), converted to 1-based for the parser.
+/// Returns [def_line, def_col, def_end_line, def_end_col] or empty if no definition found.
+#[wasm_bindgen]
+pub fn get_definition(src: &str, line: u32, col: u32) -> Vec<u32> {
+    let result = match parser::parse(src) {
+        Ok(result) => result,
+        Err(_) => return vec![],
+    };
+
+    // Convert 0-based VSCode line to 1-based parser line
+    let target_line = line + 1;
+    let target_col = col;
+
+    // Find the AST node at the cursor position
+    let ast_index = ast::build_index(&result);
+    let ast_count = ast_index.len();
+    let mut target_ast_id = None;
+    for i in 0..ast_count {
+        let id = ast::AstId(i as u32);
+        let Some(node) = *ast_index.get(id) else { continue };
+        if !matches!(&node.kind, NodeKind::Ident(_)) { continue }
+        let loc = &node.loc;
+        if loc.start.line == target_line && loc.start.col <= target_col && target_col < loc.end.col {
+            target_ast_id = Some(id);
+            break;
+        }
+    }
+    let Some(target_ast_id) = target_ast_id else { return vec![] };
+
+    let cps = lower_expr(&result.root);
+    let node_count = cps.origin.len();
+
+    // Find the CPS node originating from our AST node
+    let mut target_cps_id = None;
+    for i in 0..node_count {
+        let cps_id = CpsId(i as u32);
+        if let Some(ast_id) = *cps.origin.get(cps_id) {
+            if ast_id == target_ast_id {
+                target_cps_id = Some(cps_id);
+                break;
+            }
+        }
+    }
+    let Some(target_cps_id) = target_cps_id else { return vec![] };
+
+    // Resolve name and trace back to source location
+    let resolved = name_res::resolve(&cps.root, &cps.origin, &ast_index, node_count);
+    let Some(bind_cps_id) = *resolved.resolves_to.get(target_cps_id) else { return vec![] };
+    let Some(bind_ast_id) = *cps.origin.get(bind_cps_id) else { return vec![] };
+    let Some(bind_node) = *ast_index.get(bind_ast_id) else { return vec![] };
+
+    let b = &bind_node.loc;
+    vec![
+        b.start.line.saturating_sub(1), b.start.col,
+        b.end.line.saturating_sub(1), b.end.col,
+    ]
 }
 
 #[wasm_bindgen]
