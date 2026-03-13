@@ -110,6 +110,31 @@ const referenceProvider: vscode.ReferenceProvider = {
   }
 };
 
+// Document highlight provider: highlights all occurrences of the symbol under cursor.
+// The first entry from get_references is the binding site (Write), rest are reads.
+const documentHighlightProvider: vscode.DocumentHighlightProvider = {
+  provideDocumentHighlights(
+    document: vscode.TextDocument,
+    position: vscode.Position
+  ): vscode.DocumentHighlight[] | undefined {
+    if (!get_references) return undefined;
+
+    const src = document.getText();
+    const data = get_references(src, position.line, position.character);
+    if (data.length === 0) return undefined;
+
+    const highlights: vscode.DocumentHighlight[] = [];
+    for (let i = 0; i < data.length; i += 4) {
+      const range = new vscode.Range(data[i], data[i + 1], data[i + 2], data[i + 3]);
+      const kind = i === 0
+        ? vscode.DocumentHighlightKind.Write
+        : vscode.DocumentHighlightKind.Read;
+      highlights.push(new vscode.DocumentHighlight(range, kind));
+    }
+    return highlights;
+  }
+};
+
 // Rename provider: reuses get_references to find all locations, then replaces each.
 const renameProvider: vscode.RenameProvider = {
   prepareRename(
@@ -178,6 +203,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
   context.subscriptions.push(
     vscode.languages.registerReferenceProvider('fink', referenceProvider)
+  );
+
+  context.subscriptions.push(
+    vscode.languages.registerDocumentHighlightProvider('fink', documentHighlightProvider)
   );
 
   context.subscriptions.push(
