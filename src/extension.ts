@@ -40,7 +40,8 @@ interface DiagnosticEntry {
   endLine: number;
   endCol: number;
   message: string;
-  source: 'lexer' | 'parser';
+  source: 'lexer' | 'parser' | 'name_res';
+  severity: 'error' | 'warning';
 }
 
 const diagnosticCollection = vscode.languages.createDiagnosticCollection('fink');
@@ -54,7 +55,10 @@ function updateDiagnostics(document: vscode.TextDocument): void {
 
   const diagnostics = entries.map(e => {
     const range = new vscode.Range(e.line, e.col, e.endLine, e.endCol);
-    const diag = new vscode.Diagnostic(range, e.message, vscode.DiagnosticSeverity.Error);
+    const severity = e.severity === 'warning'
+      ? vscode.DiagnosticSeverity.Warning
+      : vscode.DiagnosticSeverity.Error;
+    const diag = new vscode.Diagnostic(range, e.message, severity);
     diag.source = `fink (${e.source})`;
     return diag;
   });

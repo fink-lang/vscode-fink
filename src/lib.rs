@@ -253,8 +253,8 @@ fn delta_encode(mut tokens: Vec<RawToken>) -> Vec<u32> {
     result
 }
 
-/// Run the lexer and parser, collect all errors as diagnostics.
-/// Returns a JSON array: [{"line":0,"col":0,"endLine":0,"endCol":1,"message":"...","source":"lexer"|"parser"}, ...]
+/// Run the lexer, parser, and name resolution to collect all diagnostics.
+/// Returns a JSON array: [{"line":0,"col":0,"endLine":0,"endCol":1,"message":"...","source":"...","severity":"error"|"warning"}, ...]
 /// Lines are 0-based to match VSCode conventions.
 #[wasm_bindgen]
 pub fn get_diagnostics(src: &str) -> String {
@@ -275,21 +275,51 @@ pub fn get_diagnostics(src: &str) -> String {
             let end_col = tok.loc.end.col;
             let msg = tok.src.replace('\\', "\\\\").replace('"', "\\\"");
             entries.push(format!(
-                r#"{{"line":{line},"col":{col},"endLine":{end_line},"endCol":{end_col},"message":"{msg}","source":"lexer"}}"#
+                r#"{{"line":{line},"col":{col},"endLine":{end_line},"endCol":{end_col},"message":"{msg}","source":"lexer","severity":"error"}}"#
             ));
         }
     }
 
     // Parser error
-    if let Err(e) = parser::parse(src) {
-        let line = e.loc.start.line.saturating_sub(1);
-        let col = e.loc.start.col;
-        let end_line = e.loc.end.line.saturating_sub(1);
-        let end_col = e.loc.end.col;
-        let msg = e.message.replace('\\', "\\\\").replace('"', "\\\"");
-        entries.push(format!(
-            r#"{{"line":{line},"col":{col},"endLine":{end_line},"endCol":{end_col},"message":"{msg}","source":"parser"}}"#
-        ));
+    match parser::parse(src) {
+        Err(e) => {
+            let line = e.loc.start.line.saturating_sub(1);
+            let col = e.loc.start.col;
+            let end_line = e.loc.end.line.saturating_sub(1);
+            let end_col = e.loc.end.col;
+            let msg = e.message.replace('\\', "\\\\").replace('"', "\\\"");
+            entries.push(format!(
+                r#"{{"line":{line},"col":{col},"endLine":{end_line},"endCol":{end_col},"message":"{msg}","source":"parser","severity":"error"}}"#
+            ));
+        }
+        Ok(result) => {
+            // Name resolution — report unresolved names as warnings
+            let ast_index = ast::build_index(&result);
+            let cps = lower_expr(&result.root);
+            let node_count = cps.origin.len();
+            let resolved = name_res::resolve(&cps.root, &cps.origin, &ast_index, node_count);
+
+            for i in 0..node_count {
+                let cps_id = CpsId(i as u32);
+                if let Some(Resolution::Unresolved) = resolved.resolution.get(cps_id) {
+                    if let Some(ast_id) = *cps.origin.get(cps_id) {
+                        if let Some(node) = *ast_index.get(ast_id) {
+                            let line = node.loc.start.line.saturating_sub(1);
+                            let col = node.loc.start.col;
+                            let end_line = node.loc.end.line.saturating_sub(1);
+                            let end_col = node.loc.end.col;
+                            let name = match &node.kind {
+                                NodeKind::Ident(s) => s.replace('\\', "\\\\").replace('"', "\\\""),
+                                _ => "?".to_string(),
+                            };
+                            entries.push(format!(
+                                r#"{{"line":{line},"col":{col},"endLine":{end_line},"endCol":{end_col},"message":"unresolved name '{name}'","source":"name_res","severity":"warning"}}"#
+                            ));
+                        }
+                    }
+                }
+            }
+        }
     }
 
     format!("[{}]", entries.join(","))
