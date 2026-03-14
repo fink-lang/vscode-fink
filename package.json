@@ -8,6 +8,7 @@
   "version": "0.0.0-semantically-released",
   "license": "MIT",
   "displayName": "fink",
+  "icon": "images/icon.png",
   "description": "VSCode syntax highlighting for fink.",
   "engines": {
     "vscode": "^1.50.0"
@@ -98,7 +99,7 @@
     "build:grammars": "node -r @fink/require-hook ./scripts/build-grammars.fnk",
     "build:files": "cp ./package.json ./README.md ./LICENSE ./build/pkg/",
     "build:languages": "cp -r ./languages ./build/pkg/",
-    "dist:local": "cp -r build/pkg/* ~/.vscode/extensions/fink.vscode-fink-6.2.0/build/pkg/",
+    "dist:local": "cp -r build/pkg/* ~/.vscode/extensions/fink.vscode-fink-7.0.0/build/pkg/",
     "release": "semantic-release"
   },
   "devDependencies": {
