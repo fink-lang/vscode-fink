@@ -75,7 +75,7 @@ fn collect_tokens<'src>(node: &'src Node<'src>, tokens: &mut Vec<RawToken>) {
                         emit_token(tokens, callee, TOKEN_FUNCTION, 0);
                     }
                 }
-                NodeKind::Group(_) => {
+                NodeKind::Group { .. } => {
                     // Emit function token at open and close paren positions
                     let loc = &callee.loc;
                     let open_line = loc.start.line.saturating_sub(1);
@@ -113,9 +113,9 @@ fn collect_tokens<'src>(node: &'src Node<'src>, tokens: &mut Vec<RawToken>) {
             }
         }
 
-        NodeKind::LitRec(children) => {
+        NodeKind::LitRec { items: children, .. } => {
             for child in children {
-                if let NodeKind::Arm { lhs, body } = &child.kind {
+                if let NodeKind::Arm { lhs, body, .. } = &child.kind {
                     if let Some(first_lhs) = lhs.first() {
                         if matches!(&first_lhs.kind, NodeKind::Ident(_)) {
                             if body.is_empty() {
@@ -126,7 +126,7 @@ fn collect_tokens<'src>(node: &'src Node<'src>, tokens: &mut Vec<RawToken>) {
                         }
                     }
                     // Recurse into arm body
-                    for expr in body {
+                    for expr in body.iter() {
                         collect_tokens(expr, tokens);
                     }
                 } else {
@@ -137,7 +137,7 @@ fn collect_tokens<'src>(node: &'src Node<'src>, tokens: &mut Vec<RawToken>) {
 
         // --- recurse into all other container nodes ---
 
-        NodeKind::LitSeq(children)
+        NodeKind::LitSeq { items: children, .. }
         | NodeKind::StrTempl(children)
         | NodeKind::StrRawTempl(children)
         | NodeKind::Patterns(children) => {
@@ -151,9 +151,9 @@ fn collect_tokens<'src>(node: &'src Node<'src>, tokens: &mut Vec<RawToken>) {
             collect_tokens(rhs, tokens);
         }
 
-        NodeKind::Bind { lhs, rhs }
-        | NodeKind::BindRight { lhs, rhs }
-        | NodeKind::Member { lhs, rhs } => {
+        NodeKind::Bind { lhs, rhs, .. }
+        | NodeKind::BindRight { lhs, rhs, .. }
+        | NodeKind::Member { lhs, rhs, .. } => {
             collect_tokens(lhs, tokens);
             collect_tokens(rhs, tokens);
         }
@@ -162,31 +162,31 @@ fn collect_tokens<'src>(node: &'src Node<'src>, tokens: &mut Vec<RawToken>) {
             collect_tokens(operand, tokens);
         }
 
-        NodeKind::Group(inner)
+        NodeKind::Group { inner, .. }
         | NodeKind::Try(inner)
         | NodeKind::Yield(inner) => {
             collect_tokens(inner, tokens);
         }
 
-        NodeKind::Spread(Some(inner)) => {
+        NodeKind::Spread { inner: Some(inner), .. } => {
             collect_tokens(inner, tokens);
         }
 
-        NodeKind::Fn { params, body } => {
+        NodeKind::Fn { params, body, .. } => {
             collect_tokens(params, tokens);
             for expr in body {
                 collect_tokens(expr, tokens);
             }
         }
 
-        NodeKind::Match { subjects, arms } => {
+        NodeKind::Match { subjects, arms, .. } => {
             collect_tokens(subjects, tokens);
             for arm in arms {
                 collect_tokens(arm, tokens);
             }
         }
 
-        NodeKind::Arm { lhs, body } => {
+        NodeKind::Arm { lhs, body, .. } => {
             // Arms not inside LitRec — just recurse
             for expr in lhs {
                 collect_tokens(expr, tokens);
@@ -196,7 +196,7 @@ fn collect_tokens<'src>(node: &'src Node<'src>, tokens: &mut Vec<RawToken>) {
             }
         }
 
-        NodeKind::Block { name, params, body } => {
+        NodeKind::Block { name, params, body, .. } => {
             // Emit namespace token for the block name
             if matches!(&name.kind, NodeKind::Ident(_)) {
                 emit_token(tokens, name, TOKEN_BLOCK_NAME, 0);
@@ -225,7 +225,7 @@ fn collect_tokens<'src>(node: &'src Node<'src>, tokens: &mut Vec<RawToken>) {
         | NodeKind::LitStr(_)
         | NodeKind::Partial
         | NodeKind::Wildcard
-        | NodeKind::Spread(None) => {}
+        | NodeKind::Spread { inner: None, .. } => {}
     }
 }
 
@@ -253,78 +253,6 @@ fn delta_encode(mut tokens: Vec<RawToken>) -> Vec<u32> {
     result
 }
 
-/// Run the lexer, parser, and name resolution to collect all diagnostics.
-/// Returns a JSON array: [{"line":0,"col":0,"endLine":0,"endCol":1,"message":"...","source":"...","severity":"error"|"warning"}, ...]
-/// Lines are 0-based to match VSCode conventions.
-#[wasm_bindgen]
-pub fn get_diagnostics(src: &str) -> String {
-    let mut entries: Vec<String> = Vec::new();
-
-    // Lexer errors — must register operators to avoid false Err tokens
-    let lexer = lexer::tokenize_with_seps(src, &[
-        b"+", b"-", b"*", b"/", b"//", b"**", b"%", b"%%", b"/%",
-        b"==", b"!=", b"<", b"<=", b">", b">=", b"><",
-        b"&", b"^", b"~", b">>", b"<<", b">>>", b"<<<",
-        b".", b"|", b"|=", b"=", b"..", b"...",
-    ]);
-    for tok in lexer {
-        if tok.kind == TokenKind::Err {
-            let line = tok.loc.start.line.saturating_sub(1);
-            let col = tok.loc.start.col;
-            let end_line = tok.loc.end.line.saturating_sub(1);
-            let end_col = tok.loc.end.col;
-            let msg = tok.src.replace('\\', "\\\\").replace('"', "\\\"");
-            entries.push(format!(
-                r#"{{"line":{line},"col":{col},"endLine":{end_line},"endCol":{end_col},"message":"{msg}","source":"lexer","severity":"error"}}"#
-            ));
-        }
-    }
-
-    // Parser error
-    match parser::parse(src) {
-        Err(e) => {
-            let line = e.loc.start.line.saturating_sub(1);
-            let col = e.loc.start.col;
-            let end_line = e.loc.end.line.saturating_sub(1);
-            let end_col = e.loc.end.col;
-            let msg = e.message.replace('\\', "\\\\").replace('"', "\\\"");
-            entries.push(format!(
-                r#"{{"line":{line},"col":{col},"endLine":{end_line},"endCol":{end_col},"message":"{msg}","source":"parser","severity":"error"}}"#
-            ));
-        }
-        Ok(result) => {
-            // Name resolution — report unresolved names as warnings
-            let ast_index = ast::build_index(&result);
-            let cps = lower_expr(&result.root);
-            let node_count = cps.origin.len();
-            let resolved = name_res::resolve(&cps.root, &cps.origin, &ast_index, node_count);
-
-            for i in 0..node_count {
-                let cps_id = CpsId(i as u32);
-                if let Some(Resolution::Unresolved) = resolved.resolution.get(cps_id) {
-                    if let Some(ast_id) = *cps.origin.get(cps_id) {
-                        if let Some(node) = *ast_index.get(ast_id) {
-                            let line = node.loc.start.line.saturating_sub(1);
-                            let col = node.loc.start.col;
-                            let end_line = node.loc.end.line.saturating_sub(1);
-                            let end_col = node.loc.end.col;
-                            let name = match &node.kind {
-                                NodeKind::Ident(s) => s.replace('\\', "\\\\").replace('"', "\\\""),
-                                _ => "?".to_string(),
-                            };
-                            entries.push(format!(
-                                r#"{{"line":{line},"col":{col},"endLine":{end_line},"endCol":{end_col},"message":"unresolved name '{name}'","source":"name_res","severity":"warning"}}"#
-                            ));
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    format!("[{}]", entries.join(","))
-}
-
 /// Extract the bind CpsId from a Resolution variant.
 fn resolution_bind_id(res: &Option<Resolution>) -> Option<CpsId> {
     match res {
@@ -335,126 +263,243 @@ fn resolution_bind_id(res: &Option<Resolution>) -> Option<CpsId> {
     }
 }
 
-/// Parse, find Ident at cursor, lower to CPS, run name resolution, and find
-/// the binding CpsId. Emits bindings directly into the caller's scope so that
-/// borrows from the parse result live long enough.
-/// If the cursor is on a reference, resolves it. If on a binding site, uses it directly.
-macro_rules! resolve_bind_at {
-    ($src:expr, $line:expr, $col:expr => $ast_index:ident, $cps:ident, $resolved:ident, $bind_cps_id:ident) => {
-        let result = match parser::parse($src) {
-            Ok(r) => r,
-            Err(_) => return vec![],
-        };
-        let target_line = $line + 1;
+// --- Pre-computed location data for cursor lookups ---
 
-        let $ast_index = ast::build_index(&result);
-        let ast_count = $ast_index.len();
-        let mut target_ast_id = None;
-        for i in 0..ast_count {
-            let id = ast::AstId(i as u32);
-            let Some(node) = *$ast_index.get(id) else { continue };
-            if !matches!(&node.kind, NodeKind::Ident(_)) { continue }
-            let loc = &node.loc;
-            if loc.start.line == target_line && loc.start.col <= $col && $col < loc.end.col {
-                target_ast_id = Some(id);
-                break;
+/// 0-based source location, owned (no borrows).
+#[derive(Clone, Copy)]
+struct Loc {
+    line: u32,
+    col: u32,
+    end_line: u32,
+    end_col: u32,
+}
+
+/// An identifier node mapped to its CPS node, for cursor hit-testing.
+/// Sorted by (line, col) for binary search.
+struct IdentEntry {
+    loc: Loc,
+    cps_idx: u32,
+}
+
+/// Stateful parsed document - parse once, query many times.
+/// Stores only owned data: no borrows, no lifetimes.
+#[wasm_bindgen]
+pub struct ParsedDocument {
+    /// Delta-encoded semantic tokens, ready to return to VS Code.
+    semantic_tokens: Vec<u32>,
+
+    /// JSON diagnostics string, ready to return to VS Code.
+    diagnostics: String,
+
+    /// Source location for each CPS node (indexed by CpsId.0).
+    /// None if the CPS node has no AST origin or origin has no location.
+    node_locs: Vec<Option<Loc>>,
+
+    /// For each CPS node, the binding CpsId it resolves to.
+    /// If the node IS a binding site, points to itself.
+    /// None if unresolved or not an identifier.
+    bind_ids: Vec<Option<u32>>,
+
+    /// Identifier nodes sorted by position, for cursor hit-testing.
+    idents: Vec<IdentEntry>,
+}
+
+#[wasm_bindgen]
+impl ParsedDocument {
+    /// Parse source code and pre-compute all provider data.
+    #[wasm_bindgen(constructor)]
+    pub fn new(src: &str) -> ParsedDocument {
+        // --- Lexer diagnostics ---
+        let mut diag_entries: Vec<String> = Vec::new();
+        let lexer = lexer::tokenize_with_seps(src, &[
+            b"+", b"-", b"*", b"/", b"//", b"**", b"%", b"%%", b"/%",
+            b"==", b"!=", b"<", b"<=", b">", b">=", b"><",
+            b"&", b"^", b"~", b">>", b"<<", b">>>", b"<<<",
+            b".", b"|", b"|=", b"=", b"..", b"...",
+        ]);
+        for tok in lexer {
+            if tok.kind == TokenKind::Err {
+                let line = tok.loc.start.line.saturating_sub(1);
+                let col = tok.loc.start.col;
+                let end_line = tok.loc.end.line.saturating_sub(1);
+                let end_col = tok.loc.end.col;
+                let msg = tok.src.replace('\\', "\\\\").replace('"', "\\\"");
+                diag_entries.push(format!(
+                    r#"{{"line":{line},"col":{col},"endLine":{end_line},"endCol":{end_col},"message":"{msg}","source":"lexer","severity":"error"}}"#
+                ));
             }
         }
-        let Some(target_ast_id) = target_ast_id else { return vec![] };
 
-        let $cps = lower_expr(&result.root);
-        let node_count = $cps.origin.len();
+        // --- Parse ---
+        let parse_result = match parser::parse(src) {
+            Ok(r) => r,
+            Err(e) => {
+                // Parser failed — return diagnostics only, empty provider data
+                let line = e.loc.start.line.saturating_sub(1);
+                let col = e.loc.start.col;
+                let end_line = e.loc.end.line.saturating_sub(1);
+                let end_col = e.loc.end.col;
+                let msg = e.message.replace('\\', "\\\\").replace('"', "\\\"");
+                diag_entries.push(format!(
+                    r#"{{"line":{line},"col":{col},"endLine":{end_line},"endCol":{end_col},"message":"{msg}","source":"parser","severity":"error"}}"#
+                ));
+                return ParsedDocument {
+                    semantic_tokens: vec![],
+                    diagnostics: format!("[{}]", diag_entries.join(",")),
+                    node_locs: vec![],
+                    bind_ids: vec![],
+                    idents: vec![],
+                };
+            }
+        };
 
-        let mut target_cps_id = None;
+        // --- Semantic tokens ---
+        let mut raw_tokens = Vec::new();
+        collect_tokens(&parse_result.root, &mut raw_tokens);
+        let semantic_tokens = delta_encode(raw_tokens);
+
+        // --- Name resolution ---
+        let ast_index = ast::build_index(&parse_result);
+        let cps = lower_expr(&parse_result.root);
+        let node_count = cps.origin.len();
+        let resolved = name_res::resolve(&cps.root, &cps.origin, &ast_index, node_count);
+
+        // --- Build owned lookup tables ---
+        let mut node_locs: Vec<Option<Loc>> = Vec::with_capacity(node_count);
+        let mut bind_ids: Vec<Option<u32>> = Vec::with_capacity(node_count);
+        let mut idents: Vec<IdentEntry> = Vec::new();
+
         for i in 0..node_count {
             let cps_id = CpsId(i as u32);
-            if let Some(ast_id) = *$cps.origin.get(cps_id) {
-                if ast_id == target_ast_id {
-                    target_cps_id = Some(cps_id);
-                    break;
-                }
-            }
-        }
-        let Some(target_cps_id) = target_cps_id else { return vec![] };
 
-        let $resolved = name_res::resolve(&$cps.root, &$cps.origin, &$ast_index, node_count);
+            // Map CPS node → source location
+            let loc = cps.origin.get(cps_id)
+                .and_then(|ast_id| *ast_index.get(ast_id))
+                .map(|node| Loc {
+                    line: node.loc.start.line.saturating_sub(1),
+                    col: node.loc.start.col,
+                    end_line: node.loc.end.line.saturating_sub(1),
+                    end_col: node.loc.end.col,
+                });
+            node_locs.push(loc);
 
-        // Find the binding CpsId: try as reference first, then as binding site
-        let $bind_cps_id = if let Some(id) = resolution_bind_id($resolved.resolution.get(target_cps_id)) {
-            id
-        } else if $resolved.bind_scope.get(target_cps_id).is_some() {
-            target_cps_id
-        } else {
-            return vec![];
-        };
-    };
-}
+            // Map CPS node → its binding CpsId
+            let bind_id = if let Some(id) = resolution_bind_id(resolved.resolution.get(cps_id)) {
+                // This is a reference — resolves to a binding
+                Some(id.0)
+            } else if resolved.bind_scope.get(cps_id).is_some() {
+                // This IS a binding site — points to itself
+                Some(i as u32)
+            } else {
+                None
+            };
+            bind_ids.push(bind_id);
 
-/// Look up the definition site for the identifier at (line, col).
-/// Returns [def_line, def_col, def_end_line, def_end_col] or empty if no definition found.
-#[wasm_bindgen]
-pub fn get_definition(src: &str, line: u32, col: u32) -> Vec<u32> {
-    resolve_bind_at!(src, line, col => ast_index, cps, _resolved, bind_cps_id);
-
-    let Some(bind_ast_id) = *cps.origin.get(bind_cps_id) else { return vec![] };
-    let Some(bind_node) = *ast_index.get(bind_ast_id) else { return vec![] };
-
-    let b = &bind_node.loc;
-    vec![
-        b.start.line.saturating_sub(1), b.start.col,
-        b.end.line.saturating_sub(1), b.end.col,
-    ]
-}
-
-/// Find all references to the identifier at (line, col), including the binding site.
-/// Returns [line, col, end_line, end_col, ...] (4 u32s per location) or empty.
-#[wasm_bindgen]
-pub fn get_references(src: &str, line: u32, col: u32) -> Vec<u32> {
-    resolve_bind_at!(src, line, col => ast_index, cps, resolved, bind_cps_id);
-
-    let mut locs = Vec::new();
-    let node_count = cps.origin.len();
-
-    // Include the binding site itself
-    if let Some(ast_id) = *cps.origin.get(bind_cps_id) {
-        if let Some(node) = *ast_index.get(ast_id) {
-            let b = &node.loc;
-            locs.push(b.start.line.saturating_sub(1));
-            locs.push(b.start.col);
-            locs.push(b.end.line.saturating_sub(1));
-            locs.push(b.end.col);
-        }
-    }
-
-    // Find all references that resolve to this binding
-    for i in 0..node_count {
-        let cps_id = CpsId(i as u32);
-        if let Some(id) = resolution_bind_id(resolved.resolution.get(cps_id)) {
-            if id == bind_cps_id {
+            // Build ident index for cursor hit-testing
+            if let Some(loc) = loc {
                 if let Some(ast_id) = *cps.origin.get(cps_id) {
                     if let Some(node) = *ast_index.get(ast_id) {
-                        let b = &node.loc;
-                        locs.push(b.start.line.saturating_sub(1));
-                        locs.push(b.start.col);
-                        locs.push(b.end.line.saturating_sub(1));
-                        locs.push(b.end.col);
+                        if matches!(&node.kind, NodeKind::Ident(_)) {
+                            idents.push(IdentEntry { loc, cps_idx: i as u32 });
+                        }
+                    }
+                }
+            }
+
+            // Name resolution diagnostics — unresolved names as warnings
+            if let Some(Resolution::Unresolved) = resolved.resolution.get(cps_id) {
+                if let Some(ast_id) = *cps.origin.get(cps_id) {
+                    if let Some(node) = *ast_index.get(ast_id) {
+                        let line = node.loc.start.line.saturating_sub(1);
+                        let col = node.loc.start.col;
+                        let end_line = node.loc.end.line.saturating_sub(1);
+                        let end_col = node.loc.end.col;
+                        let name = match &node.kind {
+                            NodeKind::Ident(s) => s.replace('\\', "\\\\").replace('"', "\\\""),
+                            _ => "?".to_string(),
+                        };
+                        diag_entries.push(format!(
+                            r#"{{"line":{line},"col":{col},"endLine":{end_line},"endCol":{end_col},"message":"unresolved name '{name}'","source":"name_res","severity":"warning"}}"#
+                        ));
                     }
                 }
             }
         }
+
+        // Sort idents by position for binary search
+        idents.sort_by(|a, b| a.loc.line.cmp(&b.loc.line).then(a.loc.col.cmp(&b.loc.col)));
+
+        ParsedDocument {
+            semantic_tokens,
+            diagnostics: format!("[{}]", diag_entries.join(",")),
+            node_locs,
+            bind_ids,
+            idents,
+        }
     }
 
-    locs
+    /// Return delta-encoded semantic tokens.
+    pub fn get_semantic_tokens(&self) -> Vec<u32> {
+        self.semantic_tokens.clone()
+    }
+
+    /// Return JSON diagnostics string.
+    pub fn get_diagnostics(&self) -> String {
+        self.diagnostics.clone()
+    }
+
+    /// Look up the definition site for the identifier at (line, col).
+    /// Returns [def_line, def_col, def_end_line, def_end_col] or empty.
+    pub fn get_definition(&self, line: u32, col: u32) -> Vec<u32> {
+        let Some(bind_idx) = self.find_bind_at(line, col) else { return vec![] };
+        let Some(loc) = self.node_locs[bind_idx as usize] else { return vec![] };
+        vec![loc.line, loc.col, loc.end_line, loc.end_col]
+    }
+
+    /// Find all references to the identifier at (line, col), including the binding site.
+    /// Returns [line, col, end_line, end_col, ...] (4 u32s per location) or empty.
+    /// First entry is always the binding site.
+    pub fn get_references(&self, line: u32, col: u32) -> Vec<u32> {
+        let Some(bind_idx) = self.find_bind_at(line, col) else { return vec![] };
+
+        let mut locs = Vec::new();
+
+        // Binding site first
+        if let Some(loc) = self.node_locs[bind_idx as usize] {
+            locs.push(loc.line);
+            locs.push(loc.col);
+            locs.push(loc.end_line);
+            locs.push(loc.end_col);
+        }
+
+        // All references that resolve to this binding
+        for (i, bind_id) in self.bind_ids.iter().enumerate() {
+            if let Some(id) = bind_id {
+                if *id == bind_idx && i as u32 != bind_idx {
+                    if let Some(loc) = self.node_locs[i] {
+                        locs.push(loc.line);
+                        locs.push(loc.col);
+                        locs.push(loc.end_line);
+                        locs.push(loc.end_col);
+                    }
+                }
+            }
+        }
+
+        locs
+    }
 }
 
-#[wasm_bindgen]
-pub fn get_semantic_tokens(src: &str) -> Vec<u32> {
-    let result = match parser::parse(src) {
-        Ok(result) => result,
-        Err(_) => return vec![],
-    };
-
-    let mut tokens = Vec::new();
-    collect_tokens(&result.root, &mut tokens);
-    delta_encode(tokens)
+impl ParsedDocument {
+    /// Find the binding CpsId for the identifier at (line, col).
+    /// Returns None if no identifier found or it doesn't resolve.
+    fn find_bind_at(&self, line: u32, col: u32) -> Option<u32> {
+        // Linear scan through idents (typically small, sorted by position)
+        for entry in &self.idents {
+            if entry.loc.line == line && entry.loc.col <= col && col < entry.loc.end_col {
+                return self.bind_ids[entry.cps_idx as usize];
+            }
+        }
+        None
+    }
 }

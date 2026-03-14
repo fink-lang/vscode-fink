@@ -6,11 +6,51 @@ const tokenModifiers = ['readonly'];
 const legend = new vscode.SemanticTokensLegend(tokenTypes, tokenModifiers);
 
 // WASM module — initialized in activate()
-let get_semantic_tokens: (src: string) => Uint32Array;
-let get_diagnostics: (src: string) => string;
-let get_definition: (src: string, line: number, col: number) => Uint32Array;
-let get_references: (src: string, line: number, col: number) => Uint32Array;
+let ParsedDocument: {
+  new(src: string): ParsedDocumentHandle;
+};
 let debug = false;
+
+// Opaque handle to a Rust ParsedDocument struct living in WASM memory.
+// Must be .free()'d explicitly; FinalizationRegistry acts as safety net.
+interface ParsedDocumentHandle {
+  get_semantic_tokens(): Uint32Array;
+  get_diagnostics(): string;
+  get_definition(line: number, col: number): Uint32Array;
+  get_references(line: number, col: number): Uint32Array;
+  free(): void;
+}
+
+// Active document handles, keyed by URI string.
+// Each edit replaces the old handle (freed explicitly).
+const docs = new Map<string, ParsedDocumentHandle>();
+
+function getDoc(document: vscode.TextDocument): ParsedDocumentHandle | undefined {
+  return docs.get(document.uri.toString());
+}
+
+function updateDoc(document: vscode.TextDocument): void {
+  const key = document.uri.toString();
+  docs.get(key)?.free();
+  if (debug) console.time('fink:parse');
+  const doc = new ParsedDocument(document.getText());
+  if (debug) console.timeEnd('fink:parse');
+  docs.set(key, doc);
+
+  // Update diagnostics from the freshly parsed document
+  const json = doc.get_diagnostics();
+  const entries: DiagnosticEntry[] = JSON.parse(json);
+  const diagnostics = entries.map(e => {
+    const range = new vscode.Range(e.line, e.col, e.endLine, e.endCol);
+    const severity = e.severity === 'warning'
+      ? vscode.DiagnosticSeverity.Warning
+      : vscode.DiagnosticSeverity.Error;
+    const diag = new vscode.Diagnostic(range, e.message, severity);
+    diag.source = `fink (${e.source})`;
+    return diag;
+  });
+  diagnosticCollection.set(document.uri, diagnostics);
+}
 
 async function loadWasm(context: vscode.ExtensionContext): Promise<void> {
   const wasmUri = vscode.Uri.joinPath(
@@ -22,16 +62,14 @@ async function loadWasm(context: vscode.ExtensionContext): Promise<void> {
     context.extensionUri, 'build', 'pkg', 'wasm', 'fink_wasm.js'
   );
   const jsBytes = await vscode.workspace.fs.readFile(jsUri);
-  const jsCode = new TextDecoder().decode(jsBytes);
 
-  // Load the wasm-bindgen JS glue as a module via data URL (works in both desktop and web)
-  const dataUrl = `data:text/javascript;base64,${btoa(jsCode)}`;
+  // Load the wasm-bindgen JS glue as a module via data URL (works in both desktop and web).
+  // Use Uint8Array → binary string → btoa to handle non-Latin-1 chars in the JS source.
+  const binaryStr = Array.from(jsBytes, (b: number) => String.fromCharCode(b)).join('');
+  const dataUrl = `data:text/javascript;base64,${btoa(binaryStr)}`;
   const wasmModule = await import(dataUrl);
   await wasmModule.default(wasmBytes.buffer);
-  get_semantic_tokens = wasmModule.get_semantic_tokens;
-  get_diagnostics = wasmModule.get_diagnostics;
-  get_definition = wasmModule.get_definition;
-  get_references = wasmModule.get_references;
+  ParsedDocument = wasmModule.ParsedDocument;
 }
 
 interface DiagnosticEntry {
@@ -46,38 +84,17 @@ interface DiagnosticEntry {
 
 const diagnosticCollection = vscode.languages.createDiagnosticCollection('fink');
 
-function updateDiagnostics(document: vscode.TextDocument): void {
-  const src = document.getText();
-  if (debug) console.time('fink:diagnostics');
-  const json = get_diagnostics(src);
-  if (debug) console.timeEnd('fink:diagnostics');
-  const entries: DiagnosticEntry[] = JSON.parse(json);
-
-  const diagnostics = entries.map(e => {
-    const range = new vscode.Range(e.line, e.col, e.endLine, e.endCol);
-    const severity = e.severity === 'warning'
-      ? vscode.DiagnosticSeverity.Warning
-      : vscode.DiagnosticSeverity.Error;
-    const diag = new vscode.Diagnostic(range, e.message, severity);
-    diag.source = `fink (${e.source})`;
-    return diag;
-  });
-
-  diagnosticCollection.set(document.uri, diagnostics);
-}
-
-// Definition provider: calls get_definition(src, line, col) which returns
-// [def_line, def_col, def_end_line, def_end_col] or empty if no definition found.
+// Definition provider: queries cached ParsedDocument handle.
 const definitionProvider: vscode.DefinitionProvider = {
   provideDefinition(
     document: vscode.TextDocument,
     position: vscode.Position
   ): vscode.Definition | undefined {
-    if (!get_definition) return undefined;
+    const doc = getDoc(document);
+    if (!doc) return undefined;
 
-    const src = document.getText();
     if (debug) console.time('fink:definition');
-    const data = get_definition(src, position.line, position.character);
+    const data = doc.get_definition(position.line, position.character);
     if (debug) console.timeEnd('fink:definition');
 
     if (data.length === 4) {
@@ -89,18 +106,17 @@ const definitionProvider: vscode.DefinitionProvider = {
   }
 };
 
-// Reference provider: calls get_references(src, line, col) which returns
-// [line, col, end_line, end_col, ...] (4 u32s per location) or empty.
+// Reference provider: queries cached ParsedDocument handle.
 const referenceProvider: vscode.ReferenceProvider = {
   provideReferences(
     document: vscode.TextDocument,
     position: vscode.Position
   ): vscode.Location[] | undefined {
-    if (!get_references) return undefined;
+    const doc = getDoc(document);
+    if (!doc) return undefined;
 
-    const src = document.getText();
     if (debug) console.time('fink:references');
-    const data = get_references(src, position.line, position.character);
+    const data = doc.get_references(position.line, position.character);
     if (debug) console.timeEnd('fink:references');
 
     if (data.length === 0) return undefined;
@@ -121,10 +137,10 @@ const documentHighlightProvider: vscode.DocumentHighlightProvider = {
     document: vscode.TextDocument,
     position: vscode.Position
   ): vscode.DocumentHighlight[] | undefined {
-    if (!get_references) return undefined;
+    const doc = getDoc(document);
+    if (!doc) return undefined;
 
-    const src = document.getText();
-    const data = get_references(src, position.line, position.character);
+    const data = doc.get_references(position.line, position.character);
     if (data.length === 0) return undefined;
 
     const highlights: vscode.DocumentHighlight[] = [];
@@ -145,10 +161,10 @@ const renameProvider: vscode.RenameProvider = {
     document: vscode.TextDocument,
     position: vscode.Position
   ): vscode.Range | undefined {
-    if (!get_references) return undefined;
+    const doc = getDoc(document);
+    if (!doc) return undefined;
 
-    const src = document.getText();
-    const data = get_references(src, position.line, position.character);
+    const data = doc.get_references(position.line, position.character);
     if (data.length === 0) return undefined;
 
     // Find the reference range that contains the cursor position
@@ -166,10 +182,10 @@ const renameProvider: vscode.RenameProvider = {
     position: vscode.Position,
     newName: string
   ): vscode.WorkspaceEdit | undefined {
-    if (!get_references) return undefined;
+    const doc = getDoc(document);
+    if (!doc) return undefined;
 
-    const src = document.getText();
-    const data = get_references(src, position.line, position.character);
+    const data = doc.get_references(position.line, position.character);
     if (data.length === 0) return undefined;
 
     const edit = new vscode.WorkspaceEdit();
@@ -181,11 +197,14 @@ const renameProvider: vscode.RenameProvider = {
   }
 };
 
+// Semantic tokens provider: returns cached tokens from ParsedDocument.
 const provider: vscode.DocumentSemanticTokensProvider = {
   provideDocumentSemanticTokens(document: vscode.TextDocument): vscode.SemanticTokens {
-    const src = document.getText();
+    const doc = getDoc(document);
+    if (!doc) return new vscode.SemanticTokens(new Uint32Array(0));
+
     if (debug) console.time('fink:semanticTokens');
-    const data = get_semantic_tokens(src);
+    const data = doc.get_semantic_tokens();
     if (debug) console.timeEnd('fink:semanticTokens');
     return new vscode.SemanticTokens(data);
   }
@@ -219,11 +238,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
   context.subscriptions.push(diagnosticCollection);
 
-  // Update diagnostics on document change and open
+  // Parse on document change — single parse feeds all providers
   context.subscriptions.push(
     vscode.workspace.onDidChangeTextDocument(e => {
       if (e.document.languageId === 'fink') {
-        updateDiagnostics(e.document);
+        updateDoc(e.document);
       }
     })
   );
@@ -231,22 +250,25 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   context.subscriptions.push(
     vscode.workspace.onDidOpenTextDocument(doc => {
       if (doc.languageId === 'fink') {
-        updateDiagnostics(doc);
+        updateDoc(doc);
       }
     })
   );
 
-  // Clear diagnostics when document is closed
+  // Free handle and clear diagnostics when document is closed
   context.subscriptions.push(
     vscode.workspace.onDidCloseTextDocument(doc => {
+      const key = doc.uri.toString();
+      docs.get(key)?.free();
+      docs.delete(key);
       diagnosticCollection.delete(doc.uri);
     })
   );
 
-  // Update diagnostics for already-open fink documents
+  // Parse already-open fink documents
   vscode.workspace.textDocuments.forEach(doc => {
     if (doc.languageId === 'fink') {
-      updateDiagnostics(doc);
+      updateDoc(doc);
     }
   });
 }

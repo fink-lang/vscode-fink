@@ -103,7 +103,7 @@ lang = {
 
     comments: {
       patterns: seq
-         # keywords
+        # keywords
         scope_to_example 'keyword.control'
         scope_to_example 'keyword.operator'
         scope_to_example 'keyword.other'

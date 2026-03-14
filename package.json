@@ -93,7 +93,7 @@
     "clean": "rimraf ./build",
     "build": "npm run build:dir && npm run build:wasm && npm run build:ext && npm run build:grammars && npm run build:files && npm run build:languages",
     "build:dir": "mkdir -p ./build/pkg/grammars ./build/pkg/wasm",
-    "build:wasm": "wasm-pack build --target web --out-dir build/pkg/wasm",
+    "build:wasm": "wasm-pack build --target web --weak-refs --out-dir build/pkg/wasm",
     "build:ext": "esbuild src/extension.ts --bundle --outfile=build/pkg/extension.js --external:vscode --format=cjs --platform=node --sourcemap",
     "build:grammars": "node -r @fink/require-hook ./scripts/build-grammars.fnk",
     "build:files": "cp ./package.json ./README.md ./LICENSE ./build/pkg/",
