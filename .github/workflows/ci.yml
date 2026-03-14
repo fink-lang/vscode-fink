@@ -36,7 +36,7 @@ jobs:
     - name: release
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        VSCE_TOKEN: ${{ secrets.VSCE_TOKEN }}
+        VSCE_PAT: ${{ secrets.VSCE_TOKEN }}
       run: npm run release
 
     # On PRs, dry-run semantic-release and comment the next version
@@ -45,7 +45,8 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        OUTPUT=$(npx semantic-release --dry-run --branches ${{ github.head_ref }} 2>&1) || true
+        git checkout ${{ github.event.pull_request.head.sha }}
+        OUTPUT=$(CI=false npx semantic-release --dry-run --branches ${{ github.head_ref }} 2>&1) || true
         echo "$OUTPUT"
         VERSION=$(echo "$OUTPUT" | grep -oP 'next release version is \K[0-9]+\.[0-9]+\.[0-9]+' | head -1 || echo "")
         if [ -n "$VERSION" ]; then
