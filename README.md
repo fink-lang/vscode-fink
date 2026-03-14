@@ -1,3 +1,13 @@
-# vscode-fink
+# ƒink for Visual Studio Code
 
-VSCode syntax highlighting for fink.
+Language support for [ƒink](https://github.com/fink-lang) in Visual Studio Code.
+
+## Features
+
+- Syntax highlighting
+- Semantic tokens
+- Diagnostics (lexer, parser, and name resolution errors)
+- Go to Definition
+- Find All References
+- Rename Symbol
+- Document Highlight
