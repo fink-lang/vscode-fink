@@ -44,9 +44,10 @@ jobs:
       if: github.event_name == 'pull_request'
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        VSCE_PAT: ${{ secrets.VSCE_TOKEN }}
       run: |
         git checkout ${{ github.event.pull_request.head.sha }}
-        OUTPUT=$(unset GITHUB_ACTIONS; npx semantic-release --dry-run --no-ci --branches ${{ github.head_ref }} --verify-conditions @semantic-release/github --publish false 2>&1) || true
+        OUTPUT=$(unset GITHUB_ACTIONS; npx semantic-release --dry-run --no-ci --branches ${{ github.head_ref }} 2>&1) || true
         echo "$OUTPUT"
         VERSION=$(echo "$OUTPUT" | grep -oP 'The next release version is \K[0-9]+\.[0-9]+\.[0-9]+' | head -1 || echo "")
         if [ -n "$VERSION" ]; then
