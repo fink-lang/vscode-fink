@@ -60,7 +60,7 @@ fn collect_tokens<'src>(node: &'src Node<'src>, tokens: &mut Vec<RawToken>) {
                     // Tagged literal: callee adjacent to first arg
                     // Prefix: foo'bar' (callee end == arg start) → tag.left
                     // Postfix: 123foo (arg end == callee start) → tag.right
-                    let tag_kind = args.first().and_then(|first_arg| {
+                    let tag_kind = args.items.first().and_then(|first_arg| {
                         if callee.loc.end.idx == first_arg.loc.start.idx {
                             Some(TOKEN_TAG_LEFT)
                         } else if first_arg.loc.end.idx == callee.loc.start.idx {
@@ -99,13 +99,13 @@ fn collect_tokens<'src>(node: &'src Node<'src>, tokens: &mut Vec<RawToken>) {
             }
             // Recurse into func and args
             collect_tokens(func, tokens);
-            for arg in args {
+            for arg in &args.items {
                 collect_tokens(arg, tokens);
             }
         }
 
         NodeKind::Pipe(children) => {
-            for child in children {
+            for child in &children.items {
                 if matches!(&child.kind, NodeKind::Ident(_)) {
                     emit_token(tokens, child, TOKEN_FUNCTION, 0);
                 }
@@ -114,11 +114,11 @@ fn collect_tokens<'src>(node: &'src Node<'src>, tokens: &mut Vec<RawToken>) {
         }
 
         NodeKind::LitRec { items: children, .. } => {
-            for child in children {
+            for child in &children.items {
                 if let NodeKind::Arm { lhs, body, .. } = &child.kind {
-                    if let Some(first_lhs) = lhs.first() {
+                    if let Some(first_lhs) = lhs.items.first() {
                         if matches!(&first_lhs.kind, NodeKind::Ident(_)) {
-                            if body.is_empty() {
+                            if body.items.is_empty() {
                                 emit_token(tokens, first_lhs, TOKEN_VARIABLE, MOD_READONLY);
                             } else {
                                 emit_token(tokens, first_lhs, TOKEN_PROPERTY, 0);
@@ -126,7 +126,7 @@ fn collect_tokens<'src>(node: &'src Node<'src>, tokens: &mut Vec<RawToken>) {
                         }
                     }
                     // Recurse into arm body
-                    for expr in body.iter() {
+                    for expr in body.items.iter() {
                         collect_tokens(expr, tokens);
                     }
                 } else {
@@ -138,9 +138,14 @@ fn collect_tokens<'src>(node: &'src Node<'src>, tokens: &mut Vec<RawToken>) {
         // --- recurse into all other container nodes ---
 
         NodeKind::LitSeq { items: children, .. }
-        | NodeKind::StrTempl(children)
-        | NodeKind::StrRawTempl(children)
         | NodeKind::Patterns(children) => {
+            for child in &children.items {
+                collect_tokens(child, tokens);
+            }
+        }
+
+        NodeKind::StrTempl { children, .. }
+        | NodeKind::StrRawTempl { children, .. } => {
             for child in children {
                 collect_tokens(child, tokens);
             }
@@ -174,24 +179,24 @@ fn collect_tokens<'src>(node: &'src Node<'src>, tokens: &mut Vec<RawToken>) {
 
         NodeKind::Fn { params, body, .. } => {
             collect_tokens(params, tokens);
-            for expr in body {
+            for expr in &body.items {
                 collect_tokens(expr, tokens);
             }
         }
 
         NodeKind::Match { subjects, arms, .. } => {
             collect_tokens(subjects, tokens);
-            for arm in arms {
+            for arm in &arms.items {
                 collect_tokens(arm, tokens);
             }
         }
 
         NodeKind::Arm { lhs, body, .. } => {
             // Arms not inside LitRec — just recurse
-            for expr in lhs {
+            for expr in &lhs.items {
                 collect_tokens(expr, tokens);
             }
-            for expr in body {
+            for expr in &body.items {
                 collect_tokens(expr, tokens);
             }
         }
@@ -203,7 +208,7 @@ fn collect_tokens<'src>(node: &'src Node<'src>, tokens: &mut Vec<RawToken>) {
             }
             collect_tokens(name, tokens);
             collect_tokens(params, tokens);
-            for expr in body {
+            for expr in &body.items {
                 collect_tokens(expr, tokens);
             }
         }
@@ -222,7 +227,7 @@ fn collect_tokens<'src>(node: &'src Node<'src>, tokens: &mut Vec<RawToken>) {
         | NodeKind::LitInt(_)
         | NodeKind::LitFloat(_)
         | NodeKind::LitDecimal(_)
-        | NodeKind::LitStr(_)
+        | NodeKind::LitStr { .. }
         | NodeKind::Partial
         | NodeKind::Wildcard
         | NodeKind::Spread { inner: None, .. } => {}
