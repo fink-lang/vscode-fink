@@ -1,6 +1,9 @@
 name: CI
 
-on: [push]
+on:
+  push:
+  pull_request:
+    branches: [main]
 
 jobs:
   build:
@@ -8,6 +11,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
 
     - name: setup rust
       uses: dtolnay/rust-toolchain@stable
@@ -33,3 +38,16 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         VSCE_TOKEN: ${{ secrets.VSCE_TOKEN }}
       run: npm run release
+
+    # On PRs, dry-run semantic-release and comment the next version
+    - name: preview release version
+      if: github.event_name == 'pull_request'
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        OUTPUT=$(npx semantic-release --dry-run 2>&1) || true
+        VERSION=$(echo "$OUTPUT" | grep -oP 'next release version is \K[0-9]+\.[0-9]+\.[0-9]+' || echo "")
+        if [ -n "$VERSION" ]; then
+          gh pr comment ${{ github.event.pull_request.number }} \
+            --body "This PR will release **v${VERSION}**"
+        fi
