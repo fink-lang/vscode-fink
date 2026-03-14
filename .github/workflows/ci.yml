@@ -45,8 +45,9 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        OUTPUT=$(npx semantic-release --dry-run 2>&1) || true
-        VERSION=$(echo "$OUTPUT" | grep -oP 'next release version is \K[0-9]+\.[0-9]+\.[0-9]+' || echo "")
+        OUTPUT=$(npx semantic-release --dry-run --branches ${{ github.head_ref }} 2>&1) || true
+        echo "$OUTPUT"
+        VERSION=$(echo "$OUTPUT" | grep -oP 'next release version is \K[0-9]+\.[0-9]+\.[0-9]+' | head -1 || echo "")
         if [ -n "$VERSION" ]; then
           gh pr comment ${{ github.event.pull_request.number }} \
             --body "This PR will release **v${VERSION}**"
