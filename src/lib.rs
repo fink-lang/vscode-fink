@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use wasm_bindgen::prelude::*;
 
 use fink::ast::{self, Node, NodeKind};
@@ -374,6 +375,12 @@ impl ParsedDocument {
         let mut bind_ids: Vec<Option<u32>> = Vec::with_capacity(node_count);
         let mut idents: Vec<IdentEntry> = Vec::new();
 
+        // For unused-binding diagnostics: track all bind sites and all referenced binds.
+        // Module-level bindings (scope == root) are exports — skip unused warning for those.
+        let root_scope_id = cps.root.id;
+        let mut bind_sites: Vec<u32> = Vec::new();
+        let mut used_binds: HashSet<u32> = HashSet::new();
+
         for i in 0..node_count {
             let cps_id = CpsId(i as u32);
 
@@ -391,9 +398,11 @@ impl ParsedDocument {
             // Map CPS node → its binding CpsId
             let bind_id = if let Some(id) = resolution_bind_id(resolved.resolution.get(cps_id)) {
                 // This is a reference — resolves to a binding
+                used_binds.insert(id.0);
                 Some(id.0)
             } else if resolved.bind_scope.get(cps_id).is_some() {
                 // This IS a binding site — points to itself
+                bind_sites.push(i as u32);
                 Some(i as u32)
             } else {
                 None
@@ -424,9 +433,32 @@ impl ParsedDocument {
                             _ => "?".to_string(),
                         };
                         diag_entries.push(format!(
-                            r#"{{"line":{line},"col":{col},"endLine":{end_line},"endCol":{end_col},"message":"unresolved name '{name}'","source":"name_res","severity":"warning"}}"#
+                            r#"{{"line":{line},"col":{col},"endLine":{end_line},"endCol":{end_col},"message":"unresolved name '{name}'","source":"name_res","severity":"error"}}"#
                         ));
                     }
+                }
+            }
+        }
+
+        // Unused-binding diagnostics — warn on bind sites with no references.
+        // Skip module-level bindings (they are exports).
+        for bind_idx in bind_sites {
+            if used_binds.contains(&bind_idx) { continue; }
+            let cps_id = CpsId(bind_idx);
+            if resolved.bind_scope.get(cps_id) == &Some(root_scope_id) { continue; }
+            if let Some(ast_id) = *cps.origin.get(cps_id) {
+                if let Some(node) = *ast_index.get(ast_id) {
+                    let line = node.loc.start.line.saturating_sub(1);
+                    let col = node.loc.start.col;
+                    let end_line = node.loc.end.line.saturating_sub(1);
+                    let end_col = node.loc.end.col;
+                    let name = match &node.kind {
+                        NodeKind::Ident(s) => s.replace('\\', "\\\\").replace('"', "\\\""),
+                        _ => "?".to_string(),
+                    };
+                    diag_entries.push(format!(
+                        r#"{{"line":{line},"col":{col},"endLine":{end_line},"endCol":{end_col},"message":"unused binding '{name}'","source":"name_res","severity":"warning"}}"#
+                    ));
                 }
             }
         }
