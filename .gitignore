@@ -40,6 +40,5 @@ node_modules/
 .DS_Store
 .vscode-test-web
 
-/.claude
-/notes
-foo
+/.claude/settings.local.json
+/.claude.local/
