@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { FinkDebugConfigurationProvider } from './debug-config-provider';
 
 // Token legend — indices must match the Rust constants in src/lib.rs
 const tokenTypes = ['function', 'variable', 'property', 'block-name', 'tag-left', 'tag-right'];
@@ -237,6 +238,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   );
 
   context.subscriptions.push(diagnosticCollection);
+
+  context.subscriptions.push(
+    vscode.debug.registerDebugConfigurationProvider(
+      'fink', new FinkDebugConfigurationProvider()
+    )
+  );
 
   // Parse on document change — single parse feeds all providers
   context.subscriptions.push(
