@@ -69,7 +69,6 @@ lang = {
   fileTypes: ['fnk']
 
   patterns: seq
-    {include: 'source.jsx.fink'}
     {include: '#comments'}
     {include: '#template_block'}
     {include: '#fink_block'}
