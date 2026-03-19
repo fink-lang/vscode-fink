@@ -23,9 +23,20 @@
   "main": "./build/pkg/extension.js",
   "browser": "./build/pkg/extension.js",
   "activationEvents": [
-    "onLanguage:fink"
+    "onLanguage:fink",
+    "onDebug:fink"
   ],
   "contributes": {
+    "configuration": {
+      "title": "Fink",
+      "properties": {
+        "fink.path": {
+          "type": "string",
+          "default": "fink",
+          "description": "Path to the fink binary"
+        }
+      }
+    },
     "languages": [
       {
         "id": "fink",
@@ -74,6 +85,40 @@
         }
       }
     ],
+    "debuggers": [
+      {
+        "type": "fink",
+        "label": "Fink",
+        "configurationAttributes": {
+          "launch": {
+            "required": ["program"],
+            "properties": {
+              "program": {
+                "type": "string",
+                "description": "Path to the fink file to debug"
+              },
+              "stopOnEntry": {
+                "type": "boolean",
+                "description": "Pause before WASM runs",
+                "default": false
+              }
+            }
+          }
+        },
+        "configurationSnippets": [
+          {
+            "label": "Fink: Debug",
+            "description": "Debug a fink file",
+            "body": {
+              "type": "fink",
+              "request": "launch",
+              "name": "Debug Fink",
+              "program": "${file}"
+            }
+          }
+        ]
+      }
+    ],
     "breakpoints": [
       {
         "language": "fink"
@@ -99,7 +144,6 @@
     "build:grammars": "node -r @fink/require-hook ./scripts/build-grammars.fnk",
     "build:files": "cp ./package.json ./README.md ./LICENSE ./build/pkg/",
     "build:languages": "cp -r ./languages ./build/pkg/",
-    "dist:local": "cp -r build/pkg/* ~/.vscode/extensions/fink.vscode-fink-7.0.0/build/pkg/",
     "release": "semantic-release"
   },
   "devDependencies": {
