@@ -1,0 +1,6 @@
+**
+!build/pkg/**
+!images/**
+!LICENSE
+!README.md
+!package.json

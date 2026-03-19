@@ -41,18 +41,13 @@
       {
         "id": "fink",
         "aliases": [
-          "fink",
-          "fink+jsx"
+          "fink"
         ],
         "extensions": [
           ".fnk"
         ],
         "firstLine": "^#!.*\\bfink",
         "configuration": "./build/pkg/languages/fink.language-configuration.json"
-      },
-      {
-        "id": "fink-jsx",
-        "configuration": "./build/pkg/languages/jsx.language-configuration.json"
       }
     ],
     "grammars": [
@@ -61,17 +56,12 @@
         "scopeName": "source.fink",
         "path": "./build/pkg/grammars/fink.tmLanguage.json",
         "embeddedLanguages": {
-          "meta.embedded.block.fink": "fink",
-          "meta.embedded.jsx.fink": "fink-jsx"
+          "meta.embedded.block.fink": "fink"
         }
       },
       {
         "scopeName": "source.regexp.fink",
         "path": "./build/pkg/grammars/regex.tmLanguage.json"
-      },
-      {
-        "scopeName": "source.jsx.fink",
-        "path": "./build/pkg/grammars/jsx.tmLanguage.json"
       },
       {
         "scopeName": "markdown.fink.codeblock",
@@ -150,7 +140,7 @@
     "@fink/cli": "^8.3.0",
     "@fink/js-interop": "^3.1.1",
     "@fink/larix": "^20.0.0",
-    "@fink/loxia": "^24.1.2",
+    "@fink/loxia": "^23.0.2",
     "@fink/require-hook": "^6.2.0",
     "@fink/std-lib": "^8.5.0",
     "@semantic-release/exec": "^7.0.0",
