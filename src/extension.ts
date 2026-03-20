@@ -51,6 +51,7 @@ function updateDoc(document: vscode.TextDocument): void {
     return diag;
   });
   diagnosticCollection.set(document.uri, diagnostics);
+  semanticTokensChangeEmitter.fire();
 }
 
 async function loadWasm(context: vscode.ExtensionContext): Promise<void> {
@@ -84,6 +85,7 @@ interface DiagnosticEntry {
 }
 
 const diagnosticCollection = vscode.languages.createDiagnosticCollection('fink');
+const semanticTokensChangeEmitter = new vscode.EventEmitter<void>();
 
 // Definition provider: queries cached ParsedDocument handle.
 const definitionProvider: vscode.DefinitionProvider = {
@@ -199,7 +201,9 @@ const renameProvider: vscode.RenameProvider = {
 };
 
 // Semantic tokens provider: returns cached tokens from ParsedDocument.
+// onDidChangeSemanticTokens tells VS Code to re-request tokens after each parse.
 const provider: vscode.DocumentSemanticTokensProvider = {
+  onDidChangeSemanticTokens: semanticTokensChangeEmitter.event,
   provideDocumentSemanticTokens(document: vscode.TextDocument): vscode.SemanticTokens {
     const doc = getDoc(document);
     if (!doc) return new vscode.SemanticTokens(new Uint32Array(0));
@@ -252,6 +256,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   );
 
   context.subscriptions.push(diagnosticCollection);
+  context.subscriptions.push(semanticTokensChangeEmitter);
 
   // Parse on document change — single parse feeds all providers
   context.subscriptions.push(
