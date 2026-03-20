@@ -81,6 +81,10 @@
                 "type": "boolean",
                 "description": "Pause before WASM runs",
                 "default": false
+              },
+              "runtimeExecutable": {
+                "type": "string",
+                "description": "Path to the fink binary"
               }
             }
           }
@@ -88,7 +92,7 @@
         "configurationSnippets": [
           {
             "label": "Fink: Debug",
-            "description": "Debug a fink file",
+            "description": "Debug a fink file via native DAP",
             "body": {
               "type": "fink",
               "request": "launch",
