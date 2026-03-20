@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { FinkDebugConfigurationProvider, registerDebugLifecycle } from './debug-config-provider';
+import { FinkDapAdapterFactory, FinkDapConfigurationProvider } from './dap-adapter-factory';
 
 // Token legend — indices must match the Rust constants in src/lib.rs
 const tokenTypes = ['function', 'variable', 'property', 'block-name', 'tag-left', 'tag-right'];
@@ -221,6 +222,14 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   );
   context.subscriptions.push({ dispose: () => debugProvider.dispose() });
   registerDebugLifecycle(context);
+
+  // Register native DAP adapter (fink dap <file> on stdin/stdout)
+  context.subscriptions.push(
+    vscode.debug.registerDebugConfigurationProvider('fink-dap', new FinkDapConfigurationProvider())
+  );
+  context.subscriptions.push(
+    vscode.debug.registerDebugAdapterDescriptorFactory('fink-dap', new FinkDapAdapterFactory())
+  );
 
   try {
     await loadWasm(context);

@@ -24,7 +24,8 @@
   "browser": "./build/pkg/extension.js",
   "activationEvents": [
     "onLanguage:fink",
-    "onDebug:fink"
+    "onDebug:fink",
+    "onDebug:fink-dap"
   ],
   "contributes": {
     "languages": [
@@ -93,6 +94,42 @@
               "type": "fink",
               "request": "launch",
               "name": "Debug Fink",
+              "program": "${file}"
+            }
+          }
+        ]
+      },
+      {
+        "type": "fink-dap",
+        "label": "Fink (DAP)",
+        "configurationAttributes": {
+          "launch": {
+            "required": ["program"],
+            "properties": {
+              "program": {
+                "type": "string",
+                "description": "Path to the fink file to debug"
+              },
+              "stopOnEntry": {
+                "type": "boolean",
+                "description": "Pause before WASM runs",
+                "default": false
+              },
+              "runtimeExecutable": {
+                "type": "string",
+                "description": "Path to the fink binary"
+              }
+            }
+          }
+        },
+        "configurationSnippets": [
+          {
+            "label": "Fink: Debug (DAP)",
+            "description": "Debug a fink file via native DAP",
+            "body": {
+              "type": "fink-dap",
+              "request": "launch",
+              "name": "Debug Fink (DAP)",
               "program": "${file}"
             }
           }
