@@ -27,16 +27,6 @@
     "onDebug:fink"
   ],
   "contributes": {
-    "configuration": {
-      "title": "Fink",
-      "properties": {
-        "fink.path": {
-          "type": "string",
-          "default": "fink",
-          "description": "Path to the fink binary"
-        }
-      }
-    },
     "languages": [
       {
         "id": "fink",

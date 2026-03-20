@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { FinkDebugConfigurationProvider } from './debug-config-provider';
+import { FinkDebugConfigurationProvider, registerDebugLifecycle } from './debug-config-provider';
 
 // Token legend — indices must match the Rust constants in src/lib.rs
 const tokenTypes = ['function', 'variable', 'property', 'block-name', 'tag-left', 'tag-right'];
@@ -213,7 +213,21 @@ const provider: vscode.DocumentSemanticTokensProvider = {
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   debug = context.extensionMode === vscode.ExtensionMode.Development;
-  await loadWasm(context);
+
+  // Register debug config provider first — it doesn't depend on WASM
+  const debugProvider = new FinkDebugConfigurationProvider();
+  context.subscriptions.push(
+    vscode.debug.registerDebugConfigurationProvider('fink', debugProvider)
+  );
+  context.subscriptions.push({ dispose: () => debugProvider.dispose() });
+  registerDebugLifecycle(context);
+
+  try {
+    await loadWasm(context);
+  } catch (err) {
+    console.warn('fink: WASM load failed, language features disabled:', err);
+    return;
+  }
 
   context.subscriptions.push(
     vscode.languages.registerDocumentSemanticTokensProvider(
@@ -238,12 +252,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   );
 
   context.subscriptions.push(diagnosticCollection);
-
-  context.subscriptions.push(
-    vscode.debug.registerDebugConfigurationProvider(
-      'fink', new FinkDebugConfigurationProvider()
-    )
-  );
 
   // Parse on document change — single parse feeds all providers
   context.subscriptions.push(
