@@ -27,6 +27,12 @@
     "onDebug:fink"
   ],
   "contributes": {
+    "commands": [
+      {
+        "command": "fink.reloadWasm",
+        "title": "fink: Reload WASM"
+      }
+    ],
     "languages": [
       {
         "id": "fink",

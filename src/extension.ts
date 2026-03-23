@@ -9,8 +9,9 @@ const legend = new vscode.SemanticTokensLegend(tokenTypes, tokenModifiers);
 // WASM module — initialized in activate()
 let ParsedDocument: {
   new(src: string): ParsedDocumentHandle;
-};
+} | undefined;
 let debug = false;
+let statusBarItem: vscode.StatusBarItem;
 
 // Opaque handle to a Rust ParsedDocument struct living in WASM memory.
 // Must be .free()'d explicitly; FinalizationRegistry acts as safety net.
@@ -31,12 +32,14 @@ function getDoc(document: vscode.TextDocument): ParsedDocumentHandle | undefined
 }
 
 function updateDoc(document: vscode.TextDocument): void {
+  if (!ParsedDocument) return;
   const key = document.uri.toString();
   docs.get(key)?.free();
-  if (debug) console.time('fink:parse');
+  const t0 = performance.now();
   const doc = new ParsedDocument(document.getText());
-  if (debug) console.timeEnd('fink:parse');
+  const parseMs = performance.now() - t0;
   docs.set(key, doc);
+  statusBarItem.text = `$(check) ƒink ${parseMs.toFixed(1)}ms`;
 
   // Update diagnostics from the freshly parsed document
   const json = doc.get_diagnostics();
@@ -72,6 +75,38 @@ async function loadWasm(context: vscode.ExtensionContext): Promise<void> {
   const wasmModule = await import(dataUrl);
   await wasmModule.default(wasmBytes.buffer);
   ParsedDocument = wasmModule.ParsedDocument;
+}
+
+function setStatus(ok: boolean): void {
+  statusBarItem.text = ok ? '$(check) ƒink' : '$(warning) ƒink';
+  statusBarItem.tooltip = ok ? 'ƒink WASM loaded — click to reload' : 'ƒink WASM not loaded — click to reload';
+}
+
+async function reloadWasm(context: vscode.ExtensionContext): Promise<void> {
+  // Free all existing handles
+  for (const handle of docs.values()) {
+    handle.free();
+  }
+  docs.clear();
+  diagnosticCollection.clear();
+
+  try {
+    await loadWasm(context);
+    setStatus(true);
+  } catch (err) {
+    ParsedDocument = undefined;
+    setStatus(false);
+    console.warn('fink: WASM reload failed:', err);
+    vscode.window.showWarningMessage(`fink: WASM reload failed: ${err}`);
+    return;
+  }
+
+  // Re-parse all open fink documents
+  vscode.workspace.textDocuments.forEach(doc => {
+    if (doc.languageId === 'fink') {
+      updateDoc(doc);
+    }
+  });
 }
 
 interface DiagnosticEntry {
@@ -218,6 +253,16 @@ const provider: vscode.DocumentSemanticTokensProvider = {
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   debug = context.extensionMode === vscode.ExtensionMode.Development;
 
+  // Status bar item — click to reload WASM
+  statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 0);
+  statusBarItem.command = 'fink.reloadWasm';
+  context.subscriptions.push(statusBarItem);
+  statusBarItem.show();
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('fink.reloadWasm', () => reloadWasm(context))
+  );
+
   // Register native DAP adapter — spawns `fink dap <file>` on stdin/stdout
   context.subscriptions.push(
     vscode.debug.registerDebugConfigurationProvider('fink', new FinkDapConfigurationProvider())
@@ -228,8 +273,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
   try {
     await loadWasm(context);
+    setStatus(true);
   } catch (err) {
     console.warn('fink: WASM load failed, language features disabled:', err);
+    setStatus(false);
     return;
   }
 
