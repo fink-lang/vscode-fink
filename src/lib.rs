@@ -117,12 +117,14 @@ fn collect_tokens<'src>(node: &'src Node<'src>, tokens: &mut Vec<RawToken>) {
         NodeKind::LitRec { items: children, .. } => {
             for child in &children.items {
                 if let NodeKind::Arm { lhs, body, .. } = &child.kind {
-                    if let Some(first_lhs) = lhs.items.first() {
-                        if matches!(&first_lhs.kind, NodeKind::Ident(_)) {
-                            if body.items.is_empty() {
-                                emit_token(tokens, first_lhs, TOKEN_VARIABLE, MOD_READONLY);
-                            } else {
-                                emit_token(tokens, first_lhs, TOKEN_PROPERTY, 0);
+                    if let NodeKind::Patterns(pats) = &lhs.kind {
+                        if let Some(first_lhs) = pats.items.first() {
+                            if matches!(&first_lhs.kind, NodeKind::Ident(_)) {
+                                if body.items.is_empty() {
+                                    emit_token(tokens, first_lhs, TOKEN_VARIABLE, MOD_READONLY);
+                                } else {
+                                    emit_token(tokens, first_lhs, TOKEN_PROPERTY, 0);
+                                }
                             }
                         }
                     }
@@ -138,7 +140,8 @@ fn collect_tokens<'src>(node: &'src Node<'src>, tokens: &mut Vec<RawToken>) {
 
         // --- recurse into all other container nodes ---
 
-        NodeKind::LitSeq { items: children, .. }
+        NodeKind::Module(children)
+        | NodeKind::LitSeq { items: children, .. }
         | NodeKind::Patterns(children) => {
             for child in &children.items {
                 collect_tokens(child, tokens);
@@ -186,7 +189,9 @@ fn collect_tokens<'src>(node: &'src Node<'src>, tokens: &mut Vec<RawToken>) {
         }
 
         NodeKind::Match { subjects, arms, .. } => {
-            collect_tokens(subjects, tokens);
+            for subj in &subjects.items {
+                collect_tokens(subj, tokens);
+            }
             for arm in &arms.items {
                 collect_tokens(arm, tokens);
             }
@@ -194,9 +199,7 @@ fn collect_tokens<'src>(node: &'src Node<'src>, tokens: &mut Vec<RawToken>) {
 
         NodeKind::Arm { lhs, body, .. } => {
             // Arms not inside LitRec — just recurse
-            for expr in &lhs.items {
-                collect_tokens(expr, tokens);
-            }
+            collect_tokens(lhs, tokens);
             for expr in &body.items {
                 collect_tokens(expr, tokens);
             }
