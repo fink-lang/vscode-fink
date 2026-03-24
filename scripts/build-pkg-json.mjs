@@ -31,7 +31,7 @@ for (const key of keep) {
 
 // Rewrite paths to be relative to build/pkg/ instead of repo root
 const prefix = './build/pkg/'
-for (const key of ['main', 'browser']) {
+for (const key of ['main', 'browser', 'icon']) {
   if (out[key]?.startsWith(prefix)) {
     out[key] = './' + out[key].slice(prefix.length)
   }
