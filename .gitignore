@@ -23,9 +23,6 @@ node_modules/
 # Downloaded asset dependencies
 .deps/
 
-# Icon fetched from brand repo via update-deps
-images/icon.png
-
 
 # Optional npm cache directory
 .npm

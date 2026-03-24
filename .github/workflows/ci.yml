@@ -33,6 +33,9 @@ jobs:
     - name: build
       run: make build
 
+    - name: package
+      run: make package
+
     - name: release
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
