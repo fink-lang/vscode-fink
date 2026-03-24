@@ -126,15 +126,18 @@
     ]
   },
   "scripts": {
-    "clean": "rimraf ./build",
+    "clean": "rimraf ./build ./target",
     "build": "npm run build:dir && npm run build:wasm && npm run build:ext && npm run build:grammars && npm run build:files && npm run build:languages",
     "build:dir": "mkdir -p ./build/pkg/grammars ./build/pkg/wasm",
     "build:wasm": "wasm-pack build --target web --weak-refs --out-dir build/pkg/wasm",
     "build:ext": "esbuild src/extension.ts --bundle --outfile=build/pkg/extension.js --external:vscode --format=cjs --platform=node --sourcemap",
     "build:grammars": "node -r @fink/require-hook ./scripts/build-grammars.fnk",
-    "build:files": "cp ./package.json ./README.md ./LICENSE ./build/pkg/",
+    "build:files": "cp ./package.json ./README.md ./LICENSE ./build/pkg/ && mkdir -p ./build/pkg/images && cp ./images/icon.png ./build/pkg/images/",
     "build:languages": "cp -r ./languages ./build/pkg/",
-    "release": "semantic-release"
+    "release": "semantic-release",
+    "install-deps": "node deps.mjs install",
+    "check-deps": "node deps.mjs check",
+    "update-deps": "node deps.mjs update"
   },
   "devDependencies": {
     "@fink/cli": "^8.3.0",
@@ -149,6 +152,17 @@
     "semantic-release": "^25.0.0",
     "semantic-release-vsce": "^6.0.0",
     "typescript": "^5.4.0"
+  },
+  "assets": {
+    "brand": {
+      "repo": "fink-lang/brand",
+      "version": "v1.0.0",
+      "url": "https://github.com/fink-lang/brand/releases/download/{version}/brand-assets.tar.gz",
+      "dest": ".deps/brand",
+      "files": {
+        "assets/fink-rounded.png": "images/icon.png"
+      }
+    }
   },
   "config": {
     "commitizen": {
