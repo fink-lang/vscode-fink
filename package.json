@@ -125,20 +125,7 @@
       }
     ]
   },
-  "scripts": {
-    "clean": "rm -rf ./build ./target",
-    "build": "npm run build:dir && npm run build:wasm && npm run build:ext && npm run build:grammars && npm run build:files && npm run build:languages",
-    "build:dir": "mkdir -p ./build/pkg/grammars ./build/pkg/wasm",
-    "build:wasm": "wasm-pack build --target web --weak-refs --out-dir build/pkg/wasm && rm -f build/pkg/wasm/.gitignore build/pkg/wasm/package.json build/pkg/wasm/README.md build/pkg/wasm/*.d.ts build/pkg/wasm/fink_wasm_bg.js",
-    "build:ext": "esbuild src/extension.ts --bundle --outfile=build/pkg/extension.js --external:vscode --format=cjs --platform=node",
-    "build:grammars": "node -r @fink/require-hook ./scripts/build-grammars.fnk",
-    "build:files": "node scripts/build-pkg-json.mjs && cp ./README.md ./LICENSE ./build/pkg/ && mkdir -p ./build/pkg/images && cp ./images/icon.png ./build/pkg/images/",
-    "build:languages": "cp -r ./languages ./build/pkg/",
-    "release": "semantic-release",
-    "install-deps": "node deps.mjs install",
-    "check-deps": "node deps.mjs check",
-    "update-deps": "node deps.mjs update"
-  },
+  "scripts": {},
   "devDependencies": {
     "@fink/cli": "^8.3.0",
     "@fink/js-interop": "^3.1.1",
