@@ -201,8 +201,8 @@ async function update() {
 // ---------------------------------------------------------------------------
 
 function install() {
-  console.log('npm install:')
-  console.log(run('npm install') || '  done')
+  console.log('npm ci:')
+  console.log(run('npm ci') || '  done')
 
   console.log('\ncargo fetch:')
   console.log(run('cargo fetch') || '  done')
