@@ -28,16 +28,16 @@ jobs:
         node-version: 22
 
     - name: install dependencies
-      run: npm run install-deps
+      run: make deps-install
 
     - name: build
-      run: npm run build
+      run: make build
 
     - name: release
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         VSCE_PAT: ${{ secrets.VSCE_TOKEN }}
-      run: npm run release
+      run: make release
 
     # On PRs, dry-run semantic-release and comment the next version
     - name: preview release version
