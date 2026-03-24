@@ -367,11 +367,23 @@ impl ParsedDocument {
         collect_tokens(&parse_result.root, &mut raw_tokens);
         let semantic_tokens = delta_encode(raw_tokens);
 
+        // --- Empty document: skip CPS/name-res (upstream panics on empty Module) ---
+        let is_empty = matches!(&parse_result.root.kind, NodeKind::Module(exprs) if exprs.items.is_empty());
+        if is_empty {
+            return ParsedDocument {
+                semantic_tokens,
+                diagnostics: format!("[{}]", diag_entries.join(",")),
+                node_locs: vec![],
+                bind_ids: vec![],
+                idents: vec![],
+            };
+        }
+
         // --- Name resolution ---
         let ast_index = ast::build_index(&parse_result);
         let cps = lower_expr(&parse_result.root);
         let node_count = cps.origin.len();
-        let resolved = name_res::resolve(&cps.root, &cps.origin, &ast_index, node_count);
+        let resolved = name_res::resolve(&cps.root, &cps.origin, &ast_index, node_count, &cps.synth_alias);
 
         // --- Build owned lookup tables ---
         let mut node_locs: Vec<Option<Loc>> = Vec::with_capacity(node_count);

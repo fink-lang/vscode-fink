@@ -1,6 +1,10 @@
 **
-!build/pkg/**
-!images/**
+!build/pkg/extension.js
+!build/pkg/wasm/fink_wasm.js
+!build/pkg/wasm/fink_wasm_bg.wasm
+!build/pkg/grammars/*.json
+!build/pkg/languages/*.json
+!build/pkg/images/icon.png
 !LICENSE
 !README.md
 !package.json
