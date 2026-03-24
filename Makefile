@@ -33,6 +33,7 @@ build-files:
 	cp ./README.md ./LICENSE ./build/pkg/
 	mkdir -p ./build/pkg/images
 	cp ./.deps/brand/assets/fink-rounded.png ./build/pkg/images/icon.png
+	touch ./build/pkg/.vscodeignore
 
 build-languages:
 	mkdir -p ./build/pkg

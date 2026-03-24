@@ -8,7 +8,7 @@
   "version": "0.0.0-semantically-released",
   "license": "MIT",
   "displayName": "fink",
-  "icon": "images/icon.png",
+  "icon": "./build/pkg/images/icon.png",
   "description": "VSCode syntax highlighting for fink.",
   "engines": {
     "vscode": "^1.50.0"
