@@ -392,7 +392,14 @@ impl ParsedDocument {
 
         // For unused-binding diagnostics: track all bind sites and all referenced binds.
         // Module-level bindings (scope == root) are exports — skip unused warning for those.
+        //
+        // Multi-expression modules are wrapped in a synthetic zero-param fn by
+        // the CPS transform, so module-level bindings live in the module fn's
+        // scope (parent_scope == root). Single-expression modules are NOT
+        // wrapped, so module-level bindings live directly in root scope.
         let root_scope_id = cps.root.id;
+        let is_multi_expr = matches!(&parse_result.root.kind,
+            NodeKind::Module(exprs) if exprs.items.len() > 1);
         let mut bind_sites: Vec<u32> = Vec::new();
         let mut used_binds: HashSet<u32> = HashSet::new();
 
@@ -456,11 +463,35 @@ impl ParsedDocument {
         }
 
         // Unused-binding diagnostics — warn on bind sites with no references.
-        // Skip module-level bindings (they are exports).
+        // Skip:
+        //   - non-Ident bind sites (synthetic CPS nodes from pattern matching)
+        //   - module-level bindings (they are exports): a binding is module-level
+        //     if its scope is a continuation scope (no parent_scope entry), since
+        //     only user-written fn: bodies create scopes with parent_scope entries.
         for bind_idx in bind_sites {
             if used_binds.contains(&bind_idx) { continue; }
             let cps_id = CpsId(bind_idx);
-            if resolved.bind_scope.get(cps_id) == &Some(root_scope_id) { continue; }
+
+            // Skip non-Ident bind sites (synthetic pattern/destructuring nodes)
+            let is_ident = cps.origin.get(cps_id)
+                .and_then(|ast_id| *ast_index.get(ast_id))
+                .is_some_and(|node| matches!(&node.kind, NodeKind::Ident(_)));
+            if !is_ident { continue; }
+
+            // Skip module-level bindings (they are exports).
+            // Single-expr module: bindings are directly in root scope.
+            // Multi-expr module: bindings are in the synthetic module fn
+            // scope, whose parent_scope is root.
+            if let Some(scope) = resolved.bind_scope.get(cps_id) {
+                if *scope == root_scope_id { continue; }
+                if is_multi_expr {
+                    let parent_is_root = resolved.parent_scope.try_get(*scope)
+                        .and_then(|p| *p)
+                        .is_some_and(|parent| parent == root_scope_id);
+                    if parent_is_root { continue; }
+                }
+            }
+
             if let Some(ast_id) = *cps.origin.get(cps_id) {
                 if let Some(node) = *ast_index.get(ast_id) {
                     let line = node.loc.start.line.saturating_sub(1);
@@ -469,7 +500,7 @@ impl ParsedDocument {
                     let end_col = node.loc.end.col;
                     let name = match &node.kind {
                         NodeKind::Ident(s) => s.replace('\\', "\\\\").replace('"', "\\\""),
-                        _ => "?".to_string(),
+                        _ => continue,
                     };
                     diag_entries.push(format!(
                         r#"{{"line":{line},"col":{col},"endLine":{end_line},"endCol":{end_col},"message":"unused binding '{name}'","source":"name_res","severity":"warning"}}"#
