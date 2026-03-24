@@ -29,4 +29,12 @@ for (const key of keep) {
   if (key in src) out[key] = src[key]
 }
 
+// Rewrite paths to be relative to build/pkg/ instead of repo root
+const prefix = './build/pkg/'
+for (const key of ['main', 'browser']) {
+  if (out[key]?.startsWith(prefix)) {
+    out[key] = './' + out[key].slice(prefix.length)
+  }
+}
+
 fs.writeFileSync('build/pkg/package.json', JSON.stringify(out, null, 2) + '\n')

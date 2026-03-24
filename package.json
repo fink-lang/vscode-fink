@@ -145,10 +145,7 @@
       "repo": "fink-lang/brand",
       "version": "v1.0.0",
       "url": "https://github.com/fink-lang/brand/releases/download/{version}/brand-assets.tar.gz",
-      "dest": ".deps/brand",
-      "files": {
-        "assets/fink-rounded.png": "images/icon.png"
-      }
+      "dest": ".deps/brand"
     }
   },
   "config": {
