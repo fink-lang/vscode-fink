@@ -1,13 +1,13 @@
 .PHONY: deps-check deps-update deps-install clean build test release
 
 deps-check:
-	node deps.mjs check
+	node scripts/deps.mjs check
 
 deps-update:
-	node deps.mjs update
+	node scripts/deps.mjs update
 
 deps-install:
-	node deps.mjs install
+	node scripts/deps.mjs install
 
 clean:
 	rm -rf ./build ./target
