@@ -251,6 +251,7 @@ lang = {
     template_block: {
       patterns: seq
         embedded_str_block 'fink'
+        embedded_str_block 'wat'
         {
           name: 'meta.template-block.fink'
           begin: rx'^(\s*)(.*)(")(:)\s*$'
@@ -575,6 +576,7 @@ lang = {
         embedded_str 'css'
         embedded_str 'sql'
         embedded_str 'fink'
+        embedded_str 'wat'
         {
           name: 'string.quoted.fink'
           begin: rx'([_$·\p{L}][-_$·\p{L}\p{N}]*)?(\')'
