@@ -1,12 +1,10 @@
 use std::collections::HashSet;
 use wasm_bindgen::prelude::*;
 
-use fink::ast::{self, Node, NodeKind};
+use fink::ast::{self, AstId, Node, NodeKind};
 use fink::lexer::{self, TokenKind};
 use fink::parser;
-use fink::passes::cps::ir::CpsId;
-use fink::passes::cps::transform::lower_expr;
-use fink::passes::name_res::{self, Resolution};
+use fink::passes::scopes::{self, BindId, BindOrigin, RefKind, ScopeEvent, ScopeKind};
 
 // Token type indices (must match TypeScript legend)
 const TOKEN_FUNCTION: u32 = 0;
@@ -227,6 +225,7 @@ fn collect_tokens<'src>(node: &'src Node<'src>, tokens: &mut Vec<RawToken>) {
 
         // Leaf nodes — no children to recurse into
         NodeKind::Ident(_)
+        | NodeKind::SynthIdent(_)
         | NodeKind::LitBool(_)
         | NodeKind::LitInt(_)
         | NodeKind::LitFloat(_)
@@ -262,16 +261,6 @@ fn delta_encode(mut tokens: Vec<RawToken>) -> Vec<u32> {
     result
 }
 
-/// Extract the bind CpsId from a Resolution variant.
-fn resolution_bind_id(res: &Option<Resolution>) -> Option<CpsId> {
-    match res {
-        Some(Resolution::Local(id))
-        | Some(Resolution::Captured { bind: id, .. })
-        | Some(Resolution::Recursive(id)) => Some(*id),
-        _ => None,
-    }
-}
-
 // --- Pre-computed location data for cursor lookups ---
 
 /// 0-based source location, owned (no borrows).
@@ -283,11 +272,22 @@ struct Loc {
     end_col: u32,
 }
 
-/// An identifier node mapped to its CPS node, for cursor hit-testing.
+fn ast_loc(node: &Node) -> Loc {
+    Loc {
+        line: node.loc.start.line.saturating_sub(1),
+        col: node.loc.start.col,
+        end_line: node.loc.end.line.saturating_sub(1),
+        end_col: node.loc.end.col,
+    }
+}
+
+/// An identifier node mapped to its binding, for cursor hit-testing.
 /// Sorted by (line, col) for binary search.
 struct IdentEntry {
     loc: Loc,
-    cps_idx: u32,
+    /// The BindId this ident resolves to (if it's a reference),
+    /// or the BindId it defines (if it's a binding site).
+    bind_id: Option<BindId>,
 }
 
 /// Stateful parsed document - parse once, query many times.
@@ -300,14 +300,11 @@ pub struct ParsedDocument {
     /// JSON diagnostics string, ready to return to VS Code.
     diagnostics: String,
 
-    /// Source location for each CPS node (indexed by CpsId.0).
-    /// None if the CPS node has no AST origin or origin has no location.
-    node_locs: Vec<Option<Loc>>,
+    /// For each BindId, the source location of the binding site.
+    bind_locs: Vec<Option<Loc>>,
 
-    /// For each CPS node, the binding CpsId it resolves to.
-    /// If the node IS a binding site, points to itself.
-    /// None if unresolved or not an identifier.
-    bind_ids: Vec<Option<u32>>,
+    /// For each BindId, all AstIds that reference it (for find-references).
+    bind_refs: Vec<Vec<Loc>>,
 
     /// Identifier nodes sorted by position, for cursor hit-testing.
     idents: Vec<IdentEntry>,
@@ -355,8 +352,8 @@ impl ParsedDocument {
                 return ParsedDocument {
                     semantic_tokens: vec![],
                     diagnostics: format!("[{}]", diag_entries.join(",")),
-                    node_locs: vec![],
-                    bind_ids: vec![],
+                    bind_locs: vec![],
+                    bind_refs: vec![],
                     idents: vec![],
                 };
             }
@@ -367,146 +364,146 @@ impl ParsedDocument {
         collect_tokens(&parse_result.root, &mut raw_tokens);
         let semantic_tokens = delta_encode(raw_tokens);
 
-        // --- Empty document: skip CPS/name-res (upstream panics on empty Module) ---
+        // --- Empty document: skip scope analysis ---
         let is_empty = matches!(&parse_result.root.kind, NodeKind::Module(exprs) if exprs.items.is_empty());
         if is_empty {
             return ParsedDocument {
                 semantic_tokens,
                 diagnostics: format!("[{}]", diag_entries.join(",")),
-                node_locs: vec![],
-                bind_ids: vec![],
+                bind_locs: vec![],
+                bind_refs: vec![],
                 idents: vec![],
             };
         }
 
-        // --- Name resolution ---
+        // --- AST-level scope analysis ---
         let ast_index = ast::build_index(&parse_result);
-        let cps = lower_expr(&parse_result.root);
-        let node_count = cps.origin.len();
-        let resolved = name_res::resolve(&cps.root, &cps.origin, &ast_index, node_count, &cps.synth_alias);
+        let scope_result = scopes::analyse(
+            &parse_result.root,
+            parse_result.node_count as usize,
+            &[],
+        );
 
-        // --- Build owned lookup tables ---
-        let mut node_locs: Vec<Option<Loc>> = Vec::with_capacity(node_count);
-        let mut bind_ids: Vec<Option<u32>> = Vec::with_capacity(node_count);
+        // --- Build bind location table ---
+        let bind_count = scope_result.binds.len();
+        let mut bind_locs: Vec<Option<Loc>> = Vec::with_capacity(bind_count);
+        for i in 0..bind_count {
+            let bind_id = BindId(i as u32);
+            let bind_info = scope_result.binds.get(bind_id);
+            let loc = match bind_info.origin {
+                BindOrigin::Ast(ast_id) => {
+                    ast_index.try_get(ast_id)
+                        .and_then(|opt| *opt)
+                        .map(|node| ast_loc(node))
+                }
+                BindOrigin::Builtin(_) => None,
+            };
+            bind_locs.push(loc);
+        }
+
+        // --- Build reverse map: AstId → BindId for binding sites ---
+        let mut ast_to_bind: std::collections::HashMap<AstId, BindId> =
+            std::collections::HashMap::new();
+        for i in 0..bind_count {
+            let bind_id = BindId(i as u32);
+            let bind_info = scope_result.binds.get(bind_id);
+            if let BindOrigin::Ast(ast_id) = bind_info.origin {
+                ast_to_bind.insert(ast_id, bind_id);
+            }
+        }
+
+        // --- Build reference table and ident index ---
+        let mut bind_refs: Vec<Vec<Loc>> = vec![Vec::new(); bind_count];
         let mut idents: Vec<IdentEntry> = Vec::new();
 
-        // For unused-binding diagnostics: track all bind sites and all referenced binds.
-        // Module-level bindings (scope == root) are exports — skip unused warning for those.
-        //
-        // Multi-expression modules are wrapped in a synthetic zero-param fn by
-        // the CPS transform, so module-level bindings live in the module fn's
-        // scope (parent_scope == root). Single-expression modules are NOT
-        // wrapped, so module-level bindings live directly in root scope.
-        let root_scope_id = cps.root.id;
-        let is_multi_expr = matches!(&parse_result.root.kind,
-            NodeKind::Module(exprs) if exprs.items.len() > 1);
-        let mut bind_sites: Vec<u32> = Vec::new();
+        // Track which binds are referenced (for unused detection)
         let mut used_binds: HashSet<u32> = HashSet::new();
 
-        for i in 0..node_count {
-            let cps_id = CpsId(i as u32);
+        // Walk all AST nodes to find Ident nodes
+        for i in 0..ast_index.len() {
+            let ast_id = AstId(i as u32);
+            let Some(Some(node)) = ast_index.try_get(ast_id) else { continue };
+            if !matches!(&node.kind, NodeKind::Ident(_)) { continue; }
 
-            // Map CPS node → source location
-            let loc = cps.origin.get(cps_id)
-                .and_then(|ast_id| *ast_index.get(ast_id))
-                .map(|node| Loc {
-                    line: node.loc.start.line.saturating_sub(1),
-                    col: node.loc.start.col,
-                    end_line: node.loc.end.line.saturating_sub(1),
-                    end_col: node.loc.end.col,
-                });
-            node_locs.push(loc);
+            let loc = ast_loc(node);
 
-            // Map CPS node → its binding CpsId
-            let bind_id = if let Some(id) = resolution_bind_id(resolved.resolution.get(cps_id)) {
-                // This is a reference — resolves to a binding
-                used_binds.insert(id.0);
-                Some(id.0)
-            } else if resolved.bind_scope.get(cps_id).is_some() {
-                // This IS a binding site — points to itself
-                bind_sites.push(i as u32);
-                Some(i as u32)
-            } else {
-                None
-            };
-            bind_ids.push(bind_id);
+            // Check if this ident is a reference that resolves to a binding
+            let ref_bind_id = scope_result.resolution.try_get(ast_id)
+                .and_then(|opt| *opt);
 
-            // Build ident index for cursor hit-testing
-            if let Some(loc) = loc {
-                if let Some(ast_id) = *cps.origin.get(cps_id) {
-                    if let Some(node) = *ast_index.get(ast_id) {
-                        if matches!(&node.kind, NodeKind::Ident(_)) {
-                            idents.push(IdentEntry { loc, cps_idx: i as u32 });
-                        }
-                    }
-                }
+            if let Some(bid) = ref_bind_id {
+                used_binds.insert(bid.0);
+                bind_refs[bid.0 as usize].push(loc);
             }
 
-            // Name resolution diagnostics — unresolved names as warnings
-            if let Some(Resolution::Unresolved) = resolved.resolution.get(cps_id) {
-                if let Some(ast_id) = *cps.origin.get(cps_id) {
-                    if let Some(node) = *ast_index.get(ast_id) {
-                        let line = node.loc.start.line.saturating_sub(1);
-                        let col = node.loc.start.col;
-                        let end_line = node.loc.end.line.saturating_sub(1);
-                        let end_col = node.loc.end.col;
-                        let name = match &node.kind {
-                            NodeKind::Ident(s) => s.replace('\\', "\\\\").replace('"', "\\\""),
-                            _ => "?".to_string(),
-                        };
-                        diag_entries.push(format!(
-                            r#"{{"line":{line},"col":{col},"endLine":{end_line},"endCol":{end_col},"message":"unresolved name '{name}'","source":"name_res","severity":"error"}}"#
-                        ));
+            // Determine the BindId: either from resolution (reference) or
+            // from the reverse map (binding site)
+            let entry_bind_id = ref_bind_id.or_else(|| ast_to_bind.get(&ast_id).copied());
+
+            idents.push(IdentEntry { loc, bind_id: entry_bind_id });
+        }
+
+        // --- Unresolved name diagnostics ---
+        // Iterate scope events to find unresolved references
+        for i in 0..scope_result.scopes.len() {
+            let scope_id = scopes::ScopeId(i as u32);
+            if let Some(events) = scope_result.scope_events.try_get(scope_id) {
+                for event in events {
+                    if let ScopeEvent::Ref(ref_info) = event {
+                        if ref_info.kind == RefKind::Unresolved {
+                            if let Some(Some(node)) = ast_index.try_get(ref_info.ast_id) {
+                                let line = node.loc.start.line.saturating_sub(1);
+                                let col = node.loc.start.col;
+                                let end_line = node.loc.end.line.saturating_sub(1);
+                                let end_col = node.loc.end.col;
+                                let name = match &node.kind {
+                                    NodeKind::Ident(s) => s.replace('\\', "\\\\").replace('"', "\\\""),
+                                    _ => "?".to_string(),
+                                };
+                                diag_entries.push(format!(
+                                    r#"{{"line":{line},"col":{col},"endLine":{end_line},"endCol":{end_col},"message":"unresolved name '{name}'","source":"name_res","severity":"error"}}"#
+                                ));
+                            }
+                        }
                     }
                 }
             }
         }
 
-        // Unused-binding diagnostics — warn on bind sites with no references.
-        // Skip:
-        //   - non-Ident bind sites (synthetic CPS nodes from pattern matching)
-        //   - module-level bindings (they are exports): a binding is module-level
-        //     if its scope is a continuation scope (no parent_scope entry), since
-        //     only user-written fn: bodies create scopes with parent_scope entries.
-        for bind_idx in bind_sites {
-            if used_binds.contains(&bind_idx) { continue; }
-            let cps_id = CpsId(bind_idx);
+        // --- Unused binding diagnostics ---
+        // Module-level bindings are exports — skip unused warning for those.
+        let module_scope_id = scopes::ScopeId(0);
+        for i in 0..bind_count {
+            let bind_id = BindId(i as u32);
+            if used_binds.contains(&(i as u32)) { continue; }
 
-            // Skip non-Ident bind sites (synthetic pattern/destructuring nodes)
-            let is_ident = cps.origin.get(cps_id)
-                .and_then(|ast_id| *ast_index.get(ast_id))
-                .is_some_and(|node| matches!(&node.kind, NodeKind::Ident(_)));
-            if !is_ident { continue; }
+            let bind_info = scope_result.binds.get(bind_id);
 
-            // Skip module-level bindings (they are exports).
-            // Single-expr module: bindings are directly in root scope.
-            // Multi-expr module: bindings are in the synthetic module fn
-            // scope, whose parent_scope is root.
-            if let Some(scope) = resolved.bind_scope.get(cps_id) {
-                if *scope == root_scope_id { continue; }
-                if is_multi_expr {
-                    let parent_is_root = resolved.parent_scope.try_get(*scope)
-                        .and_then(|p| *p)
-                        .is_some_and(|parent| parent == root_scope_id);
-                    if parent_is_root { continue; }
-                }
-            }
+            // Skip builtins
+            if matches!(bind_info.origin, BindOrigin::Builtin(_)) { continue; }
 
-            if let Some(ast_id) = *cps.origin.get(cps_id) {
-                if let Some(node) = *ast_index.get(ast_id) {
-                    let line = node.loc.start.line.saturating_sub(1);
-                    let col = node.loc.start.col;
-                    let end_line = node.loc.end.line.saturating_sub(1);
-                    let end_col = node.loc.end.col;
-                    let name = match &node.kind {
-                        NodeKind::Ident(s) => s.replace('\\', "\\\\").replace('"', "\\\""),
-                        _ => continue,
-                    };
-                    diag_entries.push(format!(
-                        r#"{{"line":{line},"col":{col},"endLine":{end_line},"endCol":{end_col},"message":"unused binding '{name}'","source":"name_res","severity":"warning"}}"#
-                    ));
-                }
-            }
+            // Skip module-level bindings (they are exports)
+            if bind_info.scope == module_scope_id { continue; }
+
+            // Skip non-module scopes whose kind is Module (shouldn't happen,
+            // but be safe) and skip Arm scopes (pattern bindings)
+            let scope_info = scope_result.scopes.get(bind_info.scope);
+            if scope_info.kind == ScopeKind::Module { continue; }
+
+            let BindOrigin::Ast(ast_id) = bind_info.origin else { continue };
+            let Some(Some(node)) = ast_index.try_get(ast_id) else { continue };
+
+            // Only warn for user-written Ident bindings
+            let NodeKind::Ident(name) = &node.kind else { continue };
+
+            let line = node.loc.start.line.saturating_sub(1);
+            let col = node.loc.start.col;
+            let end_line = node.loc.end.line.saturating_sub(1);
+            let end_col = node.loc.end.col;
+            let name = name.replace('\\', "\\\\").replace('"', "\\\"");
+            diag_entries.push(format!(
+                r#"{{"line":{line},"col":{col},"endLine":{end_line},"endCol":{end_col},"message":"unused binding '{name}'","source":"name_res","severity":"warning"}}"#
+            ));
         }
 
         // Sort idents by position for binary search
@@ -515,8 +512,8 @@ impl ParsedDocument {
         ParsedDocument {
             semantic_tokens,
             diagnostics: format!("[{}]", diag_entries.join(",")),
-            node_locs,
-            bind_ids,
+            bind_locs,
+            bind_refs,
             idents,
         }
     }
@@ -534,8 +531,8 @@ impl ParsedDocument {
     /// Look up the definition site for the identifier at (line, col).
     /// Returns [def_line, def_col, def_end_line, def_end_col] or empty.
     pub fn get_definition(&self, line: u32, col: u32) -> Vec<u32> {
-        let Some(bind_idx) = self.find_bind_at(line, col) else { return vec![] };
-        let Some(loc) = self.node_locs[bind_idx as usize] else { return vec![] };
+        let Some(bind_id) = self.find_bind_at(line, col) else { return vec![] };
+        let Some(loc) = self.bind_locs[bind_id.0 as usize] else { return vec![] };
         vec![loc.line, loc.col, loc.end_line, loc.end_col]
     }
 
@@ -543,30 +540,24 @@ impl ParsedDocument {
     /// Returns [line, col, end_line, end_col, ...] (4 u32s per location) or empty.
     /// First entry is always the binding site.
     pub fn get_references(&self, line: u32, col: u32) -> Vec<u32> {
-        let Some(bind_idx) = self.find_bind_at(line, col) else { return vec![] };
+        let Some(bind_id) = self.find_bind_at(line, col) else { return vec![] };
 
         let mut locs = Vec::new();
 
         // Binding site first
-        if let Some(loc) = self.node_locs[bind_idx as usize] {
+        if let Some(loc) = self.bind_locs[bind_id.0 as usize] {
             locs.push(loc.line);
             locs.push(loc.col);
             locs.push(loc.end_line);
             locs.push(loc.end_col);
         }
 
-        // All references that resolve to this binding
-        for (i, bind_id) in self.bind_ids.iter().enumerate() {
-            if let Some(id) = bind_id {
-                if *id == bind_idx && i as u32 != bind_idx {
-                    if let Some(loc) = self.node_locs[i] {
-                        locs.push(loc.line);
-                        locs.push(loc.col);
-                        locs.push(loc.end_line);
-                        locs.push(loc.end_col);
-                    }
-                }
-            }
+        // All references
+        for ref_loc in &self.bind_refs[bind_id.0 as usize] {
+            locs.push(ref_loc.line);
+            locs.push(ref_loc.col);
+            locs.push(ref_loc.end_line);
+            locs.push(ref_loc.end_col);
         }
 
         locs
@@ -574,13 +565,12 @@ impl ParsedDocument {
 }
 
 impl ParsedDocument {
-    /// Find the binding CpsId for the identifier at (line, col).
+    /// Find the BindId for the identifier at (line, col).
     /// Returns None if no identifier found or it doesn't resolve.
-    fn find_bind_at(&self, line: u32, col: u32) -> Option<u32> {
-        // Linear scan through idents (typically small, sorted by position)
+    fn find_bind_at(&self, line: u32, col: u32) -> Option<BindId> {
         for entry in &self.idents {
             if entry.loc.line == line && entry.loc.col <= col && col < entry.loc.end_col {
-                return self.bind_ids[entry.cps_idx as usize];
+                return entry.bind_id;
             }
         }
         None
