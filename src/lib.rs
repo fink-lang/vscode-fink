@@ -1,9 +1,9 @@
 use std::collections::HashSet;
 use wasm_bindgen::prelude::*;
 
-use fink::ast::{self, AstId, Node, NodeKind};
+use fink::ast::{AstId, Node, NodeKind};
 use fink::lexer::{self, TokenKind};
-use fink::parser;
+use fink::passes;
 use fink::passes::scopes::{self, BindId, BindOrigin, RefKind, ScopeEvent, ScopeKind};
 
 // Token type indices (must match TypeScript legend)
@@ -226,6 +226,7 @@ fn collect_tokens<'src>(node: &'src Node<'src>, tokens: &mut Vec<RawToken>) {
         // Leaf nodes — no children to recurse into
         NodeKind::Ident(_)
         | NodeKind::SynthIdent(_)
+        | NodeKind::Token(_)
         | NodeKind::LitBool(_)
         | NodeKind::LitInt(_)
         | NodeKind::LitFloat(_)
@@ -336,11 +337,18 @@ impl ParsedDocument {
             }
         }
 
-        // --- Parse ---
-        let parse_result = match parser::parse(src) {
+        // --- Parse + desugar (partial-apply + index + scopes) ---
+        let empty_doc = |diag_entries: Vec<String>, semantic_tokens: Vec<u32>| ParsedDocument {
+            semantic_tokens,
+            diagnostics: format!("[{}]", diag_entries.join(",")),
+            bind_locs: vec![],
+            bind_refs: vec![],
+            idents: vec![],
+        };
+
+        let parsed = match passes::parse(src) {
             Ok(r) => r,
             Err(e) => {
-                // Parser failed — return diagnostics only, empty provider data
                 let line = e.loc.start.line.saturating_sub(1);
                 let col = e.loc.start.col;
                 let end_line = e.loc.end.line.saturating_sub(1);
@@ -349,40 +357,38 @@ impl ParsedDocument {
                 diag_entries.push(format!(
                     r#"{{"line":{line},"col":{col},"endLine":{end_line},"endCol":{end_col},"message":"{msg}","source":"parser","severity":"error"}}"#
                 ));
-                return ParsedDocument {
-                    semantic_tokens: vec![],
-                    diagnostics: format!("[{}]", diag_entries.join(",")),
-                    bind_locs: vec![],
-                    bind_refs: vec![],
-                    idents: vec![],
-                };
+                return empty_doc(diag_entries, vec![]);
             }
         };
 
-        // --- Semantic tokens ---
+        // --- Semantic tokens (from raw parsed AST, before desugar) ---
         let mut raw_tokens = Vec::new();
-        collect_tokens(&parse_result.root, &mut raw_tokens);
+        collect_tokens(&parsed.result.root, &mut raw_tokens);
         let semantic_tokens = delta_encode(raw_tokens);
 
-        // --- Empty document: skip scope analysis ---
-        let is_empty = matches!(&parse_result.root.kind, NodeKind::Module(exprs) if exprs.items.is_empty());
+        // --- Empty document: skip desugar ---
+        let is_empty = matches!(&parsed.result.root.kind, NodeKind::Module(exprs) if exprs.items.is_empty());
         if is_empty {
-            return ParsedDocument {
-                semantic_tokens,
-                diagnostics: format!("[{}]", diag_entries.join(",")),
-                bind_locs: vec![],
-                bind_refs: vec![],
-                idents: vec![],
-            };
+            return empty_doc(diag_entries, semantic_tokens);
         }
 
-        // --- AST-level scope analysis ---
-        let ast_index = ast::build_index(&parse_result);
-        let scope_result = scopes::analyse(
-            &parse_result.root,
-            parse_result.node_count as usize,
-            &[],
-        );
+        let desugared = match passes::desugar(parsed) {
+            Ok(r) => r,
+            Err(e) => {
+                let line = e.loc.start.line.saturating_sub(1);
+                let col = e.loc.start.col;
+                let end_line = e.loc.end.line.saturating_sub(1);
+                let end_col = e.loc.end.col;
+                let msg = e.message.replace('\\', "\\\\").replace('"', "\\\"");
+                diag_entries.push(format!(
+                    r#"{{"line":{line},"col":{col},"endLine":{end_line},"endCol":{end_col},"message":"{msg}","source":"desugar","severity":"error"}}"#
+                ));
+                return empty_doc(diag_entries, semantic_tokens);
+            }
+        };
+
+        let ast_index = &desugared.ast_index;
+        let scope_result = &desugared.scope;
 
         // --- Build bind location table ---
         let bind_count = scope_result.binds.len();
