@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 use wasm_bindgen::prelude::*;
 
-use fink::ast::{AstId, Node, NodeKind};
+use fink::ast::{Ast, AstId, Node, NodeKind};
 use fink::lexer::{self, TokenKind};
 use fink::passes;
 use fink::passes::scopes::{self, BindId, BindOrigin, RefKind, ScopeEvent, ScopeKind};
@@ -27,9 +27,10 @@ struct RawToken {
 
 /// Resolve the callee of a function application.
 /// Follows Member.rhs chain to find the actual callee node.
-fn resolve_callee<'a>(node: &'a Node<'a>) -> &'a Node<'a> {
+fn resolve_callee<'a>(ast: &'a Ast<'a>, id: AstId) -> &'a Node<'a> {
+    let node = ast.nodes.get(id);
     match &node.kind {
-        NodeKind::Member { rhs, .. } => resolve_callee(rhs),
+        NodeKind::Member { rhs, .. } => resolve_callee(ast, *rhs),
         _ => node,
     }
 }
@@ -50,16 +51,18 @@ fn emit_token(tokens: &mut Vec<RawToken>, node: &Node, token_type: u32, modifier
 }
 
 
-fn collect_tokens<'src>(node: &'src Node<'src>, tokens: &mut Vec<RawToken>) {
+fn collect_tokens<'src>(ast: &'src Ast<'src>, id: AstId, tokens: &mut Vec<RawToken>) {
+    let node = ast.nodes.get(id);
     match &node.kind {
         NodeKind::Apply { func, args } => {
-            let callee = resolve_callee(func);
+            let callee = resolve_callee(ast, *func);
             match &callee.kind {
                 NodeKind::Ident(_) => {
                     // Tagged literal: callee adjacent to first arg
                     // Prefix: foo'bar' (callee end == arg start) → tag.left
                     // Postfix: 123foo (arg end == callee start) → tag.right
-                    let tag_kind = args.items.first().and_then(|first_arg| {
+                    let tag_kind = args.items.first().and_then(|first_arg_id| {
+                        let first_arg = ast.nodes.get(*first_arg_id);
                         if callee.loc.end.idx == first_arg.loc.start.idx {
                             Some(TOKEN_TAG_LEFT)
                         } else if first_arg.loc.end.idx == callee.loc.start.idx {
@@ -97,26 +100,30 @@ fn collect_tokens<'src>(node: &'src Node<'src>, tokens: &mut Vec<RawToken>) {
                 _ => {}
             }
             // Recurse into func and args
-            collect_tokens(func, tokens);
-            for arg in &args.items {
-                collect_tokens(arg, tokens);
+            collect_tokens(ast, *func, tokens);
+            for arg_id in args.items.iter() {
+                collect_tokens(ast, *arg_id, tokens);
             }
         }
 
         NodeKind::Pipe(children) => {
-            for child in &children.items {
+            for child_id in children.items.iter() {
+                let child = ast.nodes.get(*child_id);
                 if matches!(&child.kind, NodeKind::Ident(_)) {
                     emit_token(tokens, child, TOKEN_FUNCTION, 0);
                 }
-                collect_tokens(child, tokens);
+                collect_tokens(ast, *child_id, tokens);
             }
         }
 
         NodeKind::LitRec { items: children, .. } => {
-            for child in &children.items {
+            for child_id in children.items.iter() {
+                let child = ast.nodes.get(*child_id);
                 if let NodeKind::Arm { lhs, body, .. } = &child.kind {
-                    if let NodeKind::Patterns(pats) = &lhs.kind {
-                        if let Some(first_lhs) = pats.items.first() {
+                    let lhs_node = ast.nodes.get(*lhs);
+                    if let NodeKind::Patterns(pats) = &lhs_node.kind {
+                        if let Some(first_lhs_id) = pats.items.first() {
+                            let first_lhs = ast.nodes.get(*first_lhs_id);
                             if matches!(&first_lhs.kind, NodeKind::Ident(_)) {
                                 if body.items.is_empty() {
                                     emit_token(tokens, first_lhs, TOKEN_VARIABLE, MOD_READONLY);
@@ -127,98 +134,98 @@ fn collect_tokens<'src>(node: &'src Node<'src>, tokens: &mut Vec<RawToken>) {
                         }
                     }
                     // Recurse into arm body
-                    for expr in body.items.iter() {
-                        collect_tokens(expr, tokens);
+                    for expr_id in body.items.iter() {
+                        collect_tokens(ast, *expr_id, tokens);
                     }
                 } else {
-                    collect_tokens(child, tokens);
+                    collect_tokens(ast, *child_id, tokens);
                 }
             }
         }
 
         // --- recurse into all other container nodes ---
 
-        NodeKind::Module(children)
+        NodeKind::Module { exprs: children, .. }
         | NodeKind::LitSeq { items: children, .. }
         | NodeKind::Patterns(children) => {
-            for child in &children.items {
-                collect_tokens(child, tokens);
+            for child_id in children.items.iter() {
+                collect_tokens(ast, *child_id, tokens);
             }
         }
 
         NodeKind::StrTempl { children, .. }
         | NodeKind::StrRawTempl { children, .. } => {
-            for child in children {
-                collect_tokens(child, tokens);
+            for child_id in children.iter() {
+                collect_tokens(ast, *child_id, tokens);
             }
         }
 
         NodeKind::InfixOp { lhs, rhs, .. } => {
-            collect_tokens(lhs, tokens);
-            collect_tokens(rhs, tokens);
+            collect_tokens(ast, *lhs, tokens);
+            collect_tokens(ast, *rhs, tokens);
         }
 
         NodeKind::Bind { lhs, rhs, .. }
         | NodeKind::BindRight { lhs, rhs, .. }
         | NodeKind::Member { lhs, rhs, .. } => {
-            collect_tokens(lhs, tokens);
-            collect_tokens(rhs, tokens);
+            collect_tokens(ast, *lhs, tokens);
+            collect_tokens(ast, *rhs, tokens);
         }
 
         NodeKind::UnaryOp { operand, .. } => {
-            collect_tokens(operand, tokens);
+            collect_tokens(ast, *operand, tokens);
         }
 
         NodeKind::Group { inner, .. }
-        | NodeKind::Try(inner)
-        | NodeKind::Yield(inner) => {
-            collect_tokens(inner, tokens);
+        | NodeKind::Try(inner) => {
+            collect_tokens(ast, *inner, tokens);
         }
 
         NodeKind::Spread { inner: Some(inner), .. } => {
-            collect_tokens(inner, tokens);
+            collect_tokens(ast, *inner, tokens);
         }
 
         NodeKind::Fn { params, body, .. } => {
-            collect_tokens(params, tokens);
-            for expr in &body.items {
-                collect_tokens(expr, tokens);
+            collect_tokens(ast, *params, tokens);
+            for expr_id in body.items.iter() {
+                collect_tokens(ast, *expr_id, tokens);
             }
         }
 
         NodeKind::Match { subjects, arms, .. } => {
-            for subj in &subjects.items {
-                collect_tokens(subj, tokens);
+            for subj_id in subjects.items.iter() {
+                collect_tokens(ast, *subj_id, tokens);
             }
-            for arm in &arms.items {
-                collect_tokens(arm, tokens);
+            for arm_id in arms.items.iter() {
+                collect_tokens(ast, *arm_id, tokens);
             }
         }
 
         NodeKind::Arm { lhs, body, .. } => {
             // Arms not inside LitRec — just recurse
-            collect_tokens(lhs, tokens);
-            for expr in &body.items {
-                collect_tokens(expr, tokens);
+            collect_tokens(ast, *lhs, tokens);
+            for expr_id in body.items.iter() {
+                collect_tokens(ast, *expr_id, tokens);
             }
         }
 
         NodeKind::Block { name, params, body, .. } => {
             // Emit namespace token for the block name
-            if matches!(&name.kind, NodeKind::Ident(_)) {
-                emit_token(tokens, name, TOKEN_BLOCK_NAME, 0);
+            let name_node = ast.nodes.get(*name);
+            if matches!(&name_node.kind, NodeKind::Ident(_)) {
+                emit_token(tokens, name_node, TOKEN_BLOCK_NAME, 0);
             }
-            collect_tokens(name, tokens);
-            collect_tokens(params, tokens);
-            for expr in &body.items {
-                collect_tokens(expr, tokens);
+            collect_tokens(ast, *name, tokens);
+            collect_tokens(ast, *params, tokens);
+            for expr_id in body.items.iter() {
+                collect_tokens(ast, *expr_id, tokens);
             }
         }
 
         NodeKind::ChainedCmp(parts) => {
-            for part in parts {
-                if let fink::ast::CmpPart::Operand(node) = part {
-                    collect_tokens(node, tokens);
+            for part in parts.iter() {
+                if let fink::ast::CmpPart::Operand(operand_id) = part {
+                    collect_tokens(ast, *operand_id, tokens);
                 }
             }
         }
@@ -346,7 +353,7 @@ impl ParsedDocument {
             idents: vec![],
         };
 
-        let parsed = match passes::parse(src) {
+        let parsed = match passes::parse(src, "") {
             Ok(r) => r,
             Err(e) => {
                 let line = e.loc.start.line.saturating_sub(1);
@@ -363,11 +370,12 @@ impl ParsedDocument {
 
         // --- Semantic tokens (from raw parsed AST, before desugar) ---
         let mut raw_tokens = Vec::new();
-        collect_tokens(&parsed.result.root, &mut raw_tokens);
+        collect_tokens(&parsed, parsed.root, &mut raw_tokens);
         let semantic_tokens = delta_encode(raw_tokens);
 
         // --- Empty document: skip desugar ---
-        let is_empty = matches!(&parsed.result.root.kind, NodeKind::Module(exprs) if exprs.items.is_empty());
+        let root_node = parsed.nodes.get(parsed.root);
+        let is_empty = matches!(&root_node.kind, NodeKind::Module { exprs, .. } if exprs.items.is_empty());
         if is_empty {
             return empty_doc(diag_entries, semantic_tokens);
         }
@@ -387,7 +395,7 @@ impl ParsedDocument {
             }
         };
 
-        let ast_index = &desugared.ast_index;
+        let ast = &desugared.ast;
         let scope_result = &desugared.scope;
 
         // --- Build bind location table ---
@@ -398,8 +406,7 @@ impl ParsedDocument {
             let bind_info = scope_result.binds.get(bind_id);
             let loc = match bind_info.origin {
                 BindOrigin::Ast(ast_id) => {
-                    ast_index.try_get(ast_id)
-                        .and_then(|opt| *opt)
+                    ast.nodes.try_get(ast_id)
                         .map(|node| ast_loc(node))
                 }
                 BindOrigin::Builtin(_) => None,
@@ -426,9 +433,9 @@ impl ParsedDocument {
         let mut used_binds: HashSet<u32> = HashSet::new();
 
         // Walk all AST nodes to find Ident nodes
-        for i in 0..ast_index.len() {
+        for i in 0..ast.nodes.len() {
             let ast_id = AstId(i as u32);
-            let Some(Some(node)) = ast_index.try_get(ast_id) else { continue };
+            let Some(node) = ast.nodes.try_get(ast_id) else { continue };
             if !matches!(&node.kind, NodeKind::Ident(_)) { continue; }
 
             let loc = ast_loc(node);
@@ -457,7 +464,7 @@ impl ParsedDocument {
                 for event in events {
                     if let ScopeEvent::Ref(ref_info) = event {
                         if ref_info.kind == RefKind::Unresolved {
-                            if let Some(Some(node)) = ast_index.try_get(ref_info.ast_id) {
+                            if let Some(node) = ast.nodes.try_get(ref_info.ast_id) {
                                 let line = node.loc.start.line.saturating_sub(1);
                                 let col = node.loc.start.col;
                                 let end_line = node.loc.end.line.saturating_sub(1);
@@ -497,7 +504,7 @@ impl ParsedDocument {
             if scope_info.kind == ScopeKind::Module { continue; }
 
             let BindOrigin::Ast(ast_id) = bind_info.origin else { continue };
-            let Some(Some(node)) = ast_index.try_get(ast_id) else { continue };
+            let Some(node) = ast.nodes.try_get(ast_id) else { continue };
 
             // Only warn for user-written Ident bindings
             let NodeKind::Ident(name) = &node.kind else { continue };
