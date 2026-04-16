@@ -293,9 +293,68 @@ fn ast_loc(node: &Node) -> Loc {
 /// Sorted by (line, col) for binary search.
 struct IdentEntry {
     loc: Loc,
+    name: String,
     /// The BindId this ident resolves to (if it's a reference),
     /// or the BindId it defines (if it's a binding site).
     bind_id: Option<BindId>,
+    /// True if this ident is the binding site (not a reference).
+    is_binding_site: bool,
+}
+
+/// An imported name with its location in the import destructure.
+struct ImportedName {
+    name: String,
+    loc: Loc,
+}
+
+/// An import statement: URL + its location + list of imported names with their locations.
+struct ImportInfo {
+    url: String,
+    url_loc: Loc,
+    names: Vec<ImportedName>,
+}
+
+/// Extract import info from the raw parsed AST.
+/// Looks for: Bind { lhs: LitRec { Arm { Patterns([Ident]) } }, rhs: Apply { Ident("import"), [LitStr] } }
+fn extract_imports(ast: &Ast) -> Vec<ImportInfo> {
+    let root = ast.nodes.get(ast.root);
+    let NodeKind::Module { exprs, .. } = &root.kind else { return vec![] };
+
+    let mut imports = Vec::new();
+    for expr_id in exprs.items.iter() {
+        let expr = ast.nodes.get(*expr_id);
+        let NodeKind::Bind { lhs, rhs, .. } = &expr.kind else { continue };
+
+        // Check rhs is Apply { func: Ident("import"), args: [LitStr { content }] }
+        let rhs_node = ast.nodes.get(*rhs);
+        let NodeKind::Apply { func, args } = &rhs_node.kind else { continue };
+        let func_node = ast.nodes.get(*func);
+        if !matches!(&func_node.kind, NodeKind::Ident("import")) { continue }
+        let Some(first_arg_id) = args.items.first() else { continue };
+        let arg_node = ast.nodes.get(*first_arg_id);
+        let NodeKind::LitStr { content: url, .. } = &arg_node.kind else { continue };
+
+        // Extract names from lhs: LitRec { items: [Ident("foo"), Ident("bar"), ...] }
+        // Bare shorthand {foo} produces direct Ident children, not Arm nodes.
+        let lhs_node = ast.nodes.get(*lhs);
+        let NodeKind::LitRec { items, .. } = &lhs_node.kind else { continue };
+
+        let mut names = Vec::new();
+        for item_id in items.items.iter() {
+            let item_node = ast.nodes.get(*item_id);
+            if let NodeKind::Ident(name) = &item_node.kind {
+                names.push(ImportedName {
+                    name: name.to_string(),
+                    loc: ast_loc(item_node),
+                });
+            }
+        }
+
+        if !names.is_empty() {
+            imports.push(ImportInfo { url: url.clone(), url_loc: ast_loc(arg_node), names });
+        }
+    }
+    imports
 }
 
 /// Stateful parsed document - parse once, query many times.
@@ -316,6 +375,9 @@ pub struct ParsedDocument {
 
     /// Identifier nodes sorted by position, for cursor hit-testing.
     idents: Vec<IdentEntry>,
+
+    /// Import statements extracted from the raw AST.
+    imports: Vec<ImportInfo>,
 }
 
 #[wasm_bindgen]
@@ -345,12 +407,13 @@ impl ParsedDocument {
         }
 
         // --- Parse + desugar (partial-apply + index + scopes) ---
-        let empty_doc = |diag_entries: Vec<String>, semantic_tokens: Vec<u32>| ParsedDocument {
+        let empty_doc = |diag_entries: Vec<String>, semantic_tokens: Vec<u32>, imports: Vec<ImportInfo>| ParsedDocument {
             semantic_tokens,
             diagnostics: format!("[{}]", diag_entries.join(",")),
             bind_locs: vec![],
             bind_refs: vec![],
             idents: vec![],
+            imports,
         };
 
         let parsed = match passes::parse(src, "") {
@@ -364,9 +427,12 @@ impl ParsedDocument {
                 diag_entries.push(format!(
                     r#"{{"line":{line},"col":{col},"endLine":{end_line},"endCol":{end_col},"message":"{msg}","source":"parser","severity":"error"}}"#
                 ));
-                return empty_doc(diag_entries, vec![]);
+                return empty_doc(diag_entries, vec![], vec![]);
             }
         };
+
+        // --- Extract imports from raw AST (before desugar consumes it) ---
+        let imports = extract_imports(&parsed);
 
         // --- Semantic tokens (from raw parsed AST, before desugar) ---
         let mut raw_tokens = Vec::new();
@@ -377,7 +443,7 @@ impl ParsedDocument {
         let root_node = parsed.nodes.get(parsed.root);
         let is_empty = matches!(&root_node.kind, NodeKind::Module { exprs, .. } if exprs.items.is_empty());
         if is_empty {
-            return empty_doc(diag_entries, semantic_tokens);
+            return empty_doc(diag_entries, semantic_tokens, imports);
         }
 
         let desugared = match passes::desugar(parsed) {
@@ -391,7 +457,7 @@ impl ParsedDocument {
                 diag_entries.push(format!(
                     r#"{{"line":{line},"col":{col},"endLine":{end_line},"endCol":{end_col},"message":"{msg}","source":"desugar","severity":"error"}}"#
                 ));
-                return empty_doc(diag_entries, semantic_tokens);
+                return empty_doc(diag_entries, semantic_tokens, imports);
             }
         };
 
@@ -436,7 +502,7 @@ impl ParsedDocument {
         for i in 0..ast.nodes.len() {
             let ast_id = AstId(i as u32);
             let Some(node) = ast.nodes.try_get(ast_id) else { continue };
-            if !matches!(&node.kind, NodeKind::Ident(_)) { continue; }
+            let NodeKind::Ident(name) = &node.kind else { continue };
 
             let loc = ast_loc(node);
 
@@ -451,9 +517,10 @@ impl ParsedDocument {
 
             // Determine the BindId: either from resolution (reference) or
             // from the reverse map (binding site)
+            let is_binding_site = ast_to_bind.contains_key(&ast_id);
             let entry_bind_id = ref_bind_id.or_else(|| ast_to_bind.get(&ast_id).copied());
 
-            idents.push(IdentEntry { loc, bind_id: entry_bind_id });
+            idents.push(IdentEntry { loc, name: name.to_string(), bind_id: entry_bind_id, is_binding_site });
         }
 
         // --- Unresolved name diagnostics ---
@@ -528,6 +595,7 @@ impl ParsedDocument {
             bind_locs,
             bind_refs,
             idents,
+            imports,
         }
     }
 
@@ -547,6 +615,40 @@ impl ParsedDocument {
         let Some(bind_id) = self.find_bind_at(line, col) else { return vec![] };
         let Some(loc) = self.bind_locs[bind_id.0 as usize] else { return vec![] };
         vec![loc.line, loc.col, loc.end_line, loc.end_col]
+    }
+
+    /// Return JSON import metadata.
+    /// Format: [{"url":"./foo.fnk","names":[{"name":"x","line":0,"col":1,"endLine":0,"endCol":2},...]}]
+    pub fn get_imports(&self) -> String {
+        let mut entries: Vec<String> = Vec::new();
+        for imp in &self.imports {
+            let url = imp.url.replace('\\', "\\\\").replace('"', "\\\"");
+            let names: Vec<String> = imp.names.iter().map(|n| {
+                let name = n.name.replace('\\', "\\\\").replace('"', "\\\"");
+                format!(
+                    r#"{{"name":"{name}","line":{},"col":{},"endLine":{},"endCol":{}}}"#,
+                    n.loc.line, n.loc.col, n.loc.end_line, n.loc.end_col
+                )
+            }).collect();
+            let ul = &imp.url_loc;
+            entries.push(format!(
+                r#"{{"url":"{url}","urlLine":{},"urlCol":{},"urlEndLine":{},"urlEndCol":{},"names":[{}]}}"#,
+                ul.line, ul.col, ul.end_line, ul.end_col, names.join(",")
+            ));
+        }
+        format!("[{}]", entries.join(","))
+    }
+
+    /// Look up a module-level binding by name.
+    /// Returns [line, col, end_line, end_col] or empty if not found.
+    /// Used to find where a name is exported in a target module.
+    pub fn get_module_binding(&self, name: &str) -> Vec<u32> {
+        for entry in &self.idents {
+            if entry.is_binding_site && entry.name == name {
+                return vec![entry.loc.line, entry.loc.col, entry.loc.end_line, entry.loc.end_col];
+            }
+        }
+        vec![]
     }
 
     /// Find all references to the identifier at (line, col), including the binding site.

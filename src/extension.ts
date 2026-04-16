@@ -20,7 +20,18 @@ interface ParsedDocumentHandle {
   get_diagnostics(): string;
   get_definition(line: number, col: number): Uint32Array;
   get_references(line: number, col: number): Uint32Array;
+  get_imports(): string;
+  get_module_binding(name: string): Uint32Array;
   free(): void;
+}
+
+interface ImportEntry {
+  url: string;
+  urlLine: number;
+  urlCol: number;
+  urlEndLine: number;
+  urlEndCol: number;
+  names: Array<{ name: string; line: number; col: number; endLine: number; endCol: number }>;
 }
 
 // Active document handles, keyed by URI string.
@@ -122,24 +133,125 @@ interface DiagnosticEntry {
 const diagnosticCollection = vscode.languages.createDiagnosticCollection('fink');
 const semanticTokensChangeEmitter = new vscode.EventEmitter<void>();
 
-// Definition provider: queries cached ParsedDocument handle.
+// Resolve a relative import URL to a file URI, parse it, and find the binding.
+async function resolveImportDefinition(
+  sourceUri: vscode.Uri,
+  relativeUrl: string,
+  name: string
+): Promise<vscode.Location | undefined> {
+  if (!ParsedDocument) return undefined;
+
+  const sourceDir = vscode.Uri.joinPath(sourceUri, '..');
+  const targetUri = vscode.Uri.joinPath(sourceDir, relativeUrl);
+
+  try {
+    const bytes = await vscode.workspace.fs.readFile(targetUri);
+    const src = new TextDecoder().decode(bytes);
+    const targetDoc = new ParsedDocument(src);
+    try {
+      const binding = targetDoc.get_module_binding(name);
+      if (binding.length === 4) {
+        const range = new vscode.Range(binding[0], binding[1], binding[2], binding[3]);
+        return new vscode.Location(targetUri, range);
+      }
+    } finally {
+      targetDoc.free();
+    }
+  } catch {
+    // Target file not found or parse error — silently fall back
+  }
+  return undefined;
+}
+
+// Find which import name (if any) is at the given position.
+function findImportAt(doc: ParsedDocumentHandle, line: number, col: number): { url: string; name: string } | undefined {
+  const imports: ImportEntry[] = JSON.parse(doc.get_imports());
+  for (const imp of imports) {
+    for (const n of imp.names) {
+      if (n.line === line && n.col <= col && col < n.endCol) {
+        return { url: imp.url, name: n.name };
+      }
+    }
+  }
+  return undefined;
+}
+
+// Check if the cursor is on an import URL string, return the resolved file URI if so.
+function findImportUrlAt(doc: ParsedDocumentHandle, documentUri: vscode.Uri, line: number, col: number): vscode.Uri | undefined {
+  const imports: ImportEntry[] = JSON.parse(doc.get_imports());
+  for (const imp of imports) {
+    if (imp.urlLine === line && imp.urlCol <= col && col < imp.urlEndCol) {
+      if (imp.url.startsWith('./') || imp.url.startsWith('../')) {
+        const sourceDir = vscode.Uri.joinPath(documentUri, '..');
+        return vscode.Uri.joinPath(sourceDir, imp.url);
+      }
+    }
+  }
+  return undefined;
+}
+
+// Check if a binding site is an import binding, and if so resolve into the target module.
+async function tryResolveImport(
+  doc: ParsedDocumentHandle,
+  documentUri: vscode.Uri,
+  bindLine: number,
+  bindCol: number
+): Promise<vscode.Location | undefined> {
+  const imp = findImportAt(doc, bindLine, bindCol);
+  if (imp && (imp.url.startsWith('./') || imp.url.startsWith('../'))) {
+    return resolveImportDefinition(documentUri, imp.url, imp.name);
+  }
+  return undefined;
+}
+
+// Definition provider: follows imports to the target module.
+// For imported names, F12 jumps to where the name is defined in the target file.
+// For local names, F12 jumps to the local binding site.
 const definitionProvider: vscode.DefinitionProvider = {
-  provideDefinition(
+  async provideDefinition(
     document: vscode.TextDocument,
     position: vscode.Position
-  ): vscode.Definition | undefined {
+  ): Promise<vscode.Definition | undefined> {
     const doc = getDoc(document);
     if (!doc) return undefined;
+
+    // Cmd+click on import URL string → open the file
+    const importFileUri = findImportUrlAt(doc, document.uri, position.line, position.character);
+    if (importFileUri) {
+      return new vscode.Location(importFileUri, new vscode.Position(0, 0));
+    }
 
     if (debug) console.time('fink:definition');
     const data = doc.get_definition(position.line, position.character);
     if (debug) console.timeEnd('fink:definition');
 
+    if (data.length !== 4) return undefined;
+
+    const defRange = new vscode.Range(data[0], data[1], data[2], data[3]);
+
+    // Try to follow import: check if the binding site is an import destructure
+    const targetLocation = await tryResolveImport(doc, document.uri, defRange.start.line, defRange.start.character);
+    if (targetLocation) return targetLocation;
+
+    return new vscode.Location(document.uri, defRange);
+  }
+};
+
+// Declaration provider: always returns the local binding site.
+// For imported names, this is {foo} = import './spam.fnk'.
+const declarationProvider: vscode.DeclarationProvider = {
+  provideDeclaration(
+    document: vscode.TextDocument,
+    position: vscode.Position
+  ): vscode.Declaration | undefined {
+    const doc = getDoc(document);
+    if (!doc) return undefined;
+
+    const data = doc.get_definition(position.line, position.character);
     if (data.length === 4) {
       const defRange = new vscode.Range(data[0], data[1], data[2], data[3]);
       return new vscode.Location(document.uri, defRange);
     }
-
     return undefined;
   }
 };
@@ -288,6 +400,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
   context.subscriptions.push(
     vscode.languages.registerDefinitionProvider('fink', definitionProvider)
+  );
+
+  context.subscriptions.push(
+    vscode.languages.registerDeclarationProvider('fink', declarationProvider)
   );
 
   context.subscriptions.push(
