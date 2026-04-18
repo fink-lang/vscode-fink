@@ -9,7 +9,7 @@
   "license": "MIT",
   "displayName": "fink",
   "icon": "./build/pkg/images/icon.png",
-  "description": "VSCode syntax highlighting for fink.",
+  "description": "Language support for the ƒink programming language (https://github.com/fink-lang).",
   "engines": {
     "vscode": "^1.50.0"
   },
