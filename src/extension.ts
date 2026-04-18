@@ -10,6 +10,7 @@ const legend = new vscode.SemanticTokensLegend(tokenTypes, tokenModifiers);
 let ParsedDocument: {
   new(src: string): ParsedDocumentHandle;
 } | undefined;
+let getSmMappings: ((src: string) => string) | undefined;
 let debug = false;
 let statusBarItem: vscode.StatusBarItem;
 
@@ -66,6 +67,8 @@ function updateDoc(document: vscode.TextDocument): void {
   });
   diagnosticCollection.set(document.uri, diagnostics);
   semanticTokensChangeEmitter.fire();
+
+  updateSmMappings(document);
 }
 
 async function loadWasm(context: vscode.ExtensionContext): Promise<void> {
@@ -86,6 +89,7 @@ async function loadWasm(context: vscode.ExtensionContext): Promise<void> {
   const wasmModule = await import(dataUrl);
   await wasmModule.default(wasmBytes.buffer);
   ParsedDocument = wasmModule.ParsedDocument;
+  getSmMappings = wasmModule.get_sm_mappings;
 }
 
 function setStatus(ok: boolean): void {
@@ -362,6 +366,112 @@ const provider: vscode.DocumentSemanticTokensProvider = {
   }
 };
 
+// --- Source-map highlighting for fink compiler test files ---
+
+interface SmRange {
+  line: number;
+  col: number;
+  endLine: number;
+  endCol: number;
+}
+interface SmMapping {
+  out: SmRange;
+  src?: SmRange;
+}
+interface SmGroup {
+  mappings: SmMapping[];
+}
+
+const smCache = new Map<string, SmGroup[]>();
+
+function updateSmMappings(document: vscode.TextDocument): void {
+  if (!getSmMappings) return;
+  const key = document.uri.toString();
+  try {
+    const json = getSmMappings(document.getText());
+    smCache.set(key, JSON.parse(json));
+  } catch {
+    smCache.delete(key);
+  }
+}
+
+const smOutDecoration = vscode.window.createTextEditorDecorationType({
+  borderWidth: '1px',
+  borderStyle: 'solid',
+  borderColor: new vscode.ThemeColor('editorWarning.foreground'),
+  borderRadius: '2px'
+});
+const smSrcDecoration = vscode.window.createTextEditorDecorationType({
+  borderWidth: '1px',
+  borderStyle: 'solid',
+  borderColor: new vscode.ThemeColor('editorInfo.foreground'),
+  borderRadius: '2px'
+});
+
+function rangeFromSm(r: SmRange): vscode.Range {
+  return new vscode.Range(r.line, r.col, r.endLine, r.endCol);
+}
+
+function rangeContains(r: SmRange, pos: vscode.Position): boolean {
+  const afterStart = pos.line > r.line || (pos.line === r.line && pos.character >= r.col);
+  const beforeEnd = pos.line < r.endLine || (pos.line === r.endLine && pos.character < r.endCol);
+  return afterStart && beforeEnd;
+}
+
+function rangeSize(r: SmRange): number {
+  // Used only for smallest-span tie-breaking. Line diff dominates when ranges
+  // span multiple lines; otherwise char diff.
+  if (r.line === r.endLine) return r.endCol - r.col;
+  return (r.endLine - r.line) * 100000 + (r.endCol - r.col);
+}
+
+function findSmallestMappingAt(groups: SmGroup[], pos: vscode.Position): SmMapping | undefined {
+  // Prefer the smallest POSITIVE-size span. Zero-width spans (two mappings
+  // share the same output offset) only fire if there's no positive match.
+  let best: SmMapping | undefined;
+  let bestSize = Infinity;
+  let bestFallback: SmMapping | undefined;
+  for (const group of groups) {
+    for (const m of group.mappings) {
+      const inOut = rangeContains(m.out, pos);
+      const inSrc = m.src ? rangeContains(m.src, pos) : false;
+      if (!inOut && !inSrc) continue;
+      const sizeOut = inOut ? rangeSize(m.out) : Infinity;
+      const sizeSrc = inSrc && m.src ? rangeSize(m.src) : Infinity;
+      const size = Math.min(sizeOut, sizeSrc);
+      if (size > 0 && size < bestSize) {
+        bestSize = size;
+        best = m;
+      } else if (size === 0 && !bestFallback) {
+        bestFallback = m;
+      }
+    }
+  }
+  return best ?? bestFallback;
+}
+
+function applySmHighlight(editor: vscode.TextEditor, pos: vscode.Position): void {
+  const groups = smCache.get(editor.document.uri.toString());
+  if (!groups || groups.length === 0) {
+    editor.setDecorations(smOutDecoration, []);
+    editor.setDecorations(smSrcDecoration, []);
+    return;
+  }
+  const m = findSmallestMappingAt(groups, pos);
+  if (!m) {
+    editor.setDecorations(smOutDecoration, []);
+    editor.setDecorations(smSrcDecoration, []);
+    return;
+  }
+  editor.setDecorations(smOutDecoration, [rangeFromSm(m.out)]);
+  editor.setDecorations(smSrcDecoration, m.src ? [rangeFromSm(m.src)] : []);
+}
+
+function clearSmHighlight(editor: vscode.TextEditor): void {
+  editor.setDecorations(smOutDecoration, []);
+  editor.setDecorations(smSrcDecoration, []);
+}
+
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   debug = context.extensionMode === vscode.ExtensionMode.Development;
 
@@ -445,6 +555,40 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       docs.get(key)?.free();
       docs.delete(key);
       diagnosticCollection.delete(doc.uri);
+      smCache.delete(key);
+    })
+  );
+
+  // Free sm decorations on shutdown.
+  context.subscriptions.push(smOutDecoration, smSrcDecoration);
+
+  // Drive sm highlighting from cursor moves in fink editors.
+  context.subscriptions.push(
+    vscode.window.onDidChangeTextEditorSelection(e => {
+      if (e.textEditor.document.languageId !== 'fink') return;
+      applySmHighlight(e.textEditor, e.selections[0].active);
+    })
+  );
+
+  // Also respond to hover — register a hover provider that, as a side effect,
+  // paints the decoration. Return undefined so we don't actually show a hover
+  // tooltip (decoration is the UI).
+  context.subscriptions.push(
+    vscode.languages.registerHoverProvider('fink', {
+      provideHover(document, position) {
+        const editor = vscode.window.visibleTextEditors.find(
+          e => e.document.uri.toString() === document.uri.toString()
+        );
+        if (editor) applySmHighlight(editor, position);
+        return undefined;
+      }
+    })
+  );
+
+  // Clear decorations when switching editors.
+  context.subscriptions.push(
+    vscode.window.onDidChangeActiveTextEditor(editor => {
+      if (editor) clearSmHighlight(editor);
     })
   );
 
