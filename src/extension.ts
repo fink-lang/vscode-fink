@@ -419,35 +419,198 @@ function rangeContains(r: SmRange, pos: vscode.Position): boolean {
 }
 
 function rangeSize(r: SmRange): number {
-  // Used only for smallest-span tie-breaking. Line diff dominates when ranges
-  // span multiple lines; otherwise char diff.
+  // Line diff dominates so multi-line ranges sort after single-line ones.
   if (r.line === r.endLine) return r.endCol - r.col;
   return (r.endLine - r.line) * 100000 + (r.endCol - r.col);
 }
 
-function findSmallestMappingAt(groups: SmGroup[], pos: vscode.Position): SmMapping | undefined {
-  // Prefer the smallest POSITIVE-size span. Zero-width spans (two mappings
-  // share the same output offset) only fire if there's no positive match.
-  let best: SmMapping | undefined;
-  let bestSize = Infinity;
-  let bestFallback: SmMapping | undefined;
+// Offset comparison on (line, col). Returns <0 if a before b, 0 equal, >0 after.
+function cmpPos(aLine: number, aCol: number, bLine: number, bCol: number): number {
+  if (aLine !== bLine) return aLine - bLine;
+  return aCol - bCol;
+}
+
+// True if `outer` fully covers `inner` (inner.start ≥ outer.start AND inner.end ≤ outer.end).
+// Zero-width inner is allowed — a point at outer.start or outer.end is subsumed.
+function rangeSubsumes(outer: SmRange, inner: SmRange): boolean {
+  const startOk = cmpPos(inner.line, inner.col, outer.line, outer.col) >= 0;
+  const endOk = cmpPos(inner.endLine, inner.endCol, outer.endLine, outer.endCol) <= 0;
+  return startOk && endOk;
+}
+
+// Merge contiguous/overlapping ranges. Input need not be sorted.
+// "Contiguous" means b.start ≤ a.end — zero-width ranges at a boundary count.
+function mergeContiguous(ranges: SmRange[]): SmRange[] {
+  if (ranges.length === 0) return [];
+  const sorted = [...ranges].sort((a, b) =>
+    cmpPos(a.line, a.col, b.line, b.col) || cmpPos(a.endLine, a.endCol, b.endLine, b.endCol)
+  );
+  const out: SmRange[] = [sorted[0]];
+  for (let i = 1; i < sorted.length; i++) {
+    const prev = out[out.length - 1];
+    const cur = sorted[i];
+    if (cmpPos(cur.line, cur.col, prev.endLine, prev.endCol) <= 0) {
+      // Overlap or touch — extend prev's end if cur ends later.
+      if (cmpPos(cur.endLine, cur.endCol, prev.endLine, prev.endCol) > 0) {
+        out[out.length - 1] = {
+          line: prev.line, col: prev.col,
+          endLine: cur.endLine, endCol: cur.endCol
+        };
+      }
+    } else {
+      out.push(cur);
+    }
+  }
+  return out;
+}
+
+interface HighlightRegions { out: SmRange; src?: SmRange; }
+
+// fink emits one mapping per generated token; many generated tokens share the
+// same source range (the whole source expression). Hovering in one block
+// should light up the CORRESPONDING contiguous region in the other — not a
+// single token from within, and not the outer wrapper mappings that happen to
+// share the same src span.
+//
+// Strategy:
+//   1. Find the smallest mapping-range (on either side) containing the cursor.
+//   2. Classify every sibling mapping relative to that hit range (IN / NARROW /
+//      OUT / GLUE / GLUE_BREAK) and form contiguous runs on the opposite side.
+//   3. Pick the run whose members prove it's the inner-expression generation
+//      (contains NARROW child mappings). Fall back to smallest run otherwise.
+function findHighlightRegions(groups: SmGroup[], pos: vscode.Position): HighlightRegions | undefined {
+  // Step 1: smallest positive-size mapping (on either side) containing pos.
+  // Zero-width mappings are a last-resort fallback.
+  let hitGroup: SmGroup | undefined;
+  let hitRange: SmRange | undefined;
+  let hitSide: 'src' | 'out' = 'out';
+  let hitSize = Infinity;
+  let fallbackGroup: SmGroup | undefined;
+  let fallbackRange: SmRange | undefined;
+  let fallbackSide: 'src' | 'out' = 'out';
+
   for (const group of groups) {
     for (const m of group.mappings) {
-      const inOut = rangeContains(m.out, pos);
-      const inSrc = m.src ? rangeContains(m.src, pos) : false;
-      if (!inOut && !inSrc) continue;
-      const sizeOut = inOut ? rangeSize(m.out) : Infinity;
-      const sizeSrc = inSrc && m.src ? rangeSize(m.src) : Infinity;
-      const size = Math.min(sizeOut, sizeSrc);
-      if (size > 0 && size < bestSize) {
-        bestSize = size;
-        best = m;
-      } else if (size === 0 && !bestFallback) {
-        bestFallback = m;
+      if (rangeContains(m.out, pos)) {
+        const sz = rangeSize(m.out);
+        if (sz > 0 && sz < hitSize) {
+          hitSize = sz; hitGroup = group; hitRange = m.out; hitSide = 'out';
+        } else if (sz === 0 && !fallbackRange) {
+          fallbackGroup = group; fallbackRange = m.out; fallbackSide = 'out';
+        }
+      }
+      if (m.src && rangeContains(m.src, pos)) {
+        const sz = rangeSize(m.src);
+        if (sz > 0 && sz < hitSize) {
+          hitSize = sz; hitGroup = group; hitRange = m.src; hitSide = 'src';
+        } else if (sz === 0 && !fallbackRange) {
+          fallbackGroup = group; fallbackRange = m.src; fallbackSide = 'src';
+        }
       }
     }
   }
-  return best ?? bestFallback;
+
+  if (!hitGroup || !hitRange) {
+    if (!fallbackGroup || !fallbackRange) return undefined;
+    hitGroup = fallbackGroup;
+    hitRange = fallbackRange;
+    hitSide = fallbackSide;
+  }
+
+  // Step 2: walk the group's mappings in order, classifying each.
+  //   IN     — hit-side range is subsumed by hitRange (exact-match sibling)
+  //   NARROW — IN AND strictly narrower than hitRange (distinguishes the
+  //            inner-expression run from outer prologue/epilogue wrappers
+  //            that share the same src span)
+  //   OUT    — hit-side range present but NOT subsumed
+  //   GLUE   — no hit-side range (separators like ", "). Joins adjacent
+  //            IN mappings within a single line.
+  //   GLUE_BREAK — a GLUE whose opposite-side span crosses a newline.
+  //            Breaks runs so prologue and body don't merge across lines.
+  type Kind = 'IN' | 'NARROW' | 'OUT' | 'GLUE' | 'GLUE_BREAK';
+  const classify: Kind[] = [];
+  for (const m of hitGroup.mappings) {
+    const ownSide = hitSide === 'src' ? m.src : m.out;
+    if (!ownSide) {
+      const opp = hitSide === 'src' ? m.out : m.src;
+      const breaks = opp ? opp.line !== opp.endLine : false;
+      classify.push(breaks ? 'GLUE_BREAK' : 'GLUE');
+    } else if (rangeSubsumes(hitRange, ownSide)) {
+      const strictlyNarrower = rangeSize(ownSide) < rangeSize(hitRange);
+      classify.push(strictlyNarrower ? 'NARROW' : 'IN');
+    } else {
+      classify.push('OUT');
+    }
+  }
+
+  // Form runs of IN/NARROW mappings, absorbing same-line GLUE between them.
+  // OUT or GLUE_BREAK close the current run.
+  interface Run { ranges: SmRange[]; narrowCount: number; }
+  const runs: Run[] = [];
+  let current: Run = { ranges: [], narrowCount: 0 };
+  let currentHasIn = false;
+  let pendingGlue: SmRange[] = [];
+
+  const flush = () => {
+    if (currentHasIn) runs.push(current);
+    current = { ranges: [], narrowCount: 0 };
+    currentHasIn = false;
+    pendingGlue = [];
+  };
+
+  for (let i = 0; i < hitGroup.mappings.length; i++) {
+    const m = hitGroup.mappings[i];
+    const kind = classify[i];
+    const opp = hitSide === 'src' ? m.out : m.src;
+    if (kind === 'IN' || kind === 'NARROW') {
+      if (currentHasIn && pendingGlue.length > 0) current.ranges.push(...pendingGlue);
+      pendingGlue = [];
+      if (opp) current.ranges.push(opp);
+      if (kind === 'NARROW') current.narrowCount++;
+      currentHasIn = true;
+    } else if (kind === 'GLUE') {
+      if (currentHasIn && opp) pendingGlue.push(opp);
+    } else {
+      flush();
+    }
+  }
+  flush();
+
+  if (runs.length === 0) {
+    return hitSide === 'src' ? { src: hitRange, out: hitRange } : { out: hitRange };
+  }
+
+  // Merge each run's ranges into a single span. A run may have zero ranges if
+  // all its IN mappings lacked an opposite-side range — drop those.
+  const merged: Array<{ range: SmRange; narrowCount: number }> = [];
+  for (const r of runs) {
+    const m = mergeContiguous(r.ranges);
+    if (m.length === 0) continue;
+    const range = m.length === 1
+      ? m[0]
+      : { line: m[0].line, col: m[0].col, endLine: m[m.length - 1].endLine, endCol: m[m.length - 1].endCol };
+    merged.push({ range, narrowCount: r.narrowCount });
+  }
+  if (merged.length === 0) {
+    return hitSide === 'src' ? { src: hitRange, out: hitRange } : { out: hitRange };
+  }
+
+  // Prefer runs with NARROW child mappings (they mark the inner-expression
+  // generation) over runs that only contain same-src wrappers. If no run has
+  // NARROW, all runs are equivalent — fall back to smallest.
+  const maxNarrow = merged.reduce((a, r) => Math.max(a, r.narrowCount), 0);
+  const candidates = maxNarrow > 0
+    ? merged.filter(r => r.narrowCount === maxNarrow).map(r => r.range)
+    : merged.map(r => r.range);
+
+  let best = candidates[0];
+  let bestSize = rangeSize(best);
+  for (let i = 1; i < candidates.length; i++) {
+    const sz = rangeSize(candidates[i]);
+    if (sz < bestSize) { best = candidates[i]; bestSize = sz; }
+  }
+
+  return hitSide === 'src' ? { src: hitRange, out: best } : { out: hitRange, src: best };
 }
 
 function applySmHighlight(editor: vscode.TextEditor, pos: vscode.Position): void {
@@ -457,14 +620,14 @@ function applySmHighlight(editor: vscode.TextEditor, pos: vscode.Position): void
     editor.setDecorations(smSrcDecoration, []);
     return;
   }
-  const m = findSmallestMappingAt(groups, pos);
-  if (!m) {
+  const r = findHighlightRegions(groups, pos);
+  if (!r) {
     editor.setDecorations(smOutDecoration, []);
     editor.setDecorations(smSrcDecoration, []);
     return;
   }
-  editor.setDecorations(smOutDecoration, [rangeFromSm(m.out)]);
-  editor.setDecorations(smSrcDecoration, m.src ? [rangeFromSm(m.src)] : []);
+  editor.setDecorations(smOutDecoration, [rangeFromSm(r.out)]);
+  editor.setDecorations(smSrcDecoration, r.src ? [rangeFromSm(r.src)] : []);
 }
 
 function clearSmHighlight(editor: vscode.TextEditor): void {
