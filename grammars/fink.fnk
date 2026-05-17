@@ -313,6 +313,13 @@ lang = {
             '1': {name: 'keyword.control.try.fink'}
           }
         }
+
+        {
+          match: rx'(?<!\.)\b(with)\b'
+          captures: {
+            '1': {name: 'keyword.control.with.fink'}
+          }
+        }
     }
 
     # --- language constants ---
