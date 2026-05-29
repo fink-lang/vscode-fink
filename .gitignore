@@ -43,7 +43,6 @@ node_modules/
 .DS_Store
 .vscode-test-web
 
-/.claude/settings.local.json
-/.claude.local/
+/.claude
 
 /.brain/
