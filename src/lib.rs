@@ -181,15 +181,6 @@ fn collect_tokens<'src>(ast: &'src Ast<'src>, id: AstId, tokens: &mut Vec<RawTok
             collect_tokens(ast, *lhs, tokens);
         }
 
-        NodeKind::With { handlers, body, .. } => {
-            for h_id in handlers.items.iter() {
-                collect_tokens(ast, *h_id, tokens);
-            }
-            for expr_id in body.items.iter() {
-                collect_tokens(ast, *expr_id, tokens);
-            }
-        }
-
         NodeKind::Group { inner, .. }
         | NodeKind::Try(inner) => {
             collect_tokens(ast, *inner, tokens);
