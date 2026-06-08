@@ -123,7 +123,17 @@
           "tag-right": ["entity.name.tag.right.fink"]
         }
       }
-    ]
+    ],
+    "configuration": {
+      "title": "fink",
+      "properties": {
+        "fink.stdPath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to the fink std/ directory, used to resolve 'std/*' imports for go-to-definition. Absolute, or relative to the workspace folder. Overrides the FINK_STD environment variable. When empty, defaults to <workspace>/std."
+        }
+      }
+    }
   },
   "scripts": {},
   "devDependencies": {

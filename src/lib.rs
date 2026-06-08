@@ -556,8 +556,16 @@ impl ParsedDocument {
         }
 
         // --- Unused binding diagnostics ---
-        // Module-level bindings are exports — skip unused warning for those.
+        // Module-level bindings are exports, so an unused one is not a warning --
+        // except imports: an imported name that is never referenced is dead code.
+        // Import-name binding sites share the start position of the destructured
+        // ident, so match module-level binds against the extracted import locs.
         let module_scope_id = scopes::ScopeId(0);
+        let import_locs: HashSet<(u32, u32)> = imports
+            .iter()
+            .flat_map(|imp| imp.names.iter())
+            .map(|n| (n.loc.line, n.loc.col))
+            .collect();
         for i in 0..bind_count {
             let bind_id = BindId(i as u32);
             if used_binds.contains(&(i as u32)) { continue; }
@@ -567,27 +575,40 @@ impl ParsedDocument {
             // Skip builtins
             if matches!(bind_info.origin, BindOrigin::Builtin(_)) { continue; }
 
-            // Skip module-level bindings (they are exports)
-            if bind_info.scope == module_scope_id { continue; }
-
-            // Skip non-module scopes whose kind is Module (shouldn't happen,
-            // but be safe) and skip Arm scopes (pattern bindings)
-            let scope_info = scope_result.scopes.get(bind_info.scope);
-            if scope_info.kind == ScopeKind::Module { continue; }
-
             let BindOrigin::Ast(ast_id) = bind_info.origin else { continue };
             let Some(node) = ast.nodes.try_get(ast_id) else { continue };
 
             // Only warn for user-written Ident bindings
             let NodeKind::Ident(name) = &node.kind else { continue };
 
+            // The `ƒink` prelude (`{ƒink} = import ...`) is the mandatory module
+            // header. It is consumed implicitly by block-call sugar (`expr name:`),
+            // which name resolution does not link back to the import binding, so it
+            // always looks unused. Never flag it.
+            if *name == "ƒink" { continue; }
+
             let line = node.loc.start.line.saturating_sub(1);
             let col = node.loc.start.col;
+
+            // Module-level binding: skip unless it is an unused import.
+            let is_import = import_locs.contains(&(line, col));
+            if bind_info.scope == module_scope_id && !is_import { continue; }
+
+            // Skip non-module scopes whose kind is Module (shouldn't happen,
+            // but be safe) and skip Arm scopes (pattern bindings)
+            let scope_info = scope_result.scopes.get(bind_info.scope);
+            if scope_info.kind == ScopeKind::Module && !is_import { continue; }
+
             let end_line = node.loc.end.line.saturating_sub(1);
             let end_col = node.loc.end.col;
             let name = name.replace('\\', "\\\\").replace('"', "\\\"");
+            let message = if is_import {
+                format!("unused import '{name}'")
+            } else {
+                format!("unused binding '{name}'")
+            };
             diag_entries.push(format!(
-                r#"{{"line":{line},"col":{col},"endLine":{end_line},"endCol":{end_col},"message":"unused binding '{name}'","source":"name_res","severity":"warning"}}"#
+                r#"{{"line":{line},"col":{col},"endLine":{end_line},"endCol":{end_col},"message":"{message}","source":"name_res","severity":"warning"}}"#
             ));
         }
 
