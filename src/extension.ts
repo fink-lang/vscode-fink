@@ -137,16 +137,56 @@ interface DiagnosticEntry {
 const diagnosticCollection = vscode.languages.createDiagnosticCollection('fink');
 const semanticTokensChangeEmitter = new vscode.EventEmitter<void>();
 
-// Resolve a relative import URL to a file URI, parse it, and find the binding.
+// Resolve the directory holding the std/ modules for a given source file.
+// Order: fink.stdPath setting -> FINK_STD env var -> <workspaceRoot>/std.
+// A non-absolute setting value is resolved against the workspace folder.
+function stdRootUri(sourceUri: vscode.Uri): vscode.Uri | undefined {
+  const workspaceFolder = vscode.workspace.getWorkspaceFolder(sourceUri);
+
+  const configured = vscode.workspace
+    .getConfiguration('fink', sourceUri)
+    .get<string>('stdPath', '')
+    .trim();
+  const envPath = (process.env.FINK_STD ?? '').trim();
+  const setting = configured || envPath;
+
+  if (setting) {
+    if (setting.startsWith('/')) return vscode.Uri.file(setting);
+    if (!workspaceFolder) return undefined;
+    return vscode.Uri.joinPath(workspaceFolder.uri, setting);
+  }
+
+  if (!workspaceFolder) return undefined;
+  return vscode.Uri.joinPath(workspaceFolder.uri, 'std');
+}
+
+// Resolve an import URL to a target file URI, or undefined if not resolvable.
+//   ./x, ../x   -> relative to the source file's directory
+//   std/x       -> <stdRoot>/x  (see stdRootUri)
+//   anything else (e.g. @fink/...) -> undefined
+function resolveImportUri(sourceUri: vscode.Uri, url: string): vscode.Uri | undefined {
+  if (url.startsWith('./') || url.startsWith('../')) {
+    const sourceDir = vscode.Uri.joinPath(sourceUri, '..');
+    return vscode.Uri.joinPath(sourceDir, url);
+  }
+  if (url.startsWith('std/')) {
+    const stdRoot = stdRootUri(sourceUri);
+    if (!stdRoot) return undefined;
+    return vscode.Uri.joinPath(stdRoot, url.slice('std/'.length));
+  }
+  return undefined;
+}
+
+// Resolve an import URL to a file URI, parse it, and find the binding.
 async function resolveImportDefinition(
   sourceUri: vscode.Uri,
-  relativeUrl: string,
+  url: string,
   name: string
 ): Promise<vscode.Location | undefined> {
   if (!ParsedDocument) return undefined;
 
-  const sourceDir = vscode.Uri.joinPath(sourceUri, '..');
-  const targetUri = vscode.Uri.joinPath(sourceDir, relativeUrl);
+  const targetUri = resolveImportUri(sourceUri, url);
+  if (!targetUri) return undefined;
 
   try {
     const bytes = await vscode.workspace.fs.readFile(targetUri);
@@ -185,10 +225,7 @@ function findImportUrlAt(doc: ParsedDocumentHandle, documentUri: vscode.Uri, lin
   const imports: ImportEntry[] = JSON.parse(doc.get_imports());
   for (const imp of imports) {
     if (imp.urlLine === line && imp.urlCol <= col && col < imp.urlEndCol) {
-      if (imp.url.startsWith('./') || imp.url.startsWith('../')) {
-        const sourceDir = vscode.Uri.joinPath(documentUri, '..');
-        return vscode.Uri.joinPath(sourceDir, imp.url);
-      }
+      return resolveImportUri(documentUri, imp.url);
     }
   }
   return undefined;
@@ -202,7 +239,7 @@ async function tryResolveImport(
   bindCol: number
 ): Promise<vscode.Location | undefined> {
   const imp = findImportAt(doc, bindLine, bindCol);
-  if (imp && (imp.url.startsWith('./') || imp.url.startsWith('../'))) {
+  if (imp) {
     return resolveImportDefinition(documentUri, imp.url, imp.name);
   }
   return undefined;

@@ -313,13 +313,6 @@ lang = {
             '1': {name: 'keyword.control.try.fink'}
           }
         }
-
-        {
-          match: rx'(?<!\.)\b(with)\b'
-          captures: {
-            '1': {name: 'keyword.control.with.fink'}
-          }
-        }
     }
 
     # --- language constants ---
@@ -418,15 +411,29 @@ lang = {
           name: 'keyword.operator.bitwise.fink'
         }
 
-        # range — ... before .. so inclusive is matched first; both before member dot
+        # spread vs range: both `..` and `...` serve as spread (prefix, in
+        # literal/pattern position) and as range (infix, between two exprs).
+        # TextMate cannot replicate fink's parser-context disambiguation, so we
+        # use the left-hand token as the discriminator: a range always has a
+        # value on its left (ident, number, string close, `)` or `]`); a spread
+        # is preceded by an opener, comma, or whitespace. Longest dots first.
+
+        # range — value on the left → infix range; ... (inclusive) before .. (exclusive).
+        # \x27 = ' and \x22 = " (string-literal closes); can't embed bare quotes in rx'...'.
         {
-          match: rx'\.\.\.'
+          match: rx'(?<=[)\]_$·\p{L}\p{N}\x27\x22])\.\.\.'
           name: 'keyword.operator.range.inclusive.fink'
         }
 
         {
-          match: rx'\.\.'
+          match: rx'(?<=[)\]_$·\p{L}\p{N}\x27\x22])\.\.'
           name: 'keyword.operator.range.exclusive.fink'
+        }
+
+        # spread — otherwise (prefix position); covers `..`, `...`, and bare `[..]`/`[...]`
+        {
+          match: rx'\.\.\.?'
+          name: 'keyword.operator.spread.fink'
         }
 
         # arithmetic single-char
@@ -722,10 +729,10 @@ lang = {
             }
         }
 
-        # spread: {..rest} or {..}
+        # spread: {..rest} {...rest} or {..}
         {
           name: 'meta.record.spread.fink'
-          begin: rx'\.\.'
+          begin: rx'\.\.\.?'
           end: rx'(?=,|\}|$)'
           beginCaptures: {
             '0': {name: 'keyword.operator.spread.fink'}
