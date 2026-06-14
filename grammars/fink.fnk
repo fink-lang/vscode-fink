@@ -294,23 +294,23 @@ lang = {
         }
 
         {
-          match: rx'(?<!\.)\b(await)\b'
+          match: rx'(?<!\.)\b(type)\b'
           captures: {
-            '1': {name: 'keyword.control.await.fink'}
+            '1': {name: 'keyword.control.type.fink'}
           }
         }
 
         {
-          match: rx'(?<!\.)\b(yield)\b'
+          match: rx'(?<!\.)\b(enum)\b'
           captures: {
-            '1': {name: 'keyword.control.yield.fink'}
+            '1': {name: 'keyword.control.enum.fink'}
           }
         }
 
         {
-          match: rx'(?<!\.)\b(try)\b'
+          match: rx'(?<!\.)\b(union)\b'
           captures: {
-            '1': {name: 'keyword.control.try.fink'}
+            '1': {name: 'keyword.control.union.fink'}
           }
         }
     }
@@ -787,7 +787,7 @@ lang = {
         # ident followed by space + value-start (number, string, ident, paren, array, record)
         # exclude block keywords fn/match which are handled by block_opener
         {
-          match: rx'(?!\b(?:fn|match|import|await|yield|try|not|and|or|xor|in)\b)([_$·\p{L}][-_$·\p{L}\p{N}]*)(?=\s+[_$·\p{L}0-9\'\(\[\{])'
+          match: rx'(?!\b(?:fn|match|import|type|enum|union|not|and|or|xor|in)\b)([_$·\p{L}][-_$·\p{L}\p{N}]*)(?=\s+[_$·\p{L}0-9\'\(\[\{])'
           captures: {
             '1': {name: 'entity.name.function.fink'}
           }
