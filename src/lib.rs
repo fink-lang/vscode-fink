@@ -227,6 +227,18 @@ fn collect_tokens<'src>(ast: &'src Ast<'src>, id: AstId, tokens: &mut Vec<RawTok
             }
         }
 
+        // Type / Enum / Union — block-bodied like Block, but the name lives in
+        // the `sep` token rather than a `name` child, so there is nothing to
+        // recurse for the name. Just walk params and body.
+        NodeKind::Type { params, body, .. }
+        | NodeKind::Enum { params, body, .. }
+        | NodeKind::Union { params, body, .. } => {
+            collect_tokens(ast, *params, tokens);
+            for expr_id in body.items.iter() {
+                collect_tokens(ast, *expr_id, tokens);
+            }
+        }
+
         NodeKind::ChainedCmp(parts) => {
             for part in parts.iter() {
                 if let fink::ast::CmpPart::Operand(operand_id) = part {
