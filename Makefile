@@ -25,7 +25,7 @@ build-ext:
 
 build-grammars:
 	mkdir -p ./build/pkg/grammars
-	node -r @fink/require-hook ./scripts/build-grammars.fnk
+	node ./scripts/build-grammars.mjs
 
 build-files:
 	mkdir -p ./build/pkg

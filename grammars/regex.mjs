@@ -1,0 +1,249 @@
+import {rx} from './utils.mjs';
+
+const seq = (...l) => l;
+
+export const lang = {
+  name: 'Fink Regular Expressions',
+  scopeName: 'source.regexp.fink',
+  fileTypes: [],
+  patterns: seq(
+    {include: '#templ_expr'},
+    {include: '#anchor'},
+    {include: '#backref'},
+    {include: '#quantifier'},
+    {include: '#operator'},
+    {include: '#group_assertion'},
+    {include: '#group_definition'},
+    {include: '#character_class_definition'},
+    {include: '#character_class'},
+    {include: '#comments'}
+  ),
+
+  repository: {
+    comments: {
+      patterns: seq(
+        {
+          name: 'comment.line.hash.fink',
+          match: rx`(?<=\s+)#.+$`
+        }
+      )
+    },
+
+    templ_expr: {
+      name: 'constant.character.escape.quasi.element.fink',
+      begin: rx`(\${)`,
+      end: rx`(})`,
+
+      beginCaptures: {
+        '0': {name: 'punctuation.definition.template-expression.begin.fink'}
+      },
+      endCaptures: {
+        '0': {name: 'punctuation.definition.template-expression.end.fink'}
+      },
+
+      patterns: seq(
+        {include: 'source.fink'}
+      )
+    },
+
+    character_class_definition: {
+      patterns: seq(
+        {
+          name: 'constant.other.character-class.set.regexp',
+          begin: rx`(\[)(\^)?`,
+          end: rx`(\])`,
+          beginCaptures: {
+            '1': {name: 'punctuation.definition.character-class.regexp'},
+            '2': {name: 'keyword.operator.negation.regexp'}
+          },
+
+          endCaptures: {
+            '1': {name: 'punctuation.definition.character-class.regexp'}
+          },
+
+          patterns: seq(
+            {
+              name: 'constant.other.character-class.range.regexp',
+              match: rx`
+                (
+                  (\\[wWsSdD]|\.)
+                  |(\\
+                    (
+                      [trnvf0]
+                      |c[A-Z]
+                      |x[\da-fA-F]{2}
+                      |u[\da-fA-F]{4}
+                      |u\{[\da-fA-F]+\}
+                      |.
+                    )
+                    |([^\]\s])
+                  )
+                )
+                (\-)
+                (
+                  (\\[wWsSdD]|\.)
+                  |(\\
+                    (
+                      [trnvf0]
+                      |c[A-Z]
+                      |x[\da-fA-F]{2}
+                      |u[\da-fA-F]{4}
+                      |u\{[\da-fA-F]+\}
+                      |.
+                    )
+                    |([^\]\s])
+                  )
+                )`,
+              captures: {
+                '2': {name: 'constant.character.escape.backslash.regexp'},
+                '3': {name: 'constant.character.escape.backslash.regexp'},
+                '5': {name: 'constant.character.regexp'},
+                '6': {name: 'punctuation.definition.range.regexp'},
+                '8': {name: 'constant.character.escape.backslash.regexp'},
+                '9': {name: 'constant.character.escape.backslash.regexp'},
+                '11': {name: 'constant.character.regexp'}
+              }
+            },
+
+            {include: '#character_class'}
+          )
+        }
+      )
+    },
+
+    group_assertion: {
+      patterns: seq(
+        {
+          begin: rx`(\()((\?=)|(\?!)|(\?<=)|(\?<!))`,
+          end: rx`(\))`,
+          name: 'meta.group.assertion.regexp',
+
+          beginCaptures: {
+            '1': {name: 'punctuation.definition.group.regexp'},
+            '2': {name: 'punctuation.definition.group.assertion.regexp'},
+            '3': {name: 'meta.assertion.look-ahead.regexp'},
+            '4': {name: 'meta.assertion.negative-look-ahead.regexp'},
+            '5': {name: 'meta.assertion.look-behind.regexp'},
+            '6': {name: 'meta.assertion.negative-look-behind.regexp'}
+          },
+
+          endCaptures: {
+            '1': {name: 'punctuation.definition.group.regexp'}
+          },
+
+          patterns: seq(
+            {include: '$self'}
+          )
+        }
+      )
+    },
+
+    anchor: {
+      patterns: seq(
+        {
+          name: 'keyword.control.anchor.regexp',
+          match: rx`\\[bB]|\^|\$`
+        }
+      )
+    },
+
+    operator: {
+      patterns: seq(
+        {
+          name: 'keyword.operator.or.regexp',
+          match: rx`\|`
+        }
+      )
+    },
+
+    group_definition: {
+      patterns: seq(
+        {
+          begin: rx`(\()((\?:)|(\?(<\w+>)))?`,
+          end: rx`(\))`,
+          name: 'meta.group.regexp',
+          endCaptures: {
+            '1': {name: 'punctuation.definition.group.regexp'}
+          },
+
+          beginCaptures: {
+            '1': {name: 'punctuation.definition.group.regexp'},
+            '3': {name: 'punctuation.definition.group.capture.regexp'},
+            '5': {name: 'support.type.property-name'}
+          },
+
+          patterns: seq(
+            {include: '$self'}
+          )
+        }
+      )
+    },
+
+    quantifier: {
+      patterns: seq(
+        {
+          name: 'keyword.operator.quantifier.regexp',
+          match: rx`
+            (\?|\*\??|\+\??)
+            |
+            \{(\d+,\d+|\d+,|\d+)\}`
+        }
+      )
+    },
+
+    backref: {
+      patterns: seq(
+        {
+          name: 'keyword.other.back-reference.regexp',
+          match: rx`\\[1-9][0-9]*`
+        }
+      )
+    },
+
+    character_class: {
+      patterns: seq(
+        {
+          name: 'constant.character.escape.backslash.regexp',
+          match: rx`\\[wWsSdD]`
+        },
+
+        {
+          name: 'constant.character.escape.backslash.regexp',
+          match: rx`\\(
+              \[|\]|\{|\}|\(|\)|\?|-|\+|\*|\||\$|\^|\.|\||\\|\'
+            )`,
+          captures: {
+            '1': {name: 'constant.character.set.regexp'}
+          }
+        },
+
+        {
+          name: 'constant.character.escape.backslash.regexp',
+          match: rx`\\k(<\w+?>)`,
+          captures: {
+            '1': {name: 'support.type.property-name'}
+          }
+        },
+
+        {
+          match: rx`
+            (\\
+              (
+                [trnvf0\\]
+                |c[A-Z]
+                |x[\da-fA-F]{2}
+                |u[\da-fA-F]{4}
+                |u\{[\da-fA-F]+\}
+                |p\{.+?\}
+                |(.)
+              )
+            )`,
+          captures: {
+            '1': {name: 'constant.character.escape.backslash.regexp'},
+            '3': {name: 'invalid'}
+          }
+        }
+      )
+    }
+  }
+};
