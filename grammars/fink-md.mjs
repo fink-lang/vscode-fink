@@ -1,0 +1,37 @@
+import {rx} from './utils.mjs';
+
+const bt = '`';
+
+export const lang = {
+  name: 'Fink Markdown',
+  fileTypes: [],
+  // injectionSelector: 'L:text.html.markdown - (meta.embedded | meta.diff)'
+  injectionSelector: 'L:text.html.markdown',
+  patterns: [{include: '#fink-code-block'}],
+  scopeName: 'markdown.fink.codeblock',
+  repository: {
+    'fink-code-block': {
+      begin: rx`(^|\G)(\s*)(${bt}{3,}|~{3,})\s*(?i:(fink)(\s+[^${bt}~]*)?$)`,
+      name: 'markup.fenced_code.block.markdown',
+      end: rx`(^|\G)(\2|\s{0,3})(\3)\s*$`,
+      beginCaptures: {
+        '3': {name: 'punctuation.definition.markdown'},
+        '4': {name: 'fenced_code.block.language.markdown'},
+        '5': {name: 'fenced_code.block.language.attributes.markdown'}
+      },
+
+      endCaptures: {
+        '3': {name: 'punctuation.definition.markdown'}
+      },
+
+      patterns: [
+        {
+          begin: rx`(^|\G)(\s*)(.*)`,
+          while: rx`(^|\G)(?!\s*([${bt}~]{3,})\s*$)`,
+          contentName: 'meta.embedded.block.fink',
+          patterns: [{include: 'source.fink'}]
+        }
+      ]
+    }
+  }
+};
