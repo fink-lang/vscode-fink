@@ -120,26 +120,27 @@ fn collect_tokens<'src>(ast: &'src Ast<'src>, id: AstId, tokens: &mut Vec<RawTok
         NodeKind::LitRec { items: children, .. } => {
             for child_id in children.items.iter() {
                 let child = ast.nodes.get(*child_id);
-                if let NodeKind::Arm { lhs, body, .. } = &child.kind {
-                    let lhs_node = ast.nodes.get(*lhs);
-                    if let NodeKind::Patterns(pats) = &lhs_node.kind {
-                        if let Some(first_lhs_id) = pats.items.first() {
-                            let first_lhs = ast.nodes.get(*first_lhs_id);
-                            if matches!(&first_lhs.kind, NodeKind::Ident(_)) {
-                                if body.items.is_empty() {
-                                    emit_token(tokens, first_lhs, TOKEN_VARIABLE, MOD_READONLY);
-                                } else {
-                                    emit_token(tokens, first_lhs, TOKEN_PROPERTY, 0);
-                                }
-                            }
+                match &child.kind {
+                    // Field with a value (`{foo: 1}` / `{foo = 1}`): emit a
+                    // property token on the ident key, then recurse the value.
+                    NodeKind::NamedValue { name, value, .. } => {
+                        let name_node = ast.nodes.get(*name);
+                        if matches!(&name_node.kind, NodeKind::Ident(_)) {
+                            emit_token(tokens, name_node, TOKEN_PROPERTY, 0);
                         }
+                        collect_tokens(ast, *value, tokens);
                     }
-                    // Recurse into arm body
-                    for expr_id in body.items.iter() {
-                        collect_tokens(ast, *expr_id, tokens);
+                    // Non-ident key (`{'bar': 2}` / `{(k): 3}`): no property
+                    // token; recurse both key and value.
+                    NodeKind::KeyValue { key, value, .. } => {
+                        collect_tokens(ast, *key, tokens);
+                        collect_tokens(ast, *value, tokens);
                     }
-                } else {
-                    collect_tokens(ast, *child_id, tokens);
+                    // Shorthand field (`{foo, bar}`): bare ident, read-only.
+                    NodeKind::Ident(_) => {
+                        emit_token(tokens, child, TOKEN_VARIABLE, MOD_READONLY);
+                    }
+                    _ => collect_tokens(ast, *child_id, tokens),
                 }
             }
         }
@@ -171,6 +172,18 @@ fn collect_tokens<'src>(ast: &'src Ast<'src>, id: AstId, tokens: &mut Vec<RawTok
         | NodeKind::Member { lhs, rhs, .. } => {
             collect_tokens(ast, *lhs, tokens);
             collect_tokens(ast, *rhs, tokens);
+        }
+
+        // NamedValue / KeyValue reached outside a record literal (e.g. named
+        // call arguments `foo bar=1`). Recurse into both sides; the record-
+        // specific property-token handling lives in the LitRec arm above.
+        NodeKind::NamedValue { name, value, .. } => {
+            collect_tokens(ast, *name, tokens);
+            collect_tokens(ast, *value, tokens);
+        }
+        NodeKind::KeyValue { key, value, .. } => {
+            collect_tokens(ast, *key, tokens);
+            collect_tokens(ast, *value, tokens);
         }
 
         NodeKind::UnaryOp { operand, .. } => {
@@ -1011,6 +1024,14 @@ fn collect_sm_candidates(ast: &Ast, id: AstId, out: &mut Vec<AstId>) {
         | NodeKind::Member { lhs, rhs, .. } => {
             collect_sm_candidates(ast, *lhs, out);
             collect_sm_candidates(ast, *rhs, out);
+        }
+        NodeKind::NamedValue { name, value, .. } => {
+            collect_sm_candidates(ast, *name, out);
+            collect_sm_candidates(ast, *value, out);
+        }
+        NodeKind::KeyValue { key, value, .. } => {
+            collect_sm_candidates(ast, *key, out);
+            collect_sm_candidates(ast, *value, out);
         }
         NodeKind::UnaryOp { operand, .. } => collect_sm_candidates(ast, *operand, out),
         NodeKind::Group { inner, .. } | NodeKind::Try(inner) => collect_sm_candidates(ast, *inner, out),
