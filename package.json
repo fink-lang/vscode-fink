@@ -127,10 +127,13 @@
     "configuration": {
       "title": "fink",
       "properties": {
-        "fink.stdPath": {
-          "type": "string",
-          "default": "",
-          "description": "Path to the fink std/ directory, used to resolve 'std/*' imports for go-to-definition. Absolute, or relative to the workspace folder. Overrides the FINK_STD environment variable. When empty, defaults to <workspace>/std."
+        "fink.packagePaths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": ["pkgs"],
+          "description": "Package search roots for resolving 'std/*', 'fink/*', and other package imports in go-to-definition. Each entry is a directory under which packages live as <root>/<pkg>/<path> (e.g. a checkout of fink's 'pkgs/' directory). Entries are tried in order; the first existing file wins. Each entry is absolute, or relative to the workspace folder. When empty, the FINK_PKGS environment variable (colon-separated) is used instead."
         }
       }
     }
